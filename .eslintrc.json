@@ -1,0 +1,7 @@
+{
+  "extends": [
+    "@mc-styrsky/typescript"
+  ],
+  "rules": {
+  }
+}

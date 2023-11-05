@@ -1,0 +1,8 @@
+# Node.js files/folders
+node_modules
+package-lock.json
+tiles
+
+# Misc
+*.log
+.DS_Store

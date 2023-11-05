@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "express": "^4.18.2",
+    "json-stable-stringify": "^1.0.2",
+    "node-fetch": "^3.3.2"
+  },
+  "devDependencies": {
+    "@mc-styrsky/eslint-config-typescript": "^1.0.0",
+    "@types/express": "^4.17.17",
+    "@types/json-stable-stringify": "^1.0.34",
+    "@types/node": "^20.4.5",
+    "esbuild": "^0.18.17",
+    "npm-check-updates": "^16.14.6",
+    "typescript": "^5.1.6"
+  },
+  "name": "mapsmirror",
+  "scripts": {
+    "bundle:client": "npx esbuild src/client/index.ts --bundle --format=esm --outfile=public/client.js --platform=browser --sourcemap",
+    "bundle": "npx esbuild src/index.ts --bundle --external:./node_modules/* --format=esm --outfile=dist/index.js --platform=node --sourcemap",
+    "build": "npm run bundle:client && npm run bundle",
+    "start": "node --enable-source-maps dist/index.js"
+  },
+  "type": "module"
+}
