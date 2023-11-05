@@ -42,7 +42,7 @@ express().use(express.json()).use(express.urlencoded({ extended: true })).use(""
     const pathX = x.toString(16).padStart(length, "0").split("");
     const pathY = y.toString(16).padStart(length, "0").split("");
     const file = `${pathX.pop()}${pathY.pop()}.png`;
-    const path = `tiles/${provider}/${zoom}/${pathX.map((_val, idx) => pathX[idx] + pathY[idx]).join("/")}`;
+    const path = `tiles/${provider}/${zoom.toString(36)}/${pathX.map((_val, idx) => pathX[idx] + pathY[idx]).join("/")}`;
     await mkdir(path, { recursive: true });
     const filename = `${pwd}/${path}/${file}`;
     const fileStats = await stat(filename).catch(() => null);
@@ -60,22 +60,26 @@ express().use(express.json()).use(express.urlencoded({ extended: true })).use(""
         res.sendFile(filename);
       });
       console.log("[get]   ", filename);
-      const imageStream = await fetch(url, { signal: timeoutController.signal }).then((response) => response.body).catch(() => {
-        res.status(500).json({
-          length,
-          pathX,
-          pathY,
-          provider,
-          url
+      try {
+        const imageStream = await fetch(url, { signal: timeoutController.signal }).then((response) => response.body).catch(() => {
+          res.status(500).json({
+            length,
+            pathX,
+            pathY,
+            provider,
+            url
+          });
         });
-      });
-      if (imageStream)
-        imageStream.pipe(writeImageStream);
+        if (imageStream)
+          imageStream.pipe(writeImageStream);
+      } catch {
+      }
       clearTimeout(timeoutTimeout);
     }
     if (ttl > 0) {
       const fetchTile = (dx, dy) => {
-        return fetch(`http://localhost:${port}/tile/${provider}/${zoom + 1}/${x * 2 + dx}/${y * 2 + dy}?ttl=${ttl - 1}&quiet=1`);
+        const url2 = `http://localhost:${port}/tile/${provider}/${zoom + 1}/${x * 2 + dx}/${y * 2 + dy}?ttl=${ttl - 1}&quiet=1`;
+        return fetch(url2).catch(() => console.log("[failed]", url2));
       };
       fetchTile(0, 0);
       fetchTile(0, 1);

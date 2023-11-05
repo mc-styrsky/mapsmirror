@@ -49,7 +49,7 @@ const createImages = ({
           z,
           Math.floor(x + dx).toString(16),
           Math.floor(y + dy).toString(16),
-        ].join('/')}?ttl=4`,
+        ].join('/')}?ttl=6`,
         style: {
           left: `${centerX + (dx - x + Math.floor(x)) * tileSize}px`,
           position: 'absolute',
