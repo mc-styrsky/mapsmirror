@@ -76,7 +76,7 @@ await files.reduce(async (prom, { file, offset: { x, y } }) => {
       const xdx = x + dx;
       const valueRaw = raster[lineOffset + gebcox];
       if (typeof valueRaw !== 'number') console.log({ dx, dy, gebcox, gebcoy, lat, lineOffset, lon, value: valueRaw, x, y });
-      const val = Math.max(0, Math.min(Math.round(valueRaw) + 255, 255));
+      const val = Math.max(0, Math.min(Math.round(valueRaw) + 128, 255));
       if (!(val <= 255 && val >= 0)) console.log(val);
       const pos = xdx + ydy * (1 << zoom);
       depthMaps[pos / mapLength | 0][pos & mapLength1] = val;
@@ -107,11 +107,11 @@ async function writeTiles (maps, z) {
         }
       }
 
-      const length = 1 + (z - 8 >> 2);
+      const length = z + 3 - 8 >> 2;
       const pathX = x.toString(16).padStart(length, '0').split('');
       const pathY = y.toString(16).padStart(length, '0').split('');
       const file = `${pathX.pop()}${pathY.pop()}.png`;
-      const path = `/home/sty/Documents/GitHub/mapsmirror/tiles/gebco/${(z - 8).toString(36)}/${pathX.map((_val, idx) => pathX[idx] + pathY[idx]).join('/')}`;
+      const path = `/home/sty/Documents/GitHub/mapsmirror/tiles/gebcomin/${(z - 8).toString(36)}/${pathX.map((_val, idx) => pathX[idx] + pathY[idx]).join('/')}`;
       const filename = `${path}/${file}`;
       mkdir(path, { recursive: true })
       .then(() => sharp(tile, {
@@ -136,7 +136,7 @@ async function writeTiles (maps, z) {
       const offset = offsettotal - mapLength * mapid;
       const map = maps[mapid];
       for (let x = 0; x < w; x += 2) {
-        const val = Math.max(
+        const val = Math.min(
           map[offset + x],
           map[offset + x + 1],
           map[offset + w + x],
