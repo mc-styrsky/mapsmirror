@@ -54,6 +54,7 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent) => {
     else if (key === '4') position.source = 'googlestreet';
     else if (key === '5') position.source = 'googlehybrid';
     else if (key === '6') position.source = 'gebco';
+    else if (key === '7') position.source = 'cache';
     else if (key === 'PageUp') position.ttl++;
     else if (key === 'PageDown') {
       position.ttl--;
@@ -66,8 +67,8 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent) => {
   }
   else if (event instanceof MouseEvent) {
     const { clientX, clientY } = event;
-    position.x = Math.round(position.x + (position.mouse.x - clientX)) / tileSize;
-    position.y = Math.round(position.y + (position.mouse.y - clientY)) / tileSize;
+    position.x = Math.round(position.x * tileSize + (position.mouse.x - clientX)) / tileSize;
+    position.y = Math.round(position.y * tileSize + (position.mouse.y - clientY)) / tileSize;
   }
 
   const tileCount = 1 << position.z;

@@ -53,7 +53,7 @@ export const createCanvas = async ({
         z,
         Math.floor(dx).toString(16),
         Math.floor(dy).toString(16),
-      ].join('/')}?ttl=${position.ttl}`;
+      ].join('/')}?ttl=${Math.max(Math.min(17, z + position.ttl) - z, 0)}`;
 
       const imageFromMap = imagesMap[src];
       if (imageFromMap) {

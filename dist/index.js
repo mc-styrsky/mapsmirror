@@ -1,15 +1,14 @@
 // src/server/index.ts
-import { StyQueue } from "../node_modules/@mc-styrsky/queue/lib/index.js";
+import { StyQueue as StyQueue2 } from "../node_modules/@mc-styrsky/queue/lib/index.js";
 import express from "../node_modules/express/index.js";
 
 // src/common/consts.ts
 var port = 3e3;
 
 // src/server/requestHandler/getTile.ts
+import { StyQueue } from "../node_modules/@mc-styrsky/queue/lib/index.js";
 import { createWriteStream } from "fs";
-import { mkdir, stat } from "fs/promises";
-import fetch2 from "../node_modules/node-fetch/src/index.js";
-import { Readable } from "stream";
+import { mkdir, stat, unlink } from "fs/promises";
 
 // src/common/extractProperties.ts
 function extractProperties(obj, builder) {
@@ -20,6 +19,16 @@ function extractProperties(obj, builder) {
   }, {});
 }
 
+// src/server/urls/cache.ts
+var xyz2cache = async (x, y, z) => {
+  if (z > 9)
+    return {};
+  return {
+    local: true,
+    url: `./cache/tiles/${z}/${x}/${y}.png`
+  };
+};
+
 // src/server/urls/default.ts
 var xyz2default = async () => ({});
 
@@ -28,6 +37,7 @@ var xyz2gebco = async (x, y, z) => {
   if (z > 9)
     return {};
   return {
+    local: true,
     url: `./gebco/tiles/${z}/${x}/${y}.png`
   };
 };
@@ -118,11 +128,42 @@ var xyz2osm = async (x, y, z) => {
   };
 };
 
+// src/server/utils/fetchFromTileServer.ts
+import fetch2 from "../node_modules/node-fetch/src/index.js";
+import { Readable } from "stream";
+var fetchFromTileServer = ({ params, provider, url, x, y, z }) => fetch2(url, params).then(async (response) => {
+  if (response.status === 200)
+    return {
+      body: response.body,
+      status: response.status
+    };
+  if (response.status === 404) {
+    if (provider === "googlesat") {
+      const { url: urlHybrid } = await xyz2googlehybrid(x, y, z);
+      if (urlHybrid)
+        return fetchFromTileServer({ params, provider: "googlehybrid", url: urlHybrid, x, y, z });
+    }
+    return {
+      body: Readable.from(""),
+      status: response.status
+    };
+  }
+  return {
+    body: null,
+    status: response.status
+  };
+}).catch(() => {
+  return {
+    body: null,
+    status: 500
+  };
+});
+
 // src/server/utils/getTileParams.ts
 var getTileParams = ({ x, y, z }) => {
   const length = z + 3 >> 2;
-  const pathX = x.toString(16).padStart(length, "0").split("");
-  const pathY = y.toString(16).padStart(length, "0").split("");
+  const pathX = (x % (1 << z)).toString(16).padStart(length, "0").split("");
+  const pathY = (y % (1 << z)).toString(16).padStart(length, "0").split("");
   const tileFileId = `${pathX.pop()}${pathY.pop()}`;
   const tilePath = pathX.map((_val, idx) => pathX[idx] + pathY[idx]).join("/");
   const tileId = `${tilePath}/${tileFileId}`;
@@ -191,8 +232,8 @@ var getTile = async (req, res) => {
       setMaxzoom(zoom);
     const max = 1 << zoom;
     const parsePosition = (val) => {
-      const ret2 = parseInt(String(val), 16) % max;
-      return ret2 < 0 ? ret2 + max : ret2;
+      const ret = parseInt(String(val), 16) % max;
+      return ret < 0 ? ret + max : ret;
     };
     const { provider, x, y } = extractProperties(req.params, {
       provider: String,
@@ -204,9 +245,10 @@ var getTile = async (req, res) => {
       ttl: (val) => parseInt(String(val ?? 3))
     });
     const queue = quiet ? queues.quiet : queues.verbose;
-    const ret = await queue.enqueue(async () => {
-      let fetchChilds = null;
-      const { params = {}, url = "" } = await ({
+    const fetchChilds = await queue.enqueue(async () => {
+      let ret = null;
+      const { local = false, params = {}, url = "" } = await ({
+        cache: xyz2cache,
         gebco: xyz2gebco,
         googlehybrid: xyz2googlehybrid,
         googlesat: xyz2googlesat,
@@ -215,12 +257,13 @@ var getTile = async (req, res) => {
         osm: xyz2osm
       }[provider] ?? xyz2default)(x, y, zoom);
       if (!url) {
-        fetchChilds = false;
+        ret = false;
         res?.sendStatus(404);
-        return fetchChilds;
+        return ret;
       }
-      const { tileFileId, tileId, tilePath } = getTileParams({ x, y, z: zoom });
+      const { tileFileId, tilePath } = getTileParams({ x, y, z: zoom });
       if (!(await Promise.all([
+        local,
         worthIt({ x, y, z: zoom }),
         worthIt({ x, y: y - 1, z: zoom }),
         worthIt({ x, y: y + 1, z: zoom }),
@@ -232,8 +275,8 @@ var getTile = async (req, res) => {
         worthIt({ x: x + 1, y: y + 1, z: zoom })
       ])).some(Boolean)) {
         res?.sendFile(`${pwd}/unworthy.png`);
-        fetchChilds = false;
-        return fetchChilds;
+        ret = false;
+        return ret;
       }
       const file = `${tileFileId}.png`;
       const path = `tiles/${provider}/${zoom.toString(36)}/${tilePath}`;
@@ -244,45 +287,27 @@ var getTile = async (req, res) => {
         if (fileStats.size > 100) {
           if (!quiet)
             console.log("[cached]", filename);
-          fetchChilds = true;
+          ret = true;
           res?.sendFile(filename);
         } else {
-          fetchChilds = false;
-          res?.sendStatus(404);
+          ret = false;
+          if (provider === "googlesat") {
+            await unlink(filename);
+            res?.redirect(`/tile/googlehybrid/${zoom}/${x.toString(16)}/${y.toString(16)}?ttl=${ttl}`);
+          } else
+            res?.sendStatus(404);
         }
+      } else if (local) {
+        ret = false;
+        res?.sendStatus(404);
       } else {
         const timeoutController = new globalThis.AbortController();
         const timeoutTimeout = setTimeout(() => timeoutController.abort(), 1e4);
         try {
           params.signal = timeoutController.signal;
-          const imageStream = await fetch2(url, params).then((response) => {
-            if (response.status === 200)
-              return {
-                body: response.body,
-                status: response.status
-              };
-            if (response.status === 404)
-              return {
-                body: Readable.from(""),
-                status: response.status
-              };
-            return {
-              body: null,
-              status: response.status
-            };
-          }).catch(() => {
-            res?.status(500).json({
-              provider,
-              tileId,
-              url
-            });
-            return {
-              body: null,
-              status: 500
-            };
-          });
+          const imageStream = await queues.fetch.enqueue(() => fetchFromTileServer({ params, provider, url, x, y, z: zoom }));
           if (imageStream.body) {
-            fetchChilds = true;
+            ret = true;
             const writeImageStream = createWriteStream(filename);
             writeImageStream.addListener("finish", () => {
               if (quiet)
@@ -293,44 +318,46 @@ var getTile = async (req, res) => {
             imageStream.body.pipe(writeImageStream);
           } else {
             console.log("no imagestream", { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
-            if (imageStream.status === 404)
-              res?.sendStatus(imageStream.status);
+            res?.sendStatus(imageStream.status ?? 500);
           }
         } catch (e) {
           console.log(e);
         }
         clearTimeout(timeoutTimeout);
       }
-      if (fetchChilds && ttl > 0 && zoom < 22 && provider !== "gebco") {
-        const fetchTile = async (dx, dy) => {
-          try {
-            await getTile(
-              {
-                params: {
-                  provider,
-                  x: (x * 2 + dx).toString(16),
-                  y: (y * 2 + dy).toString(16),
-                  zoom: String(zoom + 1)
-                },
-                query: {
-                  quiet: "1",
-                  ttl: String(ttl - 1)
-                }
-              },
-              null
-            );
-          } catch (e) {
-            console.log(e);
-          }
-        };
-        fetchTile(0, 0);
-        fetchTile(0, 1);
-        fetchTile(1, 0);
-        fetchTile(1, 1);
-      }
-      return fetchChilds;
+      return ret;
     });
-    return ret;
+    if (fetchChilds && ttl > 0 && zoom < 22) {
+      const fetchTile = async (dx, dy) => {
+        try {
+          await getTile(
+            {
+              params: {
+                provider,
+                x: (x * 2 + dx).toString(16),
+                y: (y * 2 + dy).toString(16),
+                zoom: String(zoom + 1)
+              },
+              query: {
+                quiet: "1",
+                ttl: String(ttl - 1)
+              }
+            },
+            null
+          );
+        } catch (e) {
+          console.log(e);
+        }
+      };
+      queues.childs[zoom] ??= new StyQueue(1e3);
+      const childQueue = queues.childs[zoom];
+      await childQueue.enqueue(() => null);
+      childQueue.enqueue(() => fetchTile(0, 0));
+      childQueue.enqueue(() => fetchTile(0, 1));
+      childQueue.enqueue(() => fetchTile(1, 0));
+      childQueue.enqueue(() => fetchTile(1, 1));
+    }
+    return fetchChilds;
   } catch (e) {
     console.error(e);
     res?.status(500).send("internal server error");
@@ -341,8 +368,10 @@ var getTile = async (req, res) => {
 // src/server/index.ts
 var pwd = "/home/sty/Documents/GitHub/mapsmirror";
 var queues = {
-  quiet: new StyQueue(10),
-  verbose: new StyQueue(10)
+  childs: {},
+  fetch: new StyQueue2(10),
+  quiet: new StyQueue2(100),
+  verbose: new StyQueue2(10)
 };
 express().use(express.json()).use(express.urlencoded({ extended: true })).use("", express.static("public")).get("/tile/:provider/:zoom/:x/:y", getTile).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
   console.error(`cannot start listener on port ${port}`);
@@ -353,10 +382,24 @@ var getMaxzoom = () => maxzoom;
 var setMaxzoom = (z) => maxzoom = z;
 setInterval(() => {
   console.log({
+    fetch: queues.fetch.length,
     maxzoom,
-    quite: queues.quiet.length,
-    verbose: queues.verbose.length
+    quiet: queues.quiet.length,
+    todo: Object.entries(queues.childs).reduce(
+      (sum, [key, queue]) => {
+        const len = queue.length;
+        sum += Math.round(Math.max(0, len - 1e3) * (Math.pow(4, 15 - parseInt(key)) + Math.pow(2, 14 - parseInt(key))));
+        sum += Math.round(Math.min(1e3, len) * (1 << 15 - parseInt(key)));
+        return sum;
+      },
+      0
+    ),
+    verbose: queues.verbose.length,
+    ...Object.fromEntries(
+      Object.entries(queues.childs).map(([key, queue]) => [key, queue.length]).filter(([, v]) => v)
+    )
   });
+  maxzoom = -1;
 }, 2e3);
 export {
   getMaxzoom,

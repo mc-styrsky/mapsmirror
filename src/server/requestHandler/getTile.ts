@@ -1,10 +1,10 @@
 import type express from 'express';
+import { StyQueue } from '@mc-styrsky/queue';
 import { createWriteStream } from 'fs';
-import { mkdir, stat } from 'fs/promises';
-import fetch from 'node-fetch';
-import { Readable } from 'stream';
+import { mkdir, stat, unlink } from 'fs/promises';
 import { extractProperties } from '../../common/extractProperties';
 import { getMaxzoom, pwd, queues, setMaxzoom } from '../index';
+import { xyz2cache } from '../urls/cache';
 import { xyz2default } from '../urls/default';
 import { xyz2gebco } from '../urls/gebco';
 import { xyz2googlehybrid } from '../urls/googlehybrid';
@@ -12,6 +12,7 @@ import { xyz2googlesat } from '../urls/googlesat';
 import { xyz2googlestreet } from '../urls/googlestreet';
 import { xyz2navionics } from '../urls/navionics';
 import { xyz2osm } from '../urls/osm';
+import { fetchFromTileServer } from '../utils/fetchFromTileServer';
 import { getTileParams } from '../utils/getTileParams';
 import { worthIt } from '../utils/worthit';
 
@@ -45,10 +46,11 @@ export const getTile = async (
     });
 
     const queue = quiet ? queues.quiet : queues.verbose;
-    const ret = await queue.enqueue(async () => {
-      let fetchChilds: boolean | null = null;
+    const fetchChilds = await queue.enqueue(async () => {
+      let ret: boolean | null = null;
 
-      const { params = {}, url = '' } = await ({
+      const { local = false, params = {}, url = '' } = await ({
+        cache: xyz2cache,
         gebco: xyz2gebco,
         googlehybrid: xyz2googlehybrid,
         googlesat: xyz2googlesat,
@@ -58,14 +60,15 @@ export const getTile = async (
       }[provider] ?? xyz2default)(x, y, zoom);
 
       if (!url) {
-        fetchChilds = false;
+        ret = false;
         res?.sendStatus(404);
-        return fetchChilds;
+        return ret;
       }
 
-      const { tileFileId, tileId, tilePath } = getTileParams({ x, y, z: zoom });
+      const { tileFileId, tilePath } = getTileParams({ x, y, z: zoom });
 
       if (!(await Promise.all([
+        local,
         worthIt({ x: x, y: y, z: zoom }),
         worthIt({ x: x, y: y - 1, z: zoom }),
         worthIt({ x: x, y: y + 1, z: zoom }),
@@ -77,9 +80,9 @@ export const getTile = async (
         worthIt({ x: x + 1, y: y + 1, z: zoom }),
       ])).some(Boolean)) {
         res?.sendFile(`${pwd}/unworthy.png`);
-        fetchChilds = false;
+        ret = false;
         // console.log('unworthy', { provider, x, y, zoom });
-        return fetchChilds;
+        return ret;
       }
 
       const file = `${tileFileId}.png`;
@@ -91,13 +94,21 @@ export const getTile = async (
       if (fileStats && fileStats.isFile()) {
         if (fileStats.size > 100) {
           if (!quiet) console.log('[cached]', filename);
-          fetchChilds = true;
+          ret = true;
           res?.sendFile(filename);
         }
         else {
-          fetchChilds = false;
-          res?.sendStatus(404);
+          ret = false;
+          if (provider === 'googlesat') {
+            await unlink(filename);
+            res?.redirect(`/tile/googlehybrid/${zoom}/${x.toString(16)}/${y.toString(16)}?ttl=${ttl}`);
+          }
+          else res?.sendStatus(404);
         }
+      }
+      else if (local) {
+        ret = false;
+        res?.sendStatus(404);
       }
       else {
         const timeoutController = new globalThis.AbortController();
@@ -106,35 +117,10 @@ export const getTile = async (
         // console.log('[get]   ', { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
         try {
           params.signal = timeoutController.signal;
-          const imageStream = await fetch(url, params)
-          .then((response) => {
-            if (response.status === 200) return {
-              body: response.body,
-              status: response.status,
-            };
-            if (response.status === 404) return {
-              body: Readable.from(''),
-              status: response.status,
-            };
-            return {
-              body: null,
-              status: response.status,
-            };
-          })
-          .catch(() => {
-            res?.status(500).json({
-              provider,
-              tileId,
-              url,
-            });
-            return {
-              body: null,
-              status: 500,
-            };
-          });
+          const imageStream = await queues.fetch.enqueue(() => fetchFromTileServer({ params, provider, url, x, y, z: zoom }));
 
           if (imageStream.body) {
-            fetchChilds = true;
+            ret = true;
             const writeImageStream = createWriteStream(filename);
             writeImageStream.addListener('finish', () => {
               if (quiet) res?.sendStatus(200);
@@ -144,7 +130,7 @@ export const getTile = async (
           }
           else {
             console.log('no imagestream', { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
-            if (imageStream.status === 404) res?.sendStatus(imageStream.status);
+            res?.sendStatus(imageStream.status ?? 500);
           }
         }
         catch (e) {
@@ -152,38 +138,41 @@ export const getTile = async (
         }
         clearTimeout(timeoutTimeout);
       }
-      if (fetchChilds && ttl > 0 && zoom < 22 && provider !== 'gebco') {
-        const fetchTile = async (dx: number, dy: number) => {
-          try {
-            await getTile(
-              <any> {
-                params: {
-                  provider,
-                  x: (x * 2 + dx).toString(16),
-                  y: (y * 2 + dy).toString(16),
-                  zoom: String(zoom + 1),
-                },
-                query: {
-                  quiet: '1',
-                  ttl: String(ttl - 1),
-                },
-              },
-              null,
-            );
-          }
-          catch (e) {
-            console.log(e);
-          }
-        };
-
-        fetchTile(0, 0);
-        fetchTile(0, 1);
-        fetchTile(1, 0);
-        fetchTile(1, 1);
-      }
-      return fetchChilds;
+      return ret;
     });
-    return ret;
+    if (fetchChilds && ttl > 0 && zoom < 22) {
+      const fetchTile = async (dx: number, dy: number) => {
+        try {
+          await getTile(
+            <any> {
+              params: {
+                provider,
+                x: (x * 2 + dx).toString(16),
+                y: (y * 2 + dy).toString(16),
+                zoom: String(zoom + 1),
+              },
+              query: {
+                quiet: '1',
+                ttl: String(ttl - 1),
+              },
+            },
+            null,
+          );
+        }
+        catch (e) {
+          console.log(e);
+        }
+      };
+
+      queues.childs[zoom] ??= new StyQueue(1000);
+      const childQueue = queues.childs[zoom];
+      await childQueue.enqueue(() => null);
+      childQueue.enqueue(() => fetchTile(0, 0));
+      childQueue.enqueue(() => fetchTile(0, 1));
+      childQueue.enqueue(() => fetchTile(1, 0));
+      childQueue.enqueue(() => fetchTile(1, 1));
+    }
+    return fetchChilds;
   }
   catch (e) {
     console.error(e);

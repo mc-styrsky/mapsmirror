@@ -226,7 +226,7 @@ var createCanvas = async ({
         z,
         Math.floor(dx).toString(16),
         Math.floor(dy).toString(16)
-      ].join("/")}?ttl=${position.ttl}`;
+      ].join("/")}?ttl=${Math.max(Math.min(17, z + position.ttl) - z, 0)}`;
       const imageFromMap = imagesMap[src];
       if (imageFromMap) {
         usedImages.add(src);
@@ -420,6 +420,8 @@ var onchange = (event) => {
       position.source = "googlehybrid";
     else if (key === "6")
       position.source = "gebco";
+    else if (key === "7")
+      position.source = "cache";
     else if (key === "PageUp")
       position.ttl++;
     else if (key === "PageDown") {
@@ -432,11 +434,11 @@ var onchange = (event) => {
     }
   } else if (event instanceof MouseEvent) {
     const { clientX, clientY } = event;
-    position.x += (position.mouse.x - clientX) / tileSize;
-    position.y += (position.mouse.y - clientY) / tileSize;
+    position.x = Math.round(position.x * tileSize + (position.mouse.x - clientX)) / tileSize;
+    position.y = Math.round(position.y * tileSize + (position.mouse.y - clientY)) / tileSize;
   }
   const tileCount = 1 << position.z;
-  position.y = Math.max(0, Math.min(position.y, tileCount - 1));
+  position.y = Math.max(0, Math.min(position.y, tileCount));
   if (position.x < 0)
     position.x += tileCount;
   if (position.x > tileCount)
