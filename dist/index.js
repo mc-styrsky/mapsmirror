@@ -132,6 +132,7 @@ var xyz2osm = async (x, y, z) => {
 import fetch2 from "../node_modules/node-fetch/src/index.js";
 import { Readable } from "stream";
 var fetchFromTileServer = ({ params, provider, url, x, y, z }) => fetch2(url, params).then(async (response) => {
+  queues.fetched++;
   if (response.status === 200)
     return {
       body: response.body,
@@ -349,9 +350,12 @@ var getTile = async (req, res) => {
           console.log(e);
         }
       };
+      queues.childsCollapsed[zoom] ??= 0;
       queues.childs[zoom] ??= new StyQueue(1e3);
       const childQueue = queues.childs[zoom];
+      queues.childsCollapsed[zoom]++;
       await childQueue.enqueue(() => null);
+      queues.childsCollapsed[zoom]--;
       childQueue.enqueue(() => fetchTile(0, 0));
       childQueue.enqueue(() => fetchTile(0, 1));
       childQueue.enqueue(() => fetchTile(1, 0));
@@ -369,7 +373,9 @@ var getTile = async (req, res) => {
 var pwd = "/home/sty/Documents/GitHub/mapsmirror";
 var queues = {
   childs: {},
+  childsCollapsed: {},
   fetch: new StyQueue2(10),
+  fetched: 0,
   quiet: new StyQueue2(100),
   verbose: new StyQueue2(10)
 };
@@ -380,25 +386,42 @@ express().use(express.json()).use(express.urlencoded({ extended: true })).use(""
 var maxzoom = -1;
 var getMaxzoom = () => maxzoom;
 var setMaxzoom = (z) => maxzoom = z;
+var todoLast = 0;
+var fetchedLast = 0;
 setInterval(() => {
+  const partialSum = (n) => (1 - Math.pow(4, n)) / (1 - 4);
+  const todo = Object.entries(queues.childs).reduce(
+    (sum, [key, queue]) => {
+      const len = queue.length;
+      const collapsed = queues.childsCollapsed[key] ?? 0;
+      sum += Math.round(collapsed * partialSum(17 - parseInt(key)));
+      sum += Math.round((len - collapsed) * partialSum(16 - parseInt(key)));
+      return sum;
+    },
+    0
+  );
+  const done = todoLast - todo;
+  todoLast = todo;
   console.log({
-    fetch: queues.fetch.length,
-    maxzoom,
-    quiet: queues.quiet.length,
-    todo: Object.entries(queues.childs).reduce(
-      (sum, [key, queue]) => {
-        const len = queue.length;
-        sum += Math.round(Math.max(0, len - 1e3) * (Math.pow(4, 15 - parseInt(key)) + Math.pow(2, 14 - parseInt(key))));
-        sum += Math.round(Math.min(1e3, len) * (1 << 15 - parseInt(key)));
-        return sum;
-      },
-      0
-    ),
-    verbose: queues.verbose.length,
-    ...Object.fromEntries(
+    childs: Object.fromEntries(
       Object.entries(queues.childs).map(([key, queue]) => [key, queue.length]).filter(([, v]) => v)
-    )
+    ),
+    collapsed: Object.fromEntries(
+      Object.entries(queues.childsCollapsed).filter(([, v]) => v)
+    ),
+    fetched: `${queues.fetched - fetchedLast} (${queues.fetched})`,
+    perf: {
+      done,
+      maxzoom,
+      todo: todo.toPrecision(4)
+    },
+    queues: {
+      fetch: queues.fetch.length,
+      quiet: queues.quiet.length,
+      verbose: queues.verbose.length
+    }
   });
+  fetchedLast = queues.fetched;
   maxzoom = -1;
 }, 2e3);
 export {

@@ -1,10 +1,12 @@
 import type { RequestInit } from 'node-fetch';
 import fetch from 'node-fetch';
 import { Readable } from 'stream';
+import { queues } from '../index';
 import { xyz2googlehybrid } from '../urls/googlehybrid';
 
 export const fetchFromTileServer = ({ params, provider, url, x, y, z }: { url: string; params: RequestInit; provider: string; x: number; y: number; z: number; }) => fetch(url, params)
 .then(async (response) => {
+  queues.fetched++;
   if (response.status === 200) return {
     body: response.body,
     status: response.status,

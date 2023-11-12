@@ -164,9 +164,12 @@ export const getTile = async (
         }
       };
 
+      queues.childsCollapsed[zoom] ??= 0;
       queues.childs[zoom] ??= new StyQueue(1000);
       const childQueue = queues.childs[zoom];
+      queues.childsCollapsed[zoom]++;
       await childQueue.enqueue(() => null);
+      queues.childsCollapsed[zoom]--;
       childQueue.enqueue(() => fetchTile(0, 0));
       childQueue.enqueue(() => fetchTile(0, 1));
       childQueue.enqueue(() => fetchTile(1, 0));
