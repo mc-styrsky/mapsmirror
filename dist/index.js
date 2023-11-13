@@ -130,7 +130,6 @@ var xyz2osm = async (x, y, z) => {
 
 // src/server/utils/fetchFromTileServer.ts
 import fetch2 from "../node_modules/node-fetch/src/index.js";
-import { Readable } from "stream";
 var fetchFromTileServer = ({ params, provider, url, x, y, z }) => fetch2(url, params).then(async (response) => {
   queues.fetched++;
   if (response.status === 200)
@@ -141,14 +140,16 @@ var fetchFromTileServer = ({ params, provider, url, x, y, z }) => fetch2(url, pa
   if (response.status === 404) {
     if (provider === "googlesat") {
       const { url: urlHybrid } = await xyz2googlehybrid(x, y, z);
+      console.log("fallback to hybrid", urlHybrid);
       if (urlHybrid)
         return fetchFromTileServer({ params, provider: "googlehybrid", url: urlHybrid, x, y, z });
     }
     return {
-      body: Readable.from(""),
+      body: null,
       status: response.status
     };
   }
+  console.log(response.status, response.statusText, url);
   return {
     body: null,
     status: response.status
@@ -174,6 +175,46 @@ var getTileParams = ({ x, y, z }) => {
     tilePath,
     z
   };
+};
+
+// src/server/utils/printStats.ts
+var todoLast = 0;
+var fetchedLast = 0;
+var maxzoom = -1;
+var getMaxzoom = () => maxzoom;
+var setMaxzoom = (z) => maxzoom = z;
+var printStats = () => {
+  const partialSum = (n) => (1 - Math.pow(4, n)) / (1 - 4);
+  const todo = Object.entries(queues.childs).reduce(
+    (sum, [key, queue]) => {
+      const len = queue.length;
+      const collapsed = queues.childsCollapsed[key] ?? 0;
+      sum += Math.round(collapsed * partialSum(17 - parseInt(key)));
+      sum += Math.round((len - collapsed) * partialSum(16 - parseInt(key)));
+      return sum;
+    },
+    0
+  );
+  const done = todoLast - todo;
+  todoLast = todo;
+  console.log({
+    childs: Object.fromEntries(
+      Object.entries(queues.childs).filter(([, v]) => v?.length).map(([key, queue]) => [key, `${queue.length} (${queues.childsCollapsed[key] ?? 0})`])
+    ),
+    fetched: `${queues.fetched - fetchedLast} (${queues.fetched})`,
+    perf: {
+      done,
+      maxzoom,
+      todo: todo.toPrecision(4)
+    },
+    queues: {
+      fetch: queues.fetch.length,
+      quiet: queues.quiet.length,
+      verbose: queues.verbose.length
+    }
+  });
+  fetchedLast = queues.fetched;
+  maxzoom = -1;
 };
 
 // src/server/utils/worthit.ts
@@ -302,11 +343,15 @@ var getTile = async (req, res) => {
         ret = false;
         res?.sendStatus(404);
       } else {
-        const timeoutController = new globalThis.AbortController();
-        const timeoutTimeout = setTimeout(() => timeoutController.abort(), 1e4);
         try {
-          params.signal = timeoutController.signal;
-          const imageStream = await queues.fetch.enqueue(() => fetchFromTileServer({ params, provider, url, x, y, z: zoom }));
+          const imageStream = await queues.fetch.enqueue(async () => {
+            const timeoutController = new globalThis.AbortController();
+            const timeoutTimeout = setTimeout(() => timeoutController.abort(), 1e4);
+            params.signal = timeoutController.signal;
+            const ret2 = await fetchFromTileServer({ params, provider, url, x, y, z: zoom });
+            clearTimeout(timeoutTimeout);
+            return ret2;
+          });
           if (imageStream.body) {
             ret = true;
             const writeImageStream = createWriteStream(filename);
@@ -318,13 +363,12 @@ var getTile = async (req, res) => {
             });
             imageStream.body.pipe(writeImageStream);
           } else {
-            console.log("no imagestream", { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
+            console.log("no imagestream", imageStream.status, { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
             res?.sendStatus(imageStream.status ?? 500);
           }
         } catch (e) {
           console.log(e);
         }
-        clearTimeout(timeoutTimeout);
       }
       return ret;
     });
@@ -376,58 +420,16 @@ var queues = {
   childsCollapsed: {},
   fetch: new StyQueue2(10),
   fetched: 0,
-  quiet: new StyQueue2(100),
-  verbose: new StyQueue2(10)
+  quiet: new StyQueue2(1e3),
+  verbose: new StyQueue2(100)
 };
 express().use(express.json()).use(express.urlencoded({ extended: true })).use("", express.static("public")).get("/tile/:provider/:zoom/:x/:y", getTile).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
   console.error(`cannot start listener on port ${port}`);
   console.log(e);
 });
-var maxzoom = -1;
-var getMaxzoom = () => maxzoom;
-var setMaxzoom = (z) => maxzoom = z;
-var todoLast = 0;
-var fetchedLast = 0;
-setInterval(() => {
-  const partialSum = (n) => (1 - Math.pow(4, n)) / (1 - 4);
-  const todo = Object.entries(queues.childs).reduce(
-    (sum, [key, queue]) => {
-      const len = queue.length;
-      const collapsed = queues.childsCollapsed[key] ?? 0;
-      sum += Math.round(collapsed * partialSum(17 - parseInt(key)));
-      sum += Math.round((len - collapsed) * partialSum(16 - parseInt(key)));
-      return sum;
-    },
-    0
-  );
-  const done = todoLast - todo;
-  todoLast = todo;
-  console.log({
-    childs: Object.fromEntries(
-      Object.entries(queues.childs).map(([key, queue]) => [key, queue.length]).filter(([, v]) => v)
-    ),
-    collapsed: Object.fromEntries(
-      Object.entries(queues.childsCollapsed).filter(([, v]) => v)
-    ),
-    fetched: `${queues.fetched - fetchedLast} (${queues.fetched})`,
-    perf: {
-      done,
-      maxzoom,
-      todo: todo.toPrecision(4)
-    },
-    queues: {
-      fetch: queues.fetch.length,
-      quiet: queues.quiet.length,
-      verbose: queues.verbose.length
-    }
-  });
-  fetchedLast = queues.fetched;
-  maxzoom = -1;
-}, 2e3);
+setInterval(printStats, 2e3);
 export {
-  getMaxzoom,
   pwd,
-  queues,
-  setMaxzoom
+  queues
 };
 //# sourceMappingURL=index.js.map

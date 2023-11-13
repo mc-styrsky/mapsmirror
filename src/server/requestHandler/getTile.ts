@@ -3,7 +3,7 @@ import { StyQueue } from '@mc-styrsky/queue';
 import { createWriteStream } from 'fs';
 import { mkdir, stat, unlink } from 'fs/promises';
 import { extractProperties } from '../../common/extractProperties';
-import { getMaxzoom, pwd, queues, setMaxzoom } from '../index';
+import { pwd, queues } from '../index';
 import { xyz2cache } from '../urls/cache';
 import { xyz2default } from '../urls/default';
 import { xyz2gebco } from '../urls/gebco';
@@ -14,6 +14,7 @@ import { xyz2navionics } from '../urls/navionics';
 import { xyz2osm } from '../urls/osm';
 import { fetchFromTileServer } from '../utils/fetchFromTileServer';
 import { getTileParams } from '../utils/getTileParams';
+import { getMaxzoom, setMaxzoom } from '../utils/printStats';
 import { worthIt } from '../utils/worthit';
 
 export const getTile = async (
@@ -111,13 +112,16 @@ export const getTile = async (
         res?.sendStatus(404);
       }
       else {
-        const timeoutController = new globalThis.AbortController();
-        const timeoutTimeout = setTimeout(() => timeoutController.abort(), 10000);
-
         // console.log('[get]   ', { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
         try {
-          params.signal = timeoutController.signal;
-          const imageStream = await queues.fetch.enqueue(() => fetchFromTileServer({ params, provider, url, x, y, z: zoom }));
+          const imageStream = await queues.fetch.enqueue(async () => {
+            const timeoutController = new globalThis.AbortController();
+            const timeoutTimeout = setTimeout(() => timeoutController.abort(), 10000);
+            params.signal = timeoutController.signal;
+            const ret = await fetchFromTileServer({ params, provider, url, x, y, z: zoom });
+            clearTimeout(timeoutTimeout);
+            return ret;
+          });
 
           if (imageStream.body) {
             ret = true;
@@ -129,14 +133,13 @@ export const getTile = async (
             imageStream.body.pipe(writeImageStream);
           }
           else {
-            console.log('no imagestream', { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
+            console.log('no imagestream', imageStream.status, { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
             res?.sendStatus(imageStream.status ?? 500);
           }
         }
         catch (e) {
           console.log(e);
         }
-        clearTimeout(timeoutTimeout);
       }
       return ret;
     });

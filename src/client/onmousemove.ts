@@ -1,5 +1,5 @@
-import { position } from './index';
 import { onchange } from './onchange';
+import { position } from './position';
 import { updateInfoBox } from './updateInfoBox';
 
 export const onmousemove = (event: MouseEvent) => {

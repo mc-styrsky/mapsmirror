@@ -1,4 +1,5 @@
-import { position, tileSize } from './index';
+import { tileSize } from './index';
+import { position } from './position';
 import { sphericCircle, sphericLatLon } from './sphericCircle';
 import { frac } from './utils/frac';
 import { lat2y } from './utils/lat2y';
@@ -28,14 +29,9 @@ export const crosshairs = (canvas: HTMLCanvasElement, context: CanvasRenderingCo
   context.beginPath();
   context.strokeStyle = '#ff0000';
   context.moveTo(center.x - 5, center.y + 5);
-  context.lineTo(center.x - 5, center.y - 5);
-  context.lineTo(center.x, center.y - 10);
   context.lineTo(center.x + 5, center.y - 5);
-  context.lineTo(center.x + 5, center.y + 5);
+  context.moveTo(center.x + 5, center.y + 5);
   context.lineTo(center.x - 5, center.y - 5);
-  context.lineTo(center.x + 5, center.y - 5);
-  context.lineTo(center.x - 5, center.y + 5);
-  context.lineTo(center.x + 5, center.y + 5);
   context.stroke();
   for (let minArc = milesPerArc; minArc < milesPerArc * 100; minArc += milesPerArc) {
     if (minArc > 10800) break;

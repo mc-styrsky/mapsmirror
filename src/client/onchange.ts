@@ -1,5 +1,9 @@
-import { container, position, tileSize } from '.';
+import { container, tileSize } from '.';
+import { position } from './position';
+import { updateGeoLocation } from './getUserLocation';
 import { redraw } from './redraw';
+import { lat2y } from './utils/lat2y';
+import { lon2x } from './utils/lon2x';
 
 export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent) => {
   if (!container) return;
@@ -46,8 +50,8 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent) => {
     else if (key === 'ArrowRight') position.x++;
     else if (key === 'ArrowUp') position.y--;
     else if (key === 'ArrowDown') position.y++;
-    else if (key === '+') zoomIn();
-    else if (key === '-') zoomOut();
+    else if (key === 'PageUp') zoomIn();
+    else if (key === 'PageDown') zoomOut();
     else if (key === '1') position.source = 'osm';
     else if (key === '2') position.source = 'googlesat';
     else if (key === '3') position.source = 'navionics';
@@ -55,11 +59,15 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent) => {
     else if (key === '5') position.source = 'googlehybrid';
     else if (key === '6') position.source = 'gebco';
     else if (key === '7') position.source = 'cache';
-    else if (key === 'PageUp') position.ttl++;
-    else if (key === 'PageDown') {
-      position.ttl--;
-      if (position.ttl < 0) position.ttl = 0;
+    else if (key === 'u') {
+      position.x = lon2x(position.user.longitude);
+      position.y = lat2y(position.user.latitude);
     }
+    else if (key === 'r') {
+      position.x = Math.round(position.x);
+      position.y = Math.round(position.y);
+    }
+    else if (key === 'l') updateGeoLocation();
     else {
       console.log('noop', { key, type });
       return;

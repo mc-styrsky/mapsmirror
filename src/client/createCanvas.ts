@@ -1,7 +1,7 @@
-import { port } from '../common/consts';
 import { createHTMLElement } from './createHTMLElement';
 import { crosshairs } from './crosshairs';
-import { position, tileSize } from './index';
+import { tileSize } from './index';
+import { position } from './position';
 
 const imagesMap: Record<string, HTMLImageElement> = {};
 
@@ -17,6 +17,7 @@ export const createCanvas = async ({
   const canvas = createHTMLElement({
     style: {
       height: `${height}px`,
+      position: 'absolute',
       width: `${width}px`,
     },
     tag: 'canvas',
@@ -49,7 +50,7 @@ export const createCanvas = async ({
 
   await Promise.all(dxArray.map(async (dx) => {
     await Promise.all(dyArray.map(dy => {
-      const src = `http://localhost:${port}/tile/${position.source}/${[
+      const src = `/tile/${position.source}/${[
         z,
         Math.floor(dx).toString(16),
         Math.floor(dy).toString(16),

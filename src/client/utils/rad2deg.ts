@@ -1,6 +1,8 @@
 
 export const rad2deg = (phi: number, pad = 0, axis = ' -') => {
-  const deg = phi * 180 / Math.PI;
+  let deg = phi * 180 / Math.PI % 360;
+  while (deg > 180) deg -= 360;
+  while (deg < -180) deg += 360;
   const degrees = deg | 0;
   const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
 
