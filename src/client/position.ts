@@ -2,6 +2,7 @@ import { extractProperties } from '../common/extractProperties';
 
 
 export const position = extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
+  canvas: () => ({ x: 0, y: 0, z: 0 }),
   mouse: () => ({
     down: false,
     x: 0,
@@ -19,8 +20,11 @@ export const position = extractProperties(Object.fromEntries(new URL(window.loca
   x: val => Number(val ?? 2),
   y: val => Number(val ?? 2),
   z: val => Number(val ?? 2),
-  zCanvas: () => 0,
 });
 
-position.zCanvas = position.z;
+position.canvas = {
+  x: position.x,
+  y: position.y,
+  z: position.z,
+};
 position.tiles = 1 << position.z;

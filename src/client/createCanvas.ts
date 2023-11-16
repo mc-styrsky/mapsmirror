@@ -25,7 +25,7 @@ export const createCanvas = async ({
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext('2d');
-  if (!context) return canvas;
+  if (!context) return { canvas, x, y, z };
   const translate = {
     x: Math.round(width / 2 - x * tileSize),
     y: Math.round(height / 2 - y * tileSize),
@@ -94,5 +94,5 @@ export const createCanvas = async ({
     });
     crosshairs(canvas, context);
   });
-  return canvas;
+  return { canvas, x, y, z };
 };

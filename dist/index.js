@@ -190,7 +190,7 @@ var printStats = () => {
       const len = queue.length;
       const collapsed = queues.childsCollapsed[key] ?? 0;
       sum += Math.round(collapsed * partialSum(17 - parseInt(key)));
-      sum += Math.round((len - collapsed) * partialSum(16 - parseInt(key)));
+      sum += Math.round(len * partialSum(16 - parseInt(key)));
       return sum;
     },
     0
@@ -198,10 +198,11 @@ var printStats = () => {
   const done = todoLast - todo;
   todoLast = todo;
   console.log({
+    avg: { stats: queues.stats / queues.statsCount, worthit: queues.worthit / queues.worthitCount },
     childs: Object.fromEntries(
       Object.entries(queues.childs).filter(([, v]) => v?.length).map(([key, queue]) => [key, `${queue.length} (${queues.childsCollapsed[key] ?? 0})`])
     ),
-    fetched: `${queues.fetched - fetchedLast} (${queues.fetched})`,
+    fetched: `${queues.fetched - fetchedLast}/${queues.checked} (${queues.fetched})`,
     perf: {
       done,
       maxzoom,
@@ -214,14 +215,22 @@ var printStats = () => {
     }
   });
   fetchedLast = queues.fetched;
+  queues.checked = 0;
+  queues.stats = 0;
+  queues.statsCount = 0;
+  queues.worthit = 0;
+  queues.worthitCount = 0;
   maxzoom = -1;
 };
 
 // src/server/utils/worthit.ts
 import sharp from "../node_modules/sharp/lib/index.js";
-var worthItDatabase = {};
+var worthItDatabase = {
+  max: {},
+  min: {}
+};
 var populateDatabase = (z, base, func) => {
-  worthItDatabase[`${z.toString(36)}/${func}`] = base;
+  ((worthItDatabase[func][z] ??= {})[0] ??= {})[0] = base;
   if (z < -8)
     return;
   const cmp = Math[func];
@@ -242,6 +251,10 @@ populateDatabase(0, await sharp("tiles/gebco/0/00.png").greyscale().toFormat("ra
 populateDatabase(0, await sharp("tiles/gebcomin/0/00.png").greyscale().toFormat("raw").toBuffer(), "min");
 console.log(worthItDatabase);
 var worthIt = async ({ x, y, z }) => {
+  while (x < 0)
+    x += 1 << z;
+  while (y < 0)
+    y += 1 << z;
   if (z > 17) {
     x = x >> z - 17;
     y = y >> z - 17;
@@ -249,19 +262,24 @@ var worthIt = async ({ x, y, z }) => {
   }
   if (y >= (1 << z) / 4 * 3)
     return false;
-  const { tileId } = getTileParams({ x, y, z });
-  const tileParts = tileId.split("/");
-  tileParts.pop();
-  tileParts.pop();
-  const path = `${(z - 8).toString(36)}/${tileParts.join("/")}`;
-  worthItDatabase[`${path}max`] ||= await sharp(`tiles/gebco/${path}.png`).greyscale().toFormat("raw").toBuffer();
-  worthItDatabase[`${path}min`] ||= await sharp(`tiles/gebcomin/${path}.png`).greyscale().toFormat("raw").toBuffer();
-  const tileMax = worthItDatabase[`${path}max`];
-  const tileMin = worthItDatabase[`${path}min`];
-  const pos = (x & 255) + (y & 255) * 256;
-  const max = tileMax[pos];
-  const min = tileMin[pos];
-  return max > 96 && min < 144;
+  const z8 = z - 8;
+  const x8 = x >> 8;
+  const y8 = y >> 8;
+  const tileMax = worthItDatabase.min[z8]?.[x8]?.[y8];
+  const tileMin = worthItDatabase.min[z8]?.[x8]?.[y8];
+  if (tileMin && tileMax) {
+    const pos = (x & 255) + (y & 255) * 256;
+    const max = tileMax[pos];
+    const min = tileMin[pos];
+    return max > 96 && min < 144;
+  }
+  const { tileId } = getTileParams({ x: x8, y: y8, z: z8 });
+  if (z8 < 0)
+    console.log({ tileId, x, x8, y, y8, z, z8 });
+  const path = `${z8.toString(36)}/${tileId}`;
+  ((worthItDatabase.max[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebco/${path}.png`).greyscale().toFormat("raw").toBuffer();
+  ((worthItDatabase.min[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomin/${path}.png`).greyscale().toFormat("raw").toBuffer();
+  return worthIt({ x, y, z });
 };
 
 // src/server/requestHandler/getTile.ts
@@ -288,72 +306,68 @@ var getTile = async (req, res) => {
     });
     const queue = quiet ? queues.quiet : queues.verbose;
     const fetchChilds = await queue.enqueue(async () => {
-      let ret = null;
-      const { local = false, params = {}, url = "" } = await ({
-        cache: xyz2cache,
-        gebco: xyz2gebco,
-        googlehybrid: xyz2googlehybrid,
-        googlesat: xyz2googlesat,
-        googlestreet: xyz2googlestreet,
-        navionics: xyz2navionics,
-        osm: xyz2osm
-      }[provider] ?? xyz2default)(x, y, zoom);
-      if (!url) {
-        ret = false;
-        res?.sendStatus(404);
-        return ret;
-      }
-      const { tileFileId, tilePath } = getTileParams({ x, y, z: zoom });
-      if (!(await Promise.all([
-        local,
-        worthIt({ x, y, z: zoom }),
-        worthIt({ x, y: y - 1, z: zoom }),
-        worthIt({ x, y: y + 1, z: zoom }),
-        worthIt({ x: x - 1, y, z: zoom }),
-        worthIt({ x: x - 1, y: y - 1, z: zoom }),
-        worthIt({ x: x - 1, y: y + 1, z: zoom }),
-        worthIt({ x: x + 1, y, z: zoom }),
-        worthIt({ x: x + 1, y: y - 1, z: zoom }),
-        worthIt({ x: x + 1, y: y + 1, z: zoom })
-      ])).some(Boolean)) {
-        res?.sendFile(`${pwd}/unworthy.png`);
-        ret = false;
-        return ret;
-      }
-      const file = `${tileFileId}.png`;
-      const path = `tiles/${provider}/${zoom.toString(36)}/${tilePath}`;
-      await mkdir(path, { recursive: true });
-      const filename = `${pwd}/${path}/${file}`;
-      const fileStats = await stat(filename).catch(() => null);
-      if (fileStats && fileStats.isFile()) {
-        if (fileStats.size > 100) {
+      try {
+        const { local = false, params = {}, url = "" } = await ({
+          cache: xyz2cache,
+          gebco: xyz2gebco,
+          googlehybrid: xyz2googlehybrid,
+          googlesat: xyz2googlesat,
+          googlestreet: xyz2googlestreet,
+          navionics: xyz2navionics,
+          osm: xyz2osm
+        }[provider] ?? xyz2default)(x, y, zoom);
+        if (!url) {
+          res?.sendStatus(404);
+          return false;
+        }
+        const { tileFileId, tilePath } = getTileParams({ x, y, z: zoom });
+        const file = `${tileFileId}.png`;
+        const path = `tiles/${provider}/${zoom.toString(36)}/${tilePath}`;
+        await mkdir(path, { recursive: true });
+        const filename = `${pwd}/${path}/${file}`;
+        const statsStart = performance.now();
+        const fileStats = await stat(filename).then(async (stats) => {
+          if (!stats.isFile())
+            return null;
+          if (provider === "googlesat" && stats.size < 100) {
+            await unlink(filename);
+            return null;
+          }
+          return stats;
+        }).catch(() => null);
+        queues.stats = performance.now() - statsStart;
+        queues.statsCount++;
+        if (fileStats) {
           if (!quiet)
             console.log("[cached]", filename);
-          ret = true;
           res?.sendFile(filename);
-        } else {
-          ret = false;
-          if (provider === "googlesat") {
-            await unlink(filename);
-            res?.redirect(`/tile/googlehybrid/${zoom}/${x.toString(16)}/${y.toString(16)}?ttl=${ttl}`);
-          } else
-            res?.sendStatus(404);
+          return true;
         }
-      } else if (local) {
-        ret = false;
-        res?.sendStatus(404);
-      } else {
-        try {
+        if (local) {
+          res?.sendStatus(404);
+          return false;
+        }
+        const worthitStart = performance.now();
+        if (!quiet || (await Promise.all([
+          worthIt({ x, y, z: zoom }),
+          worthIt({ x, y: y - 1, z: zoom }),
+          worthIt({ x, y: y + 1, z: zoom }),
+          worthIt({ x: x - 1, y, z: zoom }),
+          worthIt({ x: x - 1, y: y - 1, z: zoom }),
+          worthIt({ x: x - 1, y: y + 1, z: zoom }),
+          worthIt({ x: x + 1, y, z: zoom }),
+          worthIt({ x: x + 1, y: y - 1, z: zoom }),
+          worthIt({ x: x + 1, y: y + 1, z: zoom })
+        ])).some(Boolean)) {
           const imageStream = await queues.fetch.enqueue(async () => {
             const timeoutController = new globalThis.AbortController();
             const timeoutTimeout = setTimeout(() => timeoutController.abort(), 1e4);
             params.signal = timeoutController.signal;
-            const ret2 = await fetchFromTileServer({ params, provider, url, x, y, z: zoom });
+            const ret = await fetchFromTileServer({ params, provider, url, x, y, z: zoom });
             clearTimeout(timeoutTimeout);
-            return ret2;
+            return ret;
           });
           if (imageStream.body) {
-            ret = true;
             const writeImageStream = createWriteStream(filename);
             writeImageStream.addListener("finish", () => {
               if (quiet)
@@ -362,49 +376,24 @@ var getTile = async (req, res) => {
                 res?.sendFile(filename);
             });
             imageStream.body.pipe(writeImageStream);
-          } else {
-            console.log("no imagestream", imageStream.status, { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
-            res?.sendStatus(imageStream.status ?? 500);
+            return true;
           }
-        } catch (e) {
-          console.log(e);
+          console.log("no imagestream", imageStream.status, { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
+          res?.sendStatus(imageStream.status ?? 500);
+          return false;
         }
+        queues.worthit += performance.now() - worthitStart;
+        queues.worthitCount++;
+        res?.sendFile(`${pwd}/unworthy.png`);
+        return false;
+      } catch (e) {
+        console.log(e);
+        return false;
       }
-      return ret;
     });
-    if (fetchChilds && ttl > 0 && zoom < 22) {
-      const fetchTile = async (dx, dy) => {
-        try {
-          await getTile(
-            {
-              params: {
-                provider,
-                x: (x * 2 + dx).toString(16),
-                y: (y * 2 + dy).toString(16),
-                zoom: String(zoom + 1)
-              },
-              query: {
-                quiet: "1",
-                ttl: String(ttl - 1)
-              }
-            },
-            null
-          );
-        } catch (e) {
-          console.log(e);
-        }
-      };
-      queues.childsCollapsed[zoom] ??= 0;
-      queues.childs[zoom] ??= new StyQueue(1e3);
-      const childQueue = queues.childs[zoom];
-      queues.childsCollapsed[zoom]++;
-      await childQueue.enqueue(() => null);
-      queues.childsCollapsed[zoom]--;
-      childQueue.enqueue(() => fetchTile(0, 0));
-      childQueue.enqueue(() => fetchTile(0, 1));
-      childQueue.enqueue(() => fetchTile(1, 0));
-      childQueue.enqueue(() => fetchTile(1, 1));
-    }
+    queues.checked++;
+    if (fetchChilds && ttl > 0 && zoom < 16)
+      pushToQueues({ provider, ttl, x, y, zoom });
     return fetchChilds;
   } catch (e) {
     console.error(e);
@@ -412,16 +401,55 @@ var getTile = async (req, res) => {
     return null;
   }
 };
+async function fetchTile({ dx, dy, provider, ttl, x, y, zoom }) {
+  try {
+    await getTile(
+      {
+        params: {
+          provider,
+          x: (x * 2 + dx).toString(16),
+          y: (y * 2 + dy).toString(16),
+          zoom: String(zoom + 1)
+        },
+        query: {
+          quiet: "1",
+          ttl: String(ttl - 1)
+        }
+      },
+      null
+    );
+  } catch (e) {
+    console.log(e);
+  }
+}
+async function pushToQueues({ provider, ttl, x, y, zoom }) {
+  queues.childsCollapsed[zoom] ??= 0;
+  queues.childs[zoom] ??= new StyQueue(1e3);
+  const childQueue = queues.childs[zoom];
+  queues.childsCollapsed[zoom]++;
+  while (childQueue.length > 100)
+    await (queues.childs[zoom - 1] ??= new StyQueue(1e3)).enqueue(() => new Promise((r) => setInterval(r, childQueue.length / 1)));
+  queues.childsCollapsed[zoom]--;
+  childQueue.enqueue(() => fetchTile({ dx: 0, dy: 0, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchTile({ dx: 0, dy: 1, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchTile({ dx: 1, dy: 0, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchTile({ dx: 1, dy: 1, provider, ttl, x, y, zoom }));
+}
 
 // src/server/index.ts
 var pwd = "/home/sty/Documents/GitHub/mapsmirror";
 var queues = {
+  checked: 0,
   childs: {},
   childsCollapsed: {},
   fetch: new StyQueue2(10),
   fetched: 0,
   quiet: new StyQueue2(1e3),
-  verbose: new StyQueue2(100)
+  stats: 0,
+  statsCount: 0,
+  verbose: new StyQueue2(100),
+  worthit: 0,
+  worthitCount: 0
 };
 express().use(express.json()).use(express.urlencoded({ extended: true })).use("", express.static("public")).get("/tile/:provider/:zoom/:x/:y", getTile).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
   console.error(`cannot start listener on port ${port}`);

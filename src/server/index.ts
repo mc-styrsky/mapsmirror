@@ -7,12 +7,17 @@ import { printStats } from './utils/printStats';
 export const pwd = '/home/sty/Documents/GitHub/mapsmirror';
 
 export const queues = {
+  checked: 0,
   childs: <Record<string, StyQueue>> {},
   childsCollapsed: <Record<string, number>> {},
   fetch: new StyQueue(10),
   fetched: 0,
   quiet: new StyQueue(1000),
+  stats: 0,
+  statsCount: 0,
   verbose: new StyQueue(100),
+  worthit: 0,
+  worthitCount: 0,
 };
 
 express()

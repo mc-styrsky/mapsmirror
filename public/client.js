@@ -9,6 +9,7 @@ function extractProperties(obj, builder) {
 
 // src/client/position.ts
 var position = extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
+  canvas: () => ({ x: 0, y: 0, z: 0 }),
   mouse: () => ({
     down: false,
     x: 0,
@@ -25,10 +26,13 @@ var position = extractProperties(Object.fromEntries(new URL(window.location.href
   }),
   x: (val) => Number(val ?? 2),
   y: (val) => Number(val ?? 2),
-  z: (val) => Number(val ?? 2),
-  zCanvas: () => 0
+  z: (val) => Number(val ?? 2)
 });
-position.zCanvas = position.z;
+position.canvas = {
+  x: position.x,
+  y: position.y,
+  z: position.z
+};
 position.tiles = 1 << position.z;
 
 // src/client/createHTMLElement.ts
@@ -215,7 +219,7 @@ var createCanvas = async ({
   canvas2.height = height;
   const context = canvas2.getContext("2d");
   if (!context)
-    return canvas2;
+    return { canvas: canvas2, x, y, z };
   const translate = {
     x: Math.round(width / 2 - x * tileSize),
     y: Math.round(height / 2 - y * tileSize)
@@ -282,7 +286,7 @@ var createCanvas = async ({
     });
     crosshairs(canvas2, context);
   });
-  return canvas2;
+  return { canvas: canvas2, x, y, z };
 };
 
 // src/client/redraw.ts
@@ -304,6 +308,17 @@ var canvas = null;
 var redraw = async () => {
   if (!container)
     return;
+  const { height, width } = container.getBoundingClientRect();
+  if (canvas) {
+    const scaleZ = position.z > position.canvas.z ? 1 << position.z - position.canvas.z : 1 / (1 << position.z - position.canvas.z);
+    const shiftX = (position.canvas.x * scaleZ - position.x) * tileSize;
+    const shiftY = (position.canvas.y * scaleZ - position.y) * tileSize;
+    canvas.style.height = `${scaleZ * height}px`;
+    canvas.style.width = `${scaleZ * width}px`;
+    canvas.style.left = `${(width - width * scaleZ) / 2 + shiftX}px`;
+    canvas.style.top = `${(height - height * scaleZ) / 2 + shiftY}px`;
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
   if (working) {
     if (newWorker)
       return;
@@ -317,22 +332,6 @@ var redraw = async () => {
   working = true;
   newWorker = false;
   console.log("redraw");
-  const { height, width } = container.getBoundingClientRect();
-  if (canvas && position.zCanvas !== position.z) {
-    if (position.zCanvas > position.z) {
-      canvas.style.height = `${height / 2}px`;
-      canvas.style.width = `${width / 2}px`;
-      canvas.style.left = `${width / 4}px`;
-      canvas.style.top = `${height / 4}px`;
-    }
-    if (position.zCanvas < position.z) {
-      canvas.style.height = `${2 * height}px`;
-      canvas.style.width = `${2 * width}px`;
-      canvas.style.left = `${-width / 2}px`;
-      canvas.style.top = `${-height / 2}px`;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 1));
-  }
   await createCanvas({
     height,
     width,
@@ -340,10 +339,12 @@ var redraw = async () => {
   }).then((newCanvas) => {
     if (!container)
       return;
-    canvas = newCanvas;
-    position.zCanvas = position.z;
+    canvas = newCanvas.canvas;
+    position.canvas.x = position.x;
+    position.canvas.y = position.y;
+    position.canvas.z = position.z;
     container.innerHTML = "";
-    container.append(newCanvas);
+    container.append(newCanvas.canvas);
     updateInfoBox();
     container.append(infoBox);
   });

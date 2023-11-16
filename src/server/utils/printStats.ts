@@ -14,18 +14,19 @@ export const printStats = () => {
       const len = queue.length;
       const collapsed = queues.childsCollapsed[key] ?? 0;
       sum += Math.round(collapsed * partialSum(17 - parseInt(key)));
-      sum += Math.round((len - collapsed) * partialSum(16 - parseInt(key)));
+      sum += Math.round(len * partialSum(16 - parseInt(key)));
       return sum;
     }, 0);
   const done = todoLast - todo;
   todoLast = todo;
   console.log({
+    avg: { stats: queues.stats / queues.statsCount, worthit: queues.worthit / queues.worthitCount },
     childs: Object.fromEntries(
       Object.entries(queues.childs)
       .filter(([, v]) => v?.length)
       .map(([key, queue]) => [key, `${queue.length} (${queues.childsCollapsed[key] ?? 0})`]),
     ),
-    fetched: `${queues.fetched - fetchedLast} (${queues.fetched})`,
+    fetched: `${queues.fetched - fetchedLast}/${queues.checked} (${queues.fetched})`,
     perf: {
       done,
       maxzoom,
@@ -38,5 +39,10 @@ export const printStats = () => {
     },
   });
   fetchedLast = queues.fetched;
+  queues.checked = 0;
+  queues.stats = 0;
+  queues.statsCount = 0;
+  queues.worthit = 0;
+  queues.worthitCount = 0;
   maxzoom = -1;
 };

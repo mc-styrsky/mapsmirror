@@ -1,6 +1,6 @@
 import { createCanvas } from './createCanvas';
 import { createHTMLElement } from './createHTMLElement';
-import { container } from './index';
+import { container, tileSize } from './index';
 import { position } from './position';
 import { updateInfoBox } from './updateInfoBox';
 
@@ -24,6 +24,21 @@ let canvas: HTMLCanvasElement | null = null;
 
 export const redraw = async () => {
   if (!container) return;
+  const { height, width } = container.getBoundingClientRect();
+
+  if (canvas) {
+    const scaleZ = position.z > position.canvas.z ?
+      1 << position.z - position.canvas.z :
+      1 / (1 << position.z - position.canvas.z);
+    const shiftX = (position.canvas.x * scaleZ - position.x) * tileSize;
+    const shiftY = (position.canvas.y * scaleZ - position.y) * tileSize;
+
+    canvas.style.height = `${scaleZ * height}px`;
+    canvas.style.width = `${scaleZ * width}px`;
+    canvas.style.left = `${(width - width * scaleZ) / 2 + shiftX}px`;
+    canvas.style.top = `${(height - height * scaleZ) / 2 + shiftY}px`;
+    await new Promise(resolve => setTimeout(resolve, 1));
+  }
   if (working) {
     if (newWorker) return;
     newWorker = true;
@@ -36,23 +51,6 @@ export const redraw = async () => {
   working = true;
   newWorker = false;
   console.log('redraw');
-  const { height, width } = container.getBoundingClientRect();
-
-  if (canvas && position.zCanvas !== position.z) {
-    if (position.zCanvas > position.z) {
-      canvas.style.height = `${height / 2}px`;
-      canvas.style.width = `${width / 2}px`;
-      canvas.style.left = `${width / 4}px`;
-      canvas.style.top = `${height / 4}px`;
-    }
-    if (position.zCanvas < position.z) {
-      canvas.style.height = `${2 * height}px`;
-      canvas.style.width = `${2 * width}px`;
-      canvas.style.left = `${- width / 2}px`;
-      canvas.style.top = `${- height / 2}px`;
-    }
-    await new Promise(resolve => setTimeout(resolve, 1));
-  }
 
   await createCanvas({
     height,
@@ -61,10 +59,13 @@ export const redraw = async () => {
   })
   .then(newCanvas => {
     if (!container) return;
-    canvas = newCanvas;
-    position.zCanvas = position.z;
+    // eslint-disable-next-line prefer-destructuring
+    canvas = newCanvas.canvas;
+    position.canvas.x = position.x;
+    position.canvas.y = position.y;
+    position.canvas.z = position.z;
     container.innerHTML = '';
-    container.append(newCanvas);
+    container.append(newCanvas.canvas);
     updateInfoBox();
     container.append(infoBox);
   });
