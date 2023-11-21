@@ -1,6 +1,6 @@
 
 export const rad2deg = (phi: number, pad = 0, axis = ' -') => {
-  let deg = phi * 180 / Math.PI % 360;
+  let deg = Math.round(phi * 180 / Math.PI % 360 * 60000) / 60000;
   while (deg > 180) deg -= 360;
   while (deg < -180) deg += 360;
   const degrees = deg | 0;

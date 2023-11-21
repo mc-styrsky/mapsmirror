@@ -19,6 +19,20 @@ function extractProperties(obj, builder) {
   }, {});
 }
 
+// src/server/utils/xyz2quadkey.ts
+var xyz2quadkey = ({ x, y, z }) => {
+  return (parseInt(y.toString(2), 4) * 2 + parseInt(x.toString(2), 4)).toString(4).padStart(z, "0");
+};
+
+// src/server/urls/bingsat.ts
+var xyz2bingsat = async (x, y, z) => {
+  if (z > 20)
+    return {};
+  return {
+    url: `https://t.ssl.ak.tiles.virtualearth.net/tiles/a${xyz2quadkey({ x, y, z })}.jpeg?g=14041&n=z&prx=1`
+  };
+};
+
 // src/server/urls/cache.ts
 var xyz2cache = async (x, y, z) => {
   if (z > 9)
@@ -308,6 +322,7 @@ var getTile = async (req, res) => {
     const fetchChilds = await queue.enqueue(async () => {
       try {
         const { local = false, params = {}, url = "" } = await ({
+          bingsat: xyz2bingsat,
           cache: xyz2cache,
           gebco: xyz2gebco,
           googlehybrid: xyz2googlehybrid,

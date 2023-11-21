@@ -1,12 +1,15 @@
 import { container, tileSize } from '.';
-import { position } from './position';
 import { updateGeoLocation } from './getUserLocation';
+import { position } from './position';
 import { redraw } from './redraw';
 import { lat2y } from './utils/lat2y';
 import { lon2x } from './utils/lon2x';
 
-export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent) => {
+export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEvent) => {
   if (!container) return;
+  const { height, width } = container.getBoundingClientRect();
+  const { type } = event;
+
   const zoomIn = () => {
     if (position.z < 20) {
       position.z++;
@@ -23,10 +26,8 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent) => {
       position.tiles = 1 << position.z;
     }
   };
-  const { type } = event;
   if (event instanceof WheelEvent) {
     const { clientX, clientY, deltaY } = event;
-    const { height, width } = container.getBoundingClientRect();
 
     if (deltaY > 0) {
       zoomOut();
@@ -50,24 +51,25 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent) => {
     else if (key === 'ArrowRight') position.x++;
     else if (key === 'ArrowUp') position.y--;
     else if (key === 'ArrowDown') position.y++;
-    else if (key === 'PageUp') zoomIn();
-    else if (key === 'PageDown') zoomOut();
+    else if (key === 'PageDown') zoomIn();
+    else if (key === 'PageUp') zoomOut();
     else if (key === '1') position.source = 'osm';
     else if (key === '2') position.source = 'googlesat';
     else if (key === '3') position.source = 'navionics';
     else if (key === '4') position.source = 'googlestreet';
     else if (key === '5') position.source = 'googlehybrid';
     else if (key === '6') position.source = 'gebco';
-    else if (key === '7') position.source = 'cache';
-    else if (key === 'u') {
-      position.x = lon2x(position.user.longitude);
-      position.y = lat2y(position.user.latitude);
-    }
+    else if (key === '7') position.source = 'bingsat';
+    else if (key === 'c') position.show.crosshairs = !position.show.crosshairs;
+    else if (key === 'l') updateGeoLocation();
     else if (key === 'r') {
       position.x = Math.round(position.x);
       position.y = Math.round(position.y);
     }
-    else if (key === 'l') updateGeoLocation();
+    else if (key === 'u') {
+      position.x = lon2x(position.user.longitude);
+      position.y = lat2y(position.user.latitude);
+    }
     else {
       console.log('noop', { key, type });
       return;
@@ -79,11 +81,7 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent) => {
     position.y = Math.round(position.y * tileSize + (position.mouse.y - clientY)) / tileSize;
   }
 
-  const tileCount = 1 << position.z;
-  position.y = Math.max(0, Math.min(position.y, tileCount));
-  if (position.x < 0) position.x += tileCount;
-  if (position.x > tileCount) position.x -= tileCount;
-
+  position.y = Math.max(0, Math.min(position.y, position.tiles));
 
   redraw();
 };

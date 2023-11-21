@@ -1,30 +1,33 @@
+import type { XYZ } from '../common/types/xyz';
 import { extractProperties } from '../common/extractProperties';
 
 
-export const position = extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
-  canvas: () => ({ x: 0, y: 0, z: 0 }),
-  mouse: () => ({
+const { source, ttl, x, y, z } = extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
+  source: val => String(val ?? 'osm'),
+  ttl: val => parseInt(val ?? 0),
+  x: val => parseFloat(val ?? 2),
+  y: val => parseFloat(val ?? 2),
+  z: val => parseInt(val ?? 2),
+});
+
+export const position = {
+  map: <XYZ> { x, y, z },
+  mouse: {
     down: false,
     x: 0,
     y: 0,
-  }),
-  source: val => String(val ?? 'osm'),
-  tiles: () => 1,
-  ttl: val => Number(val ?? 0),
-  user: () => ({
+  },
+  show: { crosshairs: true },
+  source,
+  tiles: 1 << z,
+  ttl,
+  user: {
     accuracy: 0,
     latitude: 0,
     longitude: 0,
     timestamp: 0,
-  }),
-  x: val => Number(val ?? 2),
-  y: val => Number(val ?? 2),
-  z: val => Number(val ?? 2),
-});
-
-position.canvas = {
-  x: position.x,
-  y: position.y,
-  z: position.z,
+  },
+  x,
+  y,
+  z,
 };
-position.tiles = 1 << position.z;

@@ -1,4 +1,4 @@
-import type { XYZ2Url } from './types';
+import type { XYZ2Url } from '../../common/types/types';
 
 export const xyz2googlestreet: XYZ2Url = async (x, y, z) => {
   if (z > 20) return {};

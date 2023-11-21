@@ -4,6 +4,7 @@ import { createWriteStream } from 'fs';
 import { mkdir, stat, unlink } from 'fs/promises';
 import { extractProperties } from '../../common/extractProperties';
 import { pwd, queues } from '../index';
+import { xyz2bingsat } from '../urls/bingsat';
 import { xyz2cache } from '../urls/cache';
 import { xyz2default } from '../urls/default';
 import { xyz2gebco } from '../urls/gebco';
@@ -50,6 +51,7 @@ export const getTile = async (
     const fetchChilds = await queue.enqueue(async () => {
       try {
         const { local = false, params = {}, url = '' } = await ({
+          bingsat: xyz2bingsat,
           cache: xyz2cache,
           gebco: xyz2gebco,
           googlehybrid: xyz2googlehybrid,
