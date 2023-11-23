@@ -60,6 +60,7 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
     else if (key === '5') position.source = 'googlehybrid';
     else if (key === '6') position.source = 'gebco';
     else if (key === '7') position.source = 'bingsat';
+    else if (key === '8') position.source = 'bluemarble';
     else if (key === 'c') position.show.crosshairs = !position.show.crosshairs;
     else if (key === 'l') updateGeoLocation();
     else if (key === 'r') {

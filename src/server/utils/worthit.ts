@@ -27,7 +27,7 @@ const populateDatabase = (z: number, base: Buffer, func: 'min' | 'max') => {
   populateDatabase(z - 1, nextBase, func);
 };
 
-populateDatabase(0, await sharp('tiles/gebco/0/00.png').greyscale().toFormat('raw').toBuffer(), 'max');
+populateDatabase(0, await sharp('tiles/gebcomax/0/00.png').greyscale().toFormat('raw').toBuffer(), 'max');
 
 populateDatabase(0, await sharp('tiles/gebcomin/0/00.png').greyscale().toFormat('raw').toBuffer(), 'min');
 
@@ -60,7 +60,7 @@ export const worthIt = async ({ x, y, z }: { x: number; y: number; z: number; })
 
   if (z8 < 0) console.log({ tileId, x, x8, y, y8, z, z8 });
   const path = `${z8.toString(36)}/${tileId}`;
-  ((worthItDatabase.max[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebco/${path}.png`).greyscale().toFormat('raw').toBuffer();
+  ((worthItDatabase.max[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomax/${path}.png`).greyscale().toFormat('raw').toBuffer();
   ((worthItDatabase.min[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomin/${path}.png`).greyscale().toFormat('raw').toBuffer();
   return worthIt({ x, y, z });
 };

@@ -33,6 +33,15 @@ var xyz2bingsat = async (x, y, z) => {
   };
 };
 
+// src/server/urls/bluemarble.ts
+var xyz2bluemarble = async (x, y, z) => {
+  if (z > 9)
+    return {};
+  return {
+    url: `https://s3.amazonaws.com/com.modestmaps.bluemarble/${z}-r${y}-c${x}.jpg`
+  };
+};
+
 // src/server/urls/cache.ts
 var xyz2cache = async (x, y, z) => {
   if (z > 9)
@@ -135,7 +144,7 @@ var xyz2navionics = async (x, y, z) => {
 
 // src/server/urls/osm.ts
 var xyz2osm = async (x, y, z) => {
-  if (z > 19)
+  if (z > 20)
     return {};
   return {
     url: `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
@@ -261,7 +270,7 @@ var populateDatabase = (z, base, func) => {
   }
   populateDatabase(z - 1, nextBase, func);
 };
-populateDatabase(0, await sharp("tiles/gebco/0/00.png").greyscale().toFormat("raw").toBuffer(), "max");
+populateDatabase(0, await sharp("tiles/gebcomax/0/00.png").greyscale().toFormat("raw").toBuffer(), "max");
 populateDatabase(0, await sharp("tiles/gebcomin/0/00.png").greyscale().toFormat("raw").toBuffer(), "min");
 console.log(worthItDatabase);
 var worthIt = async ({ x, y, z }) => {
@@ -291,7 +300,7 @@ var worthIt = async ({ x, y, z }) => {
   if (z8 < 0)
     console.log({ tileId, x, x8, y, y8, z, z8 });
   const path = `${z8.toString(36)}/${tileId}`;
-  ((worthItDatabase.max[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebco/${path}.png`).greyscale().toFormat("raw").toBuffer();
+  ((worthItDatabase.max[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomax/${path}.png`).greyscale().toFormat("raw").toBuffer();
   ((worthItDatabase.min[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomin/${path}.png`).greyscale().toFormat("raw").toBuffer();
   return worthIt({ x, y, z });
 };
@@ -323,6 +332,7 @@ var getTile = async (req, res) => {
       try {
         const { local = false, params = {}, url = "" } = await ({
           bingsat: xyz2bingsat,
+          bluemarble: xyz2bluemarble,
           cache: xyz2cache,
           gebco: xyz2gebco,
           googlehybrid: xyz2googlehybrid,
@@ -443,7 +453,7 @@ async function pushToQueues({ provider, ttl, x, y, zoom }) {
   const childQueue = queues.childs[zoom];
   queues.childsCollapsed[zoom]++;
   while (childQueue.length > 100)
-    await (queues.childs[zoom - 1] ??= new StyQueue(1e3)).enqueue(() => new Promise((r) => setInterval(r, childQueue.length / 1)));
+    await (queues.childs[zoom - 1] ??= new StyQueue(1e3)).enqueue(() => new Promise((r) => setTimeout(r, childQueue.length / 1)));
   queues.childsCollapsed[zoom]--;
   childQueue.enqueue(() => fetchTile({ dx: 0, dy: 0, provider, ttl, x, y, zoom }));
   childQueue.enqueue(() => fetchTile({ dx: 0, dy: 1, provider, ttl, x, y, zoom }));

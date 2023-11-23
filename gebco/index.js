@@ -1,6 +1,35 @@
+import { StyQueue } from '@mc-styrsky/queue';
 import { mkdir } from 'fs/promises';
 import { fromFile } from 'geotiff';
 import sharp from 'sharp';
+
+const queue = new StyQueue(128);
+
+const { color, func, subpath } = {
+  max: {
+    color: (val) => {
+      const ret = Math.max(0, Math.min(Math.round(val) + 128, 255));
+      return [ret, ret, ret];
+    },
+    func: Math.max,
+    subpath: 'gebcomax',
+  },
+  min: {
+    color: (val) => {
+      const ret = Math.max(0, Math.min(Math.round(val) + 128, 255));
+      return [ret, ret, ret];
+    },
+    func: Math.min,
+    subpath: 'gebcomin',
+  },
+  real: {
+    color: (val) => val < 0 ?
+      [0, 0, Math.max(0, 255 + val)] :
+      [0, Math.max(0, 255 - val), 0],
+    func: Math.max,
+    subpath: 'gebco',
+  },
+}.real;
 
 const zoom = 17; // max 17, gebco's resolution is 16.4
 const zoom1 = zoom - 1;
@@ -11,7 +40,7 @@ const mapLength = Math.max(
 );
 const mapLength1 = mapLength - 1;
 const mapCount = Math.ceil((1 << zoom) * (1 << zoom) / mapLength);
-const depthMaps = Array(mapCount).fill(null).map(() => new Uint8Array(mapLength));
+const depthMaps = Array(mapCount).fill(null).map(() => new Int16Array(mapLength));
 console.log(depthMaps.map(map => map.length));
 const transform = {
   latnorth: new Array(1 << zoom1).fill(0).map((_val, idx) => 21599 - (Math.asin(Math.tanh(((1 << zoom1) - idx) * Math.PI / (1 << zoom1))) / Math.PI * 21600 * 2 | 0)),
@@ -60,24 +89,22 @@ await files.reduce(async (prom, { file, offset: { x, y } }) => {
   console.log(`open ${file}`);
   console.time(`open ${file}`);
   const tiff = await fromFile(`sources/${file}`);
-  const image = await tiff.getImage();
+  const image = { img: await tiff.getImage() };
   console.timeEnd(`open ${file}`);
 
   console.log(`get rasters from ${file}`);
   console.time(`get rasters from ${file}`);
-  const { [0]: raster } = await image.readRasters();
+  const { [0]: raster } = await image.img.readRasters();
+  delete image.img;
   console.timeEnd(`get rasters from ${file}`);
   console.log(`transform ${file}`);
   console.time(`transform ${file}`);
-  (y ? transform.latsouth : transform.latnorth).forEach((gebcoy, dy, lat) => {
+  (y ? transform.latsouth : transform.latnorth).forEach((gebcoy, dy) => {
     const ydy = y + dy;
     const lineOffset = gebcoy * 21600;
-    transform.lon.forEach((gebcox, dx, lon) => {
+    transform.lon.forEach((gebcox, dx) => {
       const xdx = x + dx;
-      const valueRaw = raster[lineOffset + gebcox];
-      if (typeof valueRaw !== 'number') console.log({ dx, dy, gebcox, gebcoy, lat, lineOffset, lon, value: valueRaw, x, y });
-      const val = Math.max(0, Math.min(Math.round(valueRaw) + 128, 255));
-      if (!(val <= 255 && val >= 0)) console.log(val);
+      const val = raster[lineOffset + gebcox];
       const pos = xdx + ydy * (1 << zoom);
       depthMaps[pos / mapLength | 0][pos & mapLength1] = val;
     });
@@ -91,19 +118,21 @@ async function writeTiles (maps, z) {
   if (z < 8) return;
 
   for (let x = 0; x < 1 << z - 8; x++) {
+    await queue.enqueue(() => null);
     console.log('files', { x, z });
     for (let y = 0; y < 1 << z - 8; y++) {
-      const tile = new Uint8Array(1 << 16);
+      const tile = new Uint8Array(3 << 16);
       for (let dy = 0; dy < 256; dy++) {
         const offsettotal = ((y << 8) + dy) * (1 << z) + (x << 8);
         const mapid = offsettotal / mapLength | 0;
         const offset = offsettotal - mapLength * mapid;
         const map = maps[mapid];
-        const inneroffset = dy << 8;
+        const inneroffset = (dy << 8) * 3;
         for (let dx = 0; dx < 256; dx++) {
-          const val = map[offset + dx];
-          if (!(val <= 255 && val >= 0)) console.log(val);
-          tile[inneroffset + dx] = val;
+          const [valR, valG, valB] = color(map[offset + dx]);
+          tile[inneroffset + dx * 3] = valR;
+          tile[inneroffset + dx * 3 + 1] = valG;
+          tile[inneroffset + dx * 3 + 2] = valB;
         }
       }
 
@@ -111,23 +140,25 @@ async function writeTiles (maps, z) {
       const pathX = x.toString(16).padStart(length, '0').split('');
       const pathY = y.toString(16).padStart(length, '0').split('');
       const file = `${pathX.pop()}${pathY.pop()}.png`;
-      const path = `/home/sty/Documents/GitHub/mapsmirror/tiles/gebcomin/${(z - 8).toString(36)}/${pathX.map((_val, idx) => pathX[idx] + pathY[idx]).join('/')}`;
+      const path = `/home/sty/Documents/GitHub/mapsmirror/tiles/${subpath}/${(z - 8).toString(36)}/${pathX.map((_val, idx) => pathX[idx] + pathY[idx]).join('/')}`;
       const filename = `${path}/${file}`;
-      mkdir(path, { recursive: true })
-      .then(() => sharp(tile, {
-        raw: {
-          channels: 1,
-          height: 256,
-          width: 256,
-        },
-      })
-      .toFile(filename));
+      queue.enqueue(async () => {
+        await mkdir(path, { recursive: true });
+        await sharp(tile, {
+          raw: {
+            channels: 3,
+            height: 256,
+            width: 256,
+          },
+        })
+        .toFile(filename);
+      });
     }
   }
 
   if (z > 8) {
     const nextMapCount = Math.ceil((1 << z - 1) * (1 << z - 1) / mapLength);
-    const nextMaps = Array(nextMapCount).fill(null).map(() => new Uint8Array(mapLength));
+    const nextMaps = Array(nextMapCount).fill(null).map(() => new Int16Array(mapLength));
 
     const w = 1 << z;
     for (let y = 0; y < w; y += 2) {
@@ -136,7 +167,7 @@ async function writeTiles (maps, z) {
       const offset = offsettotal - mapLength * mapid;
       const map = maps[mapid];
       for (let x = 0; x < w; x += 2) {
-        const val = Math.min(
+        const val = func(
           map[offset + x],
           map[offset + x + 1],
           map[offset + w + x],
@@ -146,6 +177,7 @@ async function writeTiles (maps, z) {
         nextMaps[pos / mapLength | 0][pos & mapLength1] = val;
       }
     }
+    maps = [];
     await writeTiles(nextMaps, z - 1);
   }
 }

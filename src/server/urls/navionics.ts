@@ -1,4 +1,4 @@
-import type { XYZ2Url } from '../../common/types/types';
+import type { XYZ2Url } from '../../common/types/xyz2url';
 
 let navtoken: null | string = null;
 

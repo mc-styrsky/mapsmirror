@@ -5,6 +5,7 @@ import { mkdir, stat, unlink } from 'fs/promises';
 import { extractProperties } from '../../common/extractProperties';
 import { pwd, queues } from '../index';
 import { xyz2bingsat } from '../urls/bingsat';
+import { xyz2bluemarble } from '../urls/bluemarble';
 import { xyz2cache } from '../urls/cache';
 import { xyz2default } from '../urls/default';
 import { xyz2gebco } from '../urls/gebco';
@@ -52,6 +53,7 @@ export const getTile = async (
       try {
         const { local = false, params = {}, url = '' } = await ({
           bingsat: xyz2bingsat,
+          bluemarble: xyz2bluemarble,
           cache: xyz2cache,
           gebco: xyz2gebco,
           googlehybrid: xyz2googlehybrid,
@@ -185,7 +187,7 @@ async function pushToQueues ({ provider, ttl, x, y, zoom }: { ttl: number, provi
   queues.childs[zoom] ??= new StyQueue(1000);
   const childQueue = queues.childs[zoom];
   queues.childsCollapsed[zoom]++;
-  while (childQueue.length > 100) await (queues.childs[zoom - 1] ??= new StyQueue(1000)).enqueue(() => new Promise(r => setInterval(r, childQueue.length / 1)));
+  while (childQueue.length > 100) await (queues.childs[zoom - 1] ??= new StyQueue(1000)).enqueue(() => new Promise(r => setTimeout(r, childQueue.length / 1)));
   queues.childsCollapsed[zoom]--;
   childQueue.enqueue(() => fetchTile({ dx: 0, dy: 0, provider, ttl, x, y, zoom }));
   childQueue.enqueue(() => fetchTile({ dx: 0, dy: 1, provider, ttl, x, y, zoom }));

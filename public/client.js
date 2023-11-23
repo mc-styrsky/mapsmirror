@@ -682,6 +682,8 @@ var onchange = (event) => {
       position.source = "gebco";
     else if (key === "7")
       position.source = "bingsat";
+    else if (key === "8")
+      position.source = "bluemarble";
     else if (key === "c")
       position.show.crosshairs = !position.show.crosshairs;
     else if (key === "l")
