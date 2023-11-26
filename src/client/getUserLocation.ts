@@ -1,4 +1,4 @@
-import { position } from './position';
+import { position } from './globals/position';
 import { updateInfoBox } from './updateInfoBox';
 
 let geolocationBlocked = false;

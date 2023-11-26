@@ -5,31 +5,28 @@ import sharp from 'sharp';
 
 const queue = new StyQueue(128);
 
-const { color, func, subpath } = {
+const rules = {
   max: {
-    color: (val) => {
-      const ret = Math.max(0, Math.min(Math.round(val) + 128, 255));
-      return [ret, ret, ret];
-    },
+    channels: 1,
+    color: (val) => [Math.max(0, Math.min(Math.round(val) + 128, 255))],
     func: Math.max,
     subpath: 'gebcomax',
   },
   min: {
-    color: (val) => {
-      const ret = Math.max(0, Math.min(Math.round(val) + 128, 255));
-      return [ret, ret, ret];
-    },
+    channels: 1,
+    color: (val) => [Math.max(0, Math.min(Math.round(val) + 128, 255))],
     func: Math.min,
     subpath: 'gebcomin',
   },
   real: {
+    channels: 3,
     color: (val) => val < 0 ?
       [0, 0, Math.max(0, 255 + val)] :
       [0, Math.max(0, 255 - val), 0],
     func: Math.max,
     subpath: 'gebco',
   },
-}.real;
+};
 
 const zoom = 17; // max 17, gebco's resolution is 16.4
 const zoom1 = zoom - 1;
@@ -114,14 +111,15 @@ await files.reduce(async (prom, { file, offset: { x, y } }) => {
 }, Promise.resolve(null));
 
 
-async function writeTiles (maps, z) {
+async function writeTiles (maps, z, rule) {
   if (z < 8) return;
 
+  const { channels, color, func, subpath } = rules[rule];
   for (let x = 0; x < 1 << z - 8; x++) {
     await queue.enqueue(() => null);
     console.log('files', { x, z });
     for (let y = 0; y < 1 << z - 8; y++) {
-      const tile = new Uint8Array(3 << 16);
+      const tile = new Uint8Array(channels << 16);
       for (let dy = 0; dy < 256; dy++) {
         const offsettotal = ((y << 8) + dy) * (1 << z) + (x << 8);
         const mapid = offsettotal / mapLength | 0;
@@ -129,10 +127,8 @@ async function writeTiles (maps, z) {
         const map = maps[mapid];
         const inneroffset = (dy << 8) * 3;
         for (let dx = 0; dx < 256; dx++) {
-          const [valR, valG, valB] = color(map[offset + dx]);
-          tile[inneroffset + dx * 3] = valR;
-          tile[inneroffset + dx * 3 + 1] = valG;
-          tile[inneroffset + dx * 3 + 2] = valB;
+          const val = color(map[offset + dx]);
+          for (let c = 0; c < channels; c++) tile[inneroffset + dx * 3 + c] = val[c];
         }
       }
 
@@ -146,7 +142,7 @@ async function writeTiles (maps, z) {
         await mkdir(path, { recursive: true });
         await sharp(tile, {
           raw: {
-            channels: 3,
+            channels,
             height: 256,
             width: 256,
           },
@@ -178,8 +174,8 @@ async function writeTiles (maps, z) {
       }
     }
     maps = [];
-    await writeTiles(nextMaps, z - 1);
+    await writeTiles(nextMaps, z - 1, rule);
   }
 }
 
-await writeTiles(depthMaps, zoom);
+await writeTiles(depthMaps, zoom, 'real');

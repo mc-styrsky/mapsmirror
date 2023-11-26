@@ -5,8 +5,8 @@ import { createMapCanvas } from './canvases/mapCanvas';
 import { createNetCanvas } from './canvases/net';
 import { mapContainer } from './containers/mapContainer';
 import { overlayContainer } from './containers/overlayContainer';
+import { position } from './globals/position';
 import { container, tileSize } from './index';
-import { position } from './position';
 import { updateInfoBox } from './updateInfoBox';
 
 let working = false;

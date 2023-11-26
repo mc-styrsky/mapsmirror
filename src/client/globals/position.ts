@@ -1,5 +1,5 @@
-import type { XYZ } from '../common/types/xyz';
-import { extractProperties } from '../common/extractProperties';
+import type { XYZ } from '../../common/types/xyz';
+import { extractProperties } from '../../common/extractProperties';
 
 
 const { source, ttl, x, y, z } = extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
@@ -12,11 +12,6 @@ const { source, ttl, x, y, z } = extractProperties(Object.fromEntries(new URL(wi
 
 export const position = {
   map: <XYZ> { x, y, z },
-  mouse: {
-    down: false,
-    x: 0,
-    y: 0,
-  },
   show: { crosshairs: true },
   source,
   tiles: 1 << z,

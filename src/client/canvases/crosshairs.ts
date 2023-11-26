@@ -1,8 +1,8 @@
 import type { Size } from '../../common/types/size';
 import type { XYZ } from '../../common/types/xyz';
 import { createHTMLElement } from '../createHTMLElement';
+import { position } from '../globals/position';
 import { tileSize } from '../index';
-import { position } from '../position';
 import { sphericCircle, sphericLatLon } from '../sphericCircle';
 import { frac } from '../utils/frac';
 import { lat2y } from '../utils/lat2y';

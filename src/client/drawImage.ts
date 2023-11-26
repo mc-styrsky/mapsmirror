@@ -1,7 +1,7 @@
 import type { XYZ } from '../common/types/xyz';
 import { imagesMap } from './canvases/mapCanvas';
+import { position } from './globals/position';
 import { tileSize } from './index';
-import { position } from './position';
 import { frac } from './utils/frac';
 
 export const drawImage = ({

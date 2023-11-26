@@ -59,7 +59,7 @@ export const createNetCanvas = ({
   if (!context) return canvas;
   context.translate(width / 2, height / 2);
   const lat = y2lat(y);
-  const scaleX = getScale(0, context.measureText(rad2deg(0, 3, 'WW')).width);
+  const scaleX = getScale(0, context.measureText(rad2deg({ axis: 'WW', pad: 3, phi: 0 })).width);
   const scaleY = getScale(lat);
 
   const left = x - width / 2 / tileSize;
@@ -77,7 +77,7 @@ export const createNetCanvas = ({
     if (latGrid < latBottom) break;
     const gridY = lat2y(latGrid);
     context.strokeText(
-      rad2deg(latGrid, 2, 'NS'),
+      rad2deg({ axis: 'NS', pad: 2, phi: latGrid }),
       (left - x) * tileSize + 3,
       (gridY - y) * tileSize - 3,
     );
@@ -91,7 +91,7 @@ export const createNetCanvas = ({
     if (lonGrid > lonRight) break;
     const gridX = lon2x(lonGrid);
     context.strokeText(
-      rad2deg(lonGrid, 3, 'EW'),
+      rad2deg({ axis: 'EW', pad: 3, phi: lonGrid }),
       (gridX - x) * tileSize + 3,
       (bottom - y) * tileSize - 3,
     );

@@ -66,7 +66,7 @@ function extractProperties(obj, builder) {
   }, {});
 }
 
-// src/client/position.ts
+// src/client/globals/position.ts
 var { source, ttl, x, y, z } = extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
   source: (val) => String(val ?? "osm"),
   ttl: (val) => parseInt(val ?? 0),
@@ -102,17 +102,33 @@ var px2nm = (lat) => {
   return 360 * 60 / position.tiles / tileSize / stretch;
 };
 
-// src/client/utils/rad2deg.ts
-var rad2deg = (phi, pad = 0, axis = " -") => {
-  let deg = Math.round(phi * 180 / Math.PI % 360 * 6e4) / 6e4;
-  while (deg > 180)
-    deg -= 360;
-  while (deg < -180)
-    deg += 360;
-  const degrees = deg | 0;
-  const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
-  return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0 ${minutes.toFixed(3).padStart(6, "0")}'`;
+// src/client/globals/units.ts
+var units = {
+  coords: "minutes"
 };
+
+// src/client/utils/rad2deg.ts
+var func = {
+  decimal: ({ axis = " -", pad = 0, phi }) => {
+    let deg = Math.round(phi * 180 / Math.PI % 360 * 1e5) / 1e5;
+    while (deg > 180)
+      deg -= 360;
+    while (deg < -180)
+      deg += 360;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad + 6, "0")}\xB0`;
+  },
+  minutes: ({ axis = " -", pad = 0, phi }) => {
+    let deg = Math.round(phi * 180 / Math.PI % 360 * 6e4) / 6e4;
+    while (deg > 180)
+      deg -= 360;
+    while (deg < -180)
+      deg += 360;
+    const degrees = deg | 0;
+    const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0 ${minutes.toFixed(3).padStart(6, "0")}'`;
+  }
+};
+var rad2deg = ({ axis = " -", pad = 0, phi }) => func[units.coords]({ axis, pad, phi });
 
 // src/client/utils/x2lon.ts
 var x2lon = (x2, tiles = position.tiles) => (x2 / tiles - 0.5) * Math.PI * 2;
@@ -144,11 +160,11 @@ var updateInfoBox = () => {
   infoBox.append(
     `Scale: ${scale} (Zoom ${position.z})`,
     createHTMLElement({ tag: "br" }),
-    `Lat/Lon: ${rad2deg(lat, 2, "NS")} ${rad2deg(lon, 3, "EW")}`,
+    `Lat/Lon: ${rad2deg({ axis: "NS", pad: 2, phi: lat })} ${rad2deg({ axis: "EW", pad: 3, phi: lon })}`,
     createHTMLElement({ tag: "br" }),
-    `Mouse: ${rad2deg(latMouse, 2, "NS")} ${rad2deg(lonMouse, 3, "EW")}`,
+    `Mouse: ${rad2deg({ axis: "NS", pad: 2, phi: latMouse })} ${rad2deg({ axis: "EW", pad: 3, phi: lonMouse })}`,
     createHTMLElement({ tag: "br" }),
-    `User: ${rad2deg(position.user.latitude, 2, "NS")} ${rad2deg(position.user.longitude, 3, "EW")} (@${new Date(position.user.timestamp).toLocaleTimeString()})`
+    `User: ${rad2deg({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2deg({ axis: "EW", pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`
   );
 };
 
@@ -519,7 +535,7 @@ var createNetCanvas = ({
     return canvas;
   context.translate(width / 2, height / 2);
   const lat = y2lat(y2);
-  const scaleX = getScale(0, context.measureText(rad2deg(0, 3, "WW")).width);
+  const scaleX = getScale(0, context.measureText(rad2deg({ axis: "WW", pad: 3, phi: 0 })).width);
   const scaleY = getScale(lat);
   const left = x2 - width / 2 / tileSize;
   const right = x2 + width / 2 / tileSize;
@@ -535,7 +551,7 @@ var createNetCanvas = ({
       break;
     const gridY = lat2y(latGrid);
     context.strokeText(
-      rad2deg(latGrid, 2, "NS"),
+      rad2deg({ axis: "NS", pad: 2, phi: latGrid }),
       (left - x2) * tileSize + 3,
       (gridY - y2) * tileSize - 3
     );
@@ -550,7 +566,7 @@ var createNetCanvas = ({
       break;
     const gridX = lon2x(lonGrid);
     context.strokeText(
-      rad2deg(lonGrid, 3, "EW"),
+      rad2deg({ axis: "EW", pad: 3, phi: lonGrid }),
       (gridX - x2) * tileSize + 3,
       (bottom - y2) * tileSize - 3
     );
@@ -686,6 +702,8 @@ var onchange = (event) => {
       position.source = "bluemarble";
     else if (key === "c")
       position.show.crosshairs = !position.show.crosshairs;
+    else if (key === "d")
+      units.coords = units.coords === "decimal" ? "minutes" : "decimal";
     else if (key === "l")
       updateGeoLocation();
     else if (key === "r") {

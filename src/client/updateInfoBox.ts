@@ -1,7 +1,8 @@
 import { infoBox } from './containers/infoBox';
 import { createHTMLElement } from './createHTMLElement';
+import { mouse } from './globals/mouse';
+import { position } from './globals/position';
 import { container, tileSize } from './index';
-import { position } from './position';
 import { px2nm } from './utils/px2nm';
 import { rad2deg } from './utils/rad2deg';
 import { x2lon } from './utils/x2lon';
@@ -14,8 +15,8 @@ export const updateInfoBox = () => {
 
   const lat = y2lat(position.y);
   const lon = x2lon(position.x);
-  const latMouse = y2lat(position.y + (position.mouse.y - height / 2) / tileSize);
-  const lonMouse = x2lon(position.x + (position.mouse.x - width / 2) / tileSize);
+  const latMouse = y2lat(position.y + (mouse.y - height / 2) / tileSize);
+  const lonMouse = x2lon(position.x + (mouse.x - width / 2) / tileSize);
 
   const scale = (() => {
     let nm = px2nm(lat);
@@ -33,10 +34,10 @@ export const updateInfoBox = () => {
   infoBox.append(
     `Scale: ${scale} (Zoom ${position.z})`,
     createHTMLElement({ tag: 'br' }),
-    `Lat/Lon: ${rad2deg(lat, 2, 'NS')} ${rad2deg(lon, 3, 'EW')}`,
+    `Lat/Lon: ${rad2deg({ axis: 'NS', pad: 2, phi: lat })} ${rad2deg({ axis: 'EW', pad: 3, phi: lon })}`,
     createHTMLElement({ tag: 'br' }),
-    `Mouse: ${rad2deg(latMouse, 2, 'NS')} ${rad2deg(lonMouse, 3, 'EW')}`,
+    `Mouse: ${rad2deg({ axis: 'NS', pad: 2, phi: latMouse })} ${rad2deg({ axis: 'EW', pad: 3, phi: lonMouse })}`,
     createHTMLElement({ tag: 'br' }),
-    `User: ${rad2deg(position.user.latitude, 2, 'NS')} ${rad2deg(position.user.longitude, 3, 'EW')} (@${new Date(position.user.timestamp).toLocaleTimeString()})`,
+    `User: ${rad2deg({ axis: 'NS', pad: 2, phi: position.user.latitude })} ${rad2deg({ axis: 'EW', pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`,
   );
 };

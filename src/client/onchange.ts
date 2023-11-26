@@ -1,6 +1,8 @@
 import { container, tileSize } from '.';
 import { updateGeoLocation } from './getUserLocation';
-import { position } from './position';
+import { mouse } from './globals/mouse';
+import { position } from './globals/position';
+import { units } from './globals/units';
 import { redraw } from './redraw';
 import { lat2y } from './utils/lat2y';
 import { lon2x } from './utils/lon2x';
@@ -62,6 +64,7 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
     else if (key === '7') position.source = 'bingsat';
     else if (key === '8') position.source = 'bluemarble';
     else if (key === 'c') position.show.crosshairs = !position.show.crosshairs;
+    else if (key === 'd') units.coords = units.coords === 'decimal' ? 'minutes' : 'decimal';
     else if (key === 'l') updateGeoLocation();
     else if (key === 'r') {
       position.x = Math.round(position.x);
@@ -78,8 +81,8 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
   }
   else if (event instanceof MouseEvent) {
     const { clientX, clientY } = event;
-    position.x = Math.round(position.x * tileSize + (position.mouse.x - clientX)) / tileSize;
-    position.y = Math.round(position.y * tileSize + (position.mouse.y - clientY)) / tileSize;
+    position.x = Math.round(position.x * tileSize + (mouse.x - clientX)) / tileSize;
+    position.y = Math.round(position.y * tileSize + (mouse.y - clientY)) / tileSize;
   }
 
   position.y = Math.max(0, Math.min(position.y, position.tiles));

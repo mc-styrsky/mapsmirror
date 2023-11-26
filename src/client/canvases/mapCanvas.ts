@@ -2,8 +2,8 @@ import type { Size } from '../../common/types/size';
 import type { XYZ } from '../../common/types/xyz';
 import { createHTMLElement } from '../createHTMLElement';
 import { drawImage } from '../drawImage';
+import { position } from '../globals/position';
 import { tileSize } from '../index';
-import { position } from '../position';
 
 export const imagesMap: Record<string, HTMLImageElement> = {};
 
