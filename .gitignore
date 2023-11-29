@@ -3,6 +3,7 @@ node_modules
 package-lock.json
 tiles
 gebco/sources
+s2gm_copernicus
 
 # Misc
 *.log
