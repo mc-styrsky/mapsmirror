@@ -1,3 +1,3 @@
 export const units = {
-  coords: <'decimal' | 'minutes'> 'minutes',
+  coords: <'d' | 'dm' | 'dms'> 'dm',
 };

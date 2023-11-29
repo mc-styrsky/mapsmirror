@@ -1,9 +1,9 @@
 import type { Size } from '../../common/types/size';
 import type { XYZ } from '../../common/types/xyz';
-import { createHTMLElement } from '../createHTMLElement';
 import { position } from '../globals/position';
 import { tileSize } from '../index';
 import { sphericCircle, sphericLatLon } from '../sphericCircle';
+import { createHTMLElement } from '../utils/createHTMLElement';
 import { frac } from '../utils/frac';
 import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';
@@ -29,7 +29,7 @@ export const createCrosshairsCanvas = ({
     width,
   });
   const context = canvas.getContext('2d');
-  if (!position.show.crosshairs || !context) return canvas;
+  if (!position.show.crosshair || !context) return canvas;
   const lat = y2lat(y);
   const lon = x2lon(x);
 

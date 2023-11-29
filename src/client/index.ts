@@ -1,8 +1,9 @@
 import { infoBox } from './containers/infoBox';
 import { mapContainer } from './containers/mapContainer';
+import { menuContainer } from './containers/menuContainer';
 import { overlayContainer } from './containers/overlayContainer';
-import { onchange } from './onchange';
-import { onmousemove } from './onmousemove';
+import { onchange } from './events/oninput';
+import { onmouse } from './events/onmouse';
 import { redraw } from './redraw';
 const {
   container: containerId = '',
@@ -11,7 +12,7 @@ const {
 export const container = document.getElementById(containerId);
 if (container) {
   container.innerHTML = '';
-  container.append(mapContainer, overlayContainer, infoBox);
+  container.append(mapContainer, overlayContainer, infoBox, menuContainer);
 }
 
 export const tileSize = 256;
@@ -19,10 +20,8 @@ export const tileSize = 256;
 if (container) {
   window.addEventListener('keydown', onchange);
   window.addEventListener('wheel', onchange);
-  window.addEventListener('mousedown', onchange);
-  window.addEventListener('mouseup', onchange);
-  window.addEventListener('mousemove', onmousemove);
+  window.addEventListener('mousemove', onmouse);
   window.addEventListener('resize', onchange);
 
-  redraw();
+  redraw('initial');
 }

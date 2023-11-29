@@ -1,9 +1,10 @@
 import type { Size } from '../../common/types/size';
 import type { XYZ } from '../../common/types/xyz';
-import { createHTMLElement } from '../createHTMLElement';
-import { drawImage } from '../drawImage';
 import { position } from '../globals/position';
+import { settings } from '../globals/settings';
 import { tileSize } from '../index';
+import { createHTMLElement } from '../utils/createHTMLElement';
+import { drawImage } from '../utils/drawImage';
 
 export const imagesMap: Record<string, HTMLImageElement> = {};
 
@@ -45,10 +46,19 @@ export const createMapCanvas = async ({
 
   const usedImages: Set<string> = new Set();
 
-  const ttl = Math.max(Math.min(17, z + Math.max(1, position.ttl)) - z, 0);
+  const ttl = Math.max(Math.min(17, z + Math.max(0, position.ttl)) - z, 0);
   await Promise.all(dxArray.map(async (dx) => {
     await Promise.all(dyArray.map(dy => {
-      return drawImage({ context, trans, ttl, usedImages, x: dx, y: dy, z });
+      return settings.tiles.order.reduce(async (prom, entry) => {
+        const { alpha, source } = typeof entry === 'string' ? { alpha: 1, source: entry } : entry;
+        if (source && settings.tiles.enabled[source]) {
+          const drawProm = drawImage({ alpha, context, source, trans, ttl, usedImages, x: dx, y: dy, z });
+          await prom;
+          const draw = await drawProm;
+          draw();
+        }
+        return prom;
+      }, Promise.resolve());
     }));
   })).then(() => {
     Object.keys(imagesMap).forEach(src => {

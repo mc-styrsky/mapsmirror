@@ -1,8 +1,8 @@
 import { infoBox } from './containers/infoBox';
-import { createHTMLElement } from './createHTMLElement';
 import { mouse } from './globals/mouse';
 import { position } from './globals/position';
 import { container, tileSize } from './index';
+import { createHTMLElement } from './utils/createHTMLElement';
 import { px2nm } from './utils/px2nm';
 import { rad2deg } from './utils/rad2deg';
 import { x2lon } from './utils/x2lon';

@@ -27,7 +27,7 @@ function moveCanvas ({ canvas, height, width, x, y, z }: XYZ & Size & { canvas: 
 
 let map: HTMLCanvasElement | null = null;
 
-export const redraw = async () => {
+export const redraw = async (type: string) => {
   if (!container) return;
   const { height, width } = container.getBoundingClientRect();
 
@@ -50,13 +50,13 @@ export const redraw = async () => {
     newWorker = true;
     setTimeout(() => {
       newWorker = false;
-      redraw();
+      redraw(type);
     }, 10);
     return;
   }
   working = true;
   newWorker = false;
-  console.log('redraw');
+  console.log(`${type} redraw@${new Date().toISOString()}`);
 
   await createMapCanvas({ height, width, x, y, z })
   .then(newCanvas => {
@@ -75,7 +75,7 @@ export const redraw = async () => {
   }${
     window.location.pathname
   }?${
-    Object.entries({ source: position.source, ttl: position.ttl, x: position.x, y, z })
+    Object.entries({ ttl: position.ttl, x: position.x, y, z })
     .map(([k, v]) => `${k}=${v}`)
     .join('&')
   }`;

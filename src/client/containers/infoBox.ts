@@ -1,14 +1,12 @@
-import { createHTMLElement } from '../createHTMLElement';
+import { createHTMLElement } from '../utils/createHTMLElement';
 
 
 export const infoBox = createHTMLElement({
+  classes: ['float-end'],
   style: {
     backgroundColor: '#80808080',
-    borderBottomRightRadius: '1em',
-    left: '0px',
+    borderBottomLeftRadius: '1em',
     padding: '0.3em',
-    position: 'absolute',
-    top: '0px',
   },
   tag: 'div',
   zhilds: [],

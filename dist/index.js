@@ -137,9 +137,18 @@ var xyz2navionics = async (x, y, z) => {
         mode: "cors",
         referrer: "https://webapp.navionics.com/"
       },
-      url: `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_20.00_0&TRANSPARENT=FALSE&UGC=TRUE&theme=0&navtoken=${await getNavtoken()}`
+      url: `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_20.00_0&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${await getNavtoken()}`
     };
   return {};
+};
+
+// src/server/urls/openseamap.ts
+var xyz2openseamap = async (x, y, z) => {
+  if (z > 18)
+    return {};
+  return {
+    url: `https://tiles.openseamap.org/seamark/${z}/${x}/${y}.png`
+  };
 };
 
 // src/server/urls/osm.ts
@@ -148,6 +157,17 @@ var xyz2osm = async (x, y, z) => {
     return {};
   return {
     url: `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+  };
+};
+
+// src/server/urls/vfdensity.ts
+var xyz2vfdensity = async (x, y, z) => {
+  if (z > 12)
+    return {};
+  if (z < 3)
+    return {};
+  return {
+    url: `https://density.tiles.vesselfinder.net/all/${z}/${x}/${y}.png`
   };
 };
 
@@ -339,7 +359,9 @@ var getTile = async (req, res) => {
           googlesat: xyz2googlesat,
           googlestreet: xyz2googlestreet,
           navionics: xyz2navionics,
-          osm: xyz2osm
+          openseamap: xyz2openseamap,
+          osm: xyz2osm,
+          vfdensity: xyz2vfdensity
         }[provider] ?? xyz2default)(x, y, zoom);
         if (!url) {
           res?.sendStatus(404);

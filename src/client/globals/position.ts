@@ -2,8 +2,7 @@ import type { XYZ } from '../../common/types/xyz';
 import { extractProperties } from '../../common/extractProperties';
 
 
-const { source, ttl, x, y, z } = extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
-  source: val => String(val ?? 'osm'),
+const { ttl, x, y, z } = extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
   ttl: val => parseInt(val ?? 0),
   x: val => parseFloat(val ?? 2),
   y: val => parseFloat(val ?? 2),
@@ -12,8 +11,7 @@ const { source, ttl, x, y, z } = extractProperties(Object.fromEntries(new URL(wi
 
 export const position = {
   map: <XYZ> { x, y, z },
-  show: { crosshairs: true },
-  source,
+  show: { crosshair: true },
   tiles: 1 << z,
   ttl,
   user: {
