@@ -14,3 +14,6 @@ export type Overlays =
 | 'navionics'
 
 export type Layers = Baselayers | Overlays;
+
+export type VirtLayers = Layers
+| 'transparent'

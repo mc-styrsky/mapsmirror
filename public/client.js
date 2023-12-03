@@ -49,7 +49,7 @@ var mapContainer = createHTMLElement({
 var order = [
   "osm",
   "openseamap",
-  { alpha: 0.5, source: "navionics" },
+  "navionics",
   { alpha: 0.5, source: "vfdensity" }
 ];
 var settings = {
@@ -264,15 +264,136 @@ var createCrosshairsCanvas = ({
   return canvas;
 };
 
-// src/client/utils/drawImage.ts
+// src/client/globals/mouse.ts
+var mouse = {
+  down: false,
+  x: 0,
+  y: 0
+};
+
+// src/client/utils/px2nm.ts
+var px2nm = (lat) => {
+  const stretch = 1 / Math.cos(lat);
+  return 360 * 60 / position.tiles / tileSize / stretch;
+};
+
+// src/client/globals/units.ts
+var units = {
+  coords: "dm"
+};
+
+// src/client/utils/rad2deg.ts
+var func = {
+  d: ({ axis = " -", pad = 0, phi }) => {
+    let deg = Math.round(phi * 180 / Math.PI % 360 * 1e5) / 1e5;
+    while (deg > 180)
+      deg -= 360;
+    while (deg < -180)
+      deg += 360;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad + 6, "0")}\xB0`;
+  },
+  dm: ({ axis = " -", pad = 0, phi }) => {
+    let deg = Math.round(phi * 180 / Math.PI % 360 * 6e4) / 6e4;
+    while (deg > 180)
+      deg -= 360;
+    while (deg < -180)
+      deg += 360;
+    const degrees = deg | 0;
+    const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}'`;
+  },
+  dms: ({ axis = " -", pad = 0, phi }) => {
+    let deg = Math.round(phi * 180 / Math.PI % 360 * 36e4) / 36e4;
+    while (deg > 180)
+      deg -= 360;
+    while (deg < -180)
+      deg += 360;
+    const degrees = deg | 0;
+    const min = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
+    const minutes = min | 0;
+    const seconds = (min - minutes) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}"`;
+  }
+};
+var rad2deg = ({ axis = " -", pad = 0, phi }) => func[units.coords]({ axis, pad, phi });
+
+// src/client/updateInfoBox.ts
+var updateInfoBox = () => {
+  if (!container)
+    return;
+  const { height, width } = container.getBoundingClientRect();
+  const lat = y2lat(position.y);
+  const lon = x2lon(position.x);
+  const latMouse = y2lat(position.y + (mouse.y - height / 2) / tileSize);
+  const lonMouse = x2lon(position.x + (mouse.x - width / 2) / tileSize);
+  const scale = (() => {
+    let nm = px2nm(lat);
+    let px = 1;
+    if (nm >= 1)
+      return `${px2nm(lat).toPrecision(3)}nm/px`;
+    while (nm < 1) {
+      nm *= 10;
+      px *= 10;
+    }
+    return `${nm.toPrecision(3)}nm/${px.toFixed(0)}px`;
+  })();
+  infoBox.innerHTML = "";
+  infoBox.append(
+    `Scale: ${scale} (Zoom ${position.z})`,
+    createHTMLElement({ tag: "br" }),
+    `Lat/Lon: ${rad2deg({ axis: "NS", pad: 2, phi: lat })} ${rad2deg({ axis: "EW", pad: 3, phi: lon })}`,
+    createHTMLElement({ tag: "br" }),
+    `Mouse: ${rad2deg({ axis: "NS", pad: 2, phi: latMouse })} ${rad2deg({ axis: "EW", pad: 3, phi: lonMouse })}`,
+    createHTMLElement({ tag: "br" }),
+    `User: ${rad2deg({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2deg({ axis: "EW", pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`,
+    ...imagesToFetch.stateHtml()
+  );
+};
+
+// src/client/utils/imagesToFetch.ts
+var ImagesToFetch = class {
+  constructor() {
+  }
+  xyz2string = ({ x: x2, y: y2, z: z2 }) => `${z2.toString(16)}_${x2.toString(16)}_${y2.toString(16)}`;
+  data = {};
+  total = {};
+  getSet = (source) => this.data[source] ??= /* @__PURE__ */ new Set();
+  add = ({ source, ...xyz }) => {
+    this.getSet(source).add(this.xyz2string(xyz));
+    this.total[source] = (this.total[source] ?? 0) + 1;
+    updateInfoBox();
+  };
+  delete = ({ source, ...xyz }) => {
+    this.getSet(source).delete(this.xyz2string(xyz));
+    if (this.getSet(source).size === 0)
+      delete this.data[source];
+    updateInfoBox();
+  };
+  reset = () => {
+    this.total = {};
+  };
+  state = () => {
+    return Object.entries(this.data).map(([key, val]) => [key, val.size]);
+  };
+  stateHtml = () => {
+    return this.state().reduce(
+      (arr, [source, size]) => {
+        arr.push(createHTMLElement({ tag: "br" }));
+        arr.push(`${source}: ${size}/${this.total[source]}`);
+        return arr;
+      },
+      []
+    );
+  };
+};
+var imagesToFetch = new ImagesToFetch();
+
+// src/client/canvases/map/drawImage.ts
 var drawImage = ({
-  alpha,
   context,
   scale = 1,
   source,
-  trans,
   ttl: ttl2,
-  usedImages,
   x: x2,
   y: y2,
   z: z2
@@ -285,65 +406,176 @@ var drawImage = ({
   const sx = Math.floor(frac(x2 / scale) * scale) * tileSize / scale;
   const sy = Math.floor(frac(y2 / scale) * scale) * tileSize / scale;
   const sw = tileSize / scale;
-  const imageFromMap = imagesMap[src];
-  if (imageFromMap) {
-    usedImages.add(src);
-    return Promise.resolve(() => {
-      context.globalAlpha = alpha;
-      context.drawImage(
-        imageFromMap,
-        sx,
-        sy,
-        sw,
-        sw,
-        x2 * tileSize + trans.x,
-        y2 * tileSize + trans.y,
-        tileSize,
-        tileSize
-      );
-      return true;
-    });
-  }
+  imagesToFetch.add({ source, x: x2, y: y2, z: z2 });
   const img = new Image();
   img.src = src;
   const prom = new Promise((resolve) => {
     img.onload = () => {
-      imagesMap[src] = img;
-      usedImages.add(src);
-      resolve(() => {
-        context.globalAlpha = alpha;
-        context.drawImage(
-          img,
-          sx,
-          sy,
-          sw,
-          sw,
-          x2 * tileSize + trans.x,
-          y2 * tileSize + trans.y,
-          tileSize,
-          tileSize
-        );
-        return true;
-      });
+      context.drawImage(
+        img,
+        sx,
+        sy,
+        sw,
+        sw,
+        0,
+        0,
+        tileSize,
+        tileSize
+      );
+      resolve(true);
+      imagesToFetch.delete({ source, x: x2, y: y2, z: z2 });
     };
     img.onerror = () => {
       resolve(
         z2 > 0 ? drawImage({
-          alpha,
           context,
           scale: scale << 1,
           source,
-          trans,
           ttl: ttl2,
-          usedImages,
           x: x2,
           y: y2,
           z: z2 - 1
-        }) : () => false
+        }) : false
       );
+      imagesToFetch.delete({ source, x: x2, y: y2, z: z2 });
     };
   });
   return prom;
+};
+
+// src/client/canvases/map/navionicsWatermark.ts
+var navionicsWatermark = (async () => {
+  const img = new Image();
+  img.src = "/navionicsWatermark.png";
+  const cnvs = new OffscreenCanvas(256, 256);
+  const ctx = cnvs.getContext("2d");
+  if (!ctx)
+    return null;
+  return new Promise((resolve) => {
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0);
+      resolve(ctx.getImageData(0, 0, tileSize, tileSize).data);
+    };
+    img.onerror = () => {
+      ctx.beginPath();
+      ctx.fillStyle = "#f8f8f8f8";
+      ctx.strokeStyle = "#f8f8f8f8";
+      ctx.fillRect(0, 0, tileSize, tileSize);
+      ctx.fill();
+      ctx.stroke();
+      resolve(ctx.getImageData(0, 0, tileSize, tileSize).data);
+    };
+  });
+})().then((watermark) => {
+  if (!watermark)
+    return null;
+  const ret = new Uint8ClampedArray(tileSize * tileSize);
+  for (let i = 0; i < ret.length; i++) {
+    ret[i] = watermark[i * 4];
+  }
+  return ret;
+});
+
+// src/client/canvases/map/drawNavionics.ts
+var backgroundColors = [
+  2142456,
+  5818616,
+  6867192,
+  8442104,
+  10541304,
+  11067640,
+  11591928,
+  12642552,
+  16316664
+].reduce((arr, val) => {
+  const r = val >> 16;
+  const g = val >> 8 & 255;
+  const b = val & 255;
+  const diff = 2;
+  for (let dr = -diff; dr <= diff; dr++) {
+    for (let dg = -diff; dg <= diff; dg++) {
+      for (let db = -diff; db <= diff; db++) {
+        arr.add((r + dr << 16) + (g + dg << 8) + b + db);
+      }
+    }
+  }
+  return arr;
+}, /* @__PURE__ */ new Set());
+var drawNavionics = async ({ context, source, ttl: ttl2, x: x2, y: y2, z: z2 }) => {
+  const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
+  const workerContext = workerCanvas.getContext("2d");
+  const watermark = await navionicsWatermark;
+  if (!workerContext || !watermark)
+    return false;
+  const drawProm = drawImage({ context: workerContext, source, ttl: ttl2, x: x2, y: y2, z: z2 });
+  const draw = await drawProm;
+  if (!draw)
+    return false;
+  imagesToFetch.add({ source: "transparent", x: x2, y: y2, z: z2 });
+  const img = workerContext.getImageData(0, 0, tileSize, tileSize);
+  const { data } = img;
+  for (let i = 0; i < watermark.length; i++) {
+    const mask = watermark[i];
+    const [r, g, b] = data.subarray(i * 4, i * 4 + 3).map((v) => v * 248 / mask);
+    const color = (r << 16) + (g << 8) + b;
+    if (color === 10012672)
+      data[i * 4 + 3] = 64;
+    else if (backgroundColors.has(color))
+      data[i * 4 + 3] = 0;
+  }
+  workerContext.putImageData(img, 0, 0);
+  imagesToFetch.delete({ source: "transparent", x: x2, y: y2, z: z2 });
+  context.drawImage(workerCanvas, 0, 0);
+  return true;
+};
+
+// src/client/canvases/map/drawCachedImage.ts
+var drawCachedImage = async ({
+  alpha,
+  context,
+  source,
+  trans,
+  ttl: ttl2,
+  usedImages,
+  x: x2,
+  y: y2,
+  z: z2
+}) => {
+  const isNavionics = source === "navionics";
+  const src = `/${source}/${[
+    z2,
+    x2.toString(16),
+    y2.toString(16)
+  ].join("/")}`;
+  const drawCanvas = (cnvs) => {
+    usedImages.add(src);
+    context.globalAlpha = alpha;
+    context.drawImage(
+      cnvs,
+      x2 * tileSize + trans.x,
+      y2 * tileSize + trans.y
+    );
+  };
+  const cachedCanvas = await imagesMap[src];
+  if (cachedCanvas)
+    return () => {
+      console.log(`used cached ${src}`);
+      drawCanvas(cachedCanvas);
+      return Promise.resolve(true);
+    };
+  const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
+  const workerContext = workerCanvas.getContext("2d");
+  if (!workerContext)
+    return () => Promise.resolve(true);
+  const successProm = isNavionics ? drawNavionics({ context: workerContext, source, ttl: ttl2, x: x2, y: y2, z: z2 }) : drawImage({ context: workerContext, source, ttl: ttl2, x: x2, y: y2, z: z2 });
+  imagesMap[src] = successProm.then((success) => success ? workerCanvas : null);
+  return async () => {
+    const success = await successProm;
+    if (success) {
+      drawCanvas(workerCanvas);
+    }
+    return success;
+  };
 };
 
 // src/client/canvases/mapCanvas.ts
@@ -396,10 +628,10 @@ var createMapCanvas = async ({
       return settings.tiles.order.reduce(async (prom, entry) => {
         const { alpha, source } = typeof entry === "string" ? { alpha: 1, source: entry } : entry;
         if (source && settings.tiles.enabled[source]) {
-          const drawProm = drawImage({ alpha, context, source, trans, ttl: ttl2, usedImages, x: dx, y: dy, z: z2 });
+          const draw = drawCachedImage({ alpha, context, source, trans, ttl: ttl2, usedImages, x: dx, y: dy, z: z2 });
           await prom;
-          const draw = await drawProm;
-          draw();
+          await (await draw)();
+          console.log("drawed", { dx, dy, source, z: z2 });
         }
         return prom;
       }, Promise.resolve());
@@ -412,52 +644,6 @@ var createMapCanvas = async ({
   });
   return canvas;
 };
-
-// src/client/utils/px2nm.ts
-var px2nm = (lat) => {
-  const stretch = 1 / Math.cos(lat);
-  return 360 * 60 / position.tiles / tileSize / stretch;
-};
-
-// src/client/globals/units.ts
-var units = {
-  coords: "dm"
-};
-
-// src/client/utils/rad2deg.ts
-var func = {
-  d: ({ axis = " -", pad = 0, phi }) => {
-    let deg = Math.round(phi * 180 / Math.PI % 360 * 1e5) / 1e5;
-    while (deg > 180)
-      deg -= 360;
-    while (deg < -180)
-      deg += 360;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad + 6, "0")}\xB0`;
-  },
-  dm: ({ axis = " -", pad = 0, phi }) => {
-    let deg = Math.round(phi * 180 / Math.PI % 360 * 6e4) / 6e4;
-    while (deg > 180)
-      deg -= 360;
-    while (deg < -180)
-      deg += 360;
-    const degrees = deg | 0;
-    const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}'`;
-  },
-  dms: ({ axis = " -", pad = 0, phi }) => {
-    let deg = Math.round(phi * 180 / Math.PI % 360 * 36e4) / 36e4;
-    while (deg > 180)
-      deg -= 360;
-    while (deg < -180)
-      deg += 360;
-    const degrees = deg | 0;
-    const min = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
-    const minutes = min | 0;
-    const seconds = (min - minutes) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}"`;
-  }
-};
-var rad2deg = ({ axis = " -", pad = 0, phi }) => func[units.coords]({ axis, pad, phi });
 
 // src/client/canvases/net.ts
 var scales = [
@@ -513,38 +699,68 @@ var createNetCanvas = ({
   const right = x2 + width / 2 / tileSize;
   const top = y2 - height / 2 / tileSize;
   const bottom = y2 + height / 2 / tileSize;
-  context.beginPath();
-  context.strokeStyle = "#808080";
+  const strokeText = (text, x3, y3) => {
+    context.strokeText(text, x3, y3);
+    context.fillText(text, x3, y3);
+  };
   const latTop = Math.floor(y2lat(top) / scaleY) * scaleY;
   const latBottom = Math.ceil(y2lat(bottom) / scaleY) * scaleY;
+  const pointsY = [];
   for (let ctr = 0; ctr < 1e3; ctr++) {
     const latGrid = latTop - scaleY * ctr;
     if (latGrid < latBottom)
       break;
-    const gridY = lat2y(latGrid);
-    context.strokeText(
-      rad2deg({ axis: "NS", pad: 2, phi: latGrid }),
-      (left - x2) * tileSize + 3,
-      (gridY - y2) * tileSize - 3
-    );
-    context.moveTo((left - x2) * tileSize, (gridY - y2) * tileSize);
-    context.lineTo((right - x2) * tileSize, (gridY - y2) * tileSize);
+    pointsY.push({
+      latGrid,
+      x1: (left - x2) * tileSize,
+      x2: (right - x2) * tileSize,
+      y1: (lat2y(latGrid) - y2) * tileSize
+    });
   }
   const lonLeft = Math.floor(x2lon(left) / scaleX) * scaleX;
   const lonRight = Math.ceil(x2lon(right) / scaleX) * scaleX;
+  const pointsX = [];
   for (let ctr = 0; ctr < 1e3; ctr++) {
     const lonGrid = lonLeft + scaleX * ctr;
     if (lonGrid > lonRight)
       break;
-    const gridX = lon2x(lonGrid);
-    context.strokeText(
-      rad2deg({ axis: "EW", pad: 3, phi: lonGrid }),
-      (gridX - x2) * tileSize + 3,
-      (bottom - y2) * tileSize - 3
-    );
-    context.moveTo((gridX - x2) * tileSize, (top - y2) * tileSize);
-    context.lineTo((gridX - x2) * tileSize, (bottom - y2) * tileSize);
+    pointsX.push({
+      lonGrid,
+      x1: (lon2x(lonGrid) - x2) * tileSize,
+      y1: (top - y2) * tileSize,
+      y2: (bottom - y2) * tileSize
+    });
   }
+  context.beginPath();
+  context.strokeStyle = "#808080";
+  pointsY.forEach(({ x1, x2: x22, y1 }) => {
+    context.moveTo(x1, y1);
+    context.lineTo(x22, y1);
+  });
+  pointsX.forEach(({ x1, y1, y2: y22 }) => {
+    context.moveTo(x1, y1);
+    context.lineTo(x1, y22);
+  });
+  context.stroke();
+  context.beginPath();
+  context.strokeStyle = "#ffffff";
+  context.fillStyle = "#000000";
+  context.lineWidth = 3;
+  pointsY.forEach(({ latGrid, x1, y1 }) => {
+    strokeText(
+      rad2deg({ axis: "NS", pad: 2, phi: latGrid }),
+      x1 + 3,
+      y1 - 3
+    );
+  });
+  pointsX.forEach(({ lonGrid, x1, y1 }) => {
+    strokeText(
+      rad2deg({ axis: "EW", pad: 3, phi: lonGrid }),
+      x1 + 3,
+      y1 - 3
+    );
+  });
+  context.fill();
   context.stroke();
   return canvas;
 };
@@ -560,45 +776,6 @@ var overlayContainer = createHTMLElement({
   tag: "div",
   zhilds: []
 });
-
-// src/client/globals/mouse.ts
-var mouse = {
-  down: false,
-  x: 0,
-  y: 0
-};
-
-// src/client/updateInfoBox.ts
-var updateInfoBox = () => {
-  if (!container)
-    return;
-  const { height, width } = container.getBoundingClientRect();
-  const lat = y2lat(position.y);
-  const lon = x2lon(position.x);
-  const latMouse = y2lat(position.y + (mouse.y - height / 2) / tileSize);
-  const lonMouse = x2lon(position.x + (mouse.x - width / 2) / tileSize);
-  const scale = (() => {
-    let nm = px2nm(lat);
-    let px = 1;
-    if (nm >= 1)
-      return `${px2nm(lat).toPrecision(3)}nm/px`;
-    while (nm < 1) {
-      nm *= 10;
-      px *= 10;
-    }
-    return `${nm.toPrecision(3)}nm/${px.toFixed(0)}px`;
-  })();
-  infoBox.innerHTML = "";
-  infoBox.append(
-    `Scale: ${scale} (Zoom ${position.z})`,
-    createHTMLElement({ tag: "br" }),
-    `Lat/Lon: ${rad2deg({ axis: "NS", pad: 2, phi: lat })} ${rad2deg({ axis: "EW", pad: 3, phi: lon })}`,
-    createHTMLElement({ tag: "br" }),
-    `Mouse: ${rad2deg({ axis: "NS", pad: 2, phi: latMouse })} ${rad2deg({ axis: "EW", pad: 3, phi: lonMouse })}`,
-    createHTMLElement({ tag: "br" }),
-    `User: ${rad2deg({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2deg({ axis: "EW", pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`
-  );
-};
 
 // src/client/redraw.ts
 var working = false;
@@ -650,8 +827,9 @@ var redraw = async (type) => {
     mapContainer.innerHTML = "";
     mapContainer.append(newCanvas);
   });
-  const newlocation = `${window.location.origin}${window.location.pathname}?${Object.entries({ ttl: position.ttl, x: position.x, y: y2, z: z2 }).map(([k, v]) => `${k}=${v}`).join("&")}`;
+  const newlocation = `${window.location.origin}${window.location.pathname}?z=${z2}&${Object.entries({ ttl: position.ttl, x: position.x, y: y2 }).map(([k, v]) => `${k}=${v}`).join("&")}`;
   window.history.pushState({ path: newlocation }, "", newlocation);
+  imagesToFetch.reset();
   setTimeout(() => working = false, 100);
 };
 
@@ -834,7 +1012,9 @@ var zoomIn = () => {
     position.x *= 2;
     position.y *= 2;
     position.tiles = 1 << position.z;
+    return true;
   }
+  return false;
 };
 var zoomOut = () => {
   if (position.z > 2) {
@@ -842,21 +1022,24 @@ var zoomOut = () => {
     position.x /= 2;
     position.y /= 2;
     position.tiles = 1 << position.z;
+    return true;
   }
+  return false;
 };
 var onchange = (event) => {
   if (!container)
     return;
   const { height, width } = container.getBoundingClientRect();
   const { type } = event;
+  let needRedraw = false;
   if (event instanceof WheelEvent) {
     const { clientX, clientY, deltaY } = event;
     if (deltaY > 0) {
-      zoomOut();
+      needRedraw = zoomOut();
       position.x -= (clientX - width / 2) / tileSize / 2;
       position.y -= (clientY - height / 2) / tileSize / 2;
     } else if (deltaY < 0) {
-      zoomIn();
+      needRedraw = zoomIn();
       position.x += (clientX - width / 2) / tileSize;
       position.y += (clientY - height / 2) / tileSize;
     } else {
@@ -867,19 +1050,7 @@ var onchange = (event) => {
     if (event.isComposing)
       return;
     const { key } = event;
-    if (key === "ArrowLeft")
-      position.x--;
-    else if (key === "ArrowRight")
-      position.x++;
-    else if (key === "ArrowUp")
-      position.y--;
-    else if (key === "ArrowDown")
-      position.y++;
-    else if (key === "PageDown")
-      zoomIn();
-    else if (key === "PageUp")
-      zoomOut();
-    else if (key >= "0" && key <= "9") {
+    if (key >= "0" && key <= "9") {
       setBaseLayer(settings.tiles.baselayers[parseInt(key)]);
     } else if (key === "c")
       crosshairToggle.click();
@@ -889,25 +1060,43 @@ var onchange = (event) => {
       updateGeoLocation();
     else if (key === "n")
       navionicsToggle.click();
-    else if (key === "r") {
-      position.x = Math.round(position.x);
-      position.y = Math.round(position.y);
-    } else if (key === "u") {
-      position.x = lon2x(position.user.longitude);
-      position.y = lat2y(position.user.latitude);
-    } else if (key === "v")
+    else if (key === "v")
       vfdensityToggle.click();
     else {
-      console.log("noop", { key, type });
-      return;
+      needRedraw = true;
+      if (key === "r") {
+        position.x = Math.round(position.x);
+        position.y = Math.round(position.y);
+      } else if (key === "u") {
+        position.x = lon2x(position.user.longitude);
+        position.y = lat2y(position.user.latitude);
+      } else if (key === "ArrowLeft")
+        position.x--;
+      else if (key === "ArrowRight")
+        position.x++;
+      else if (key === "ArrowUp")
+        position.y--;
+      else if (key === "ArrowDown")
+        position.y++;
+      else if (key === "PageDown")
+        zoomIn();
+      else if (key === "PageUp")
+        zoomOut();
+      else {
+        needRedraw = false;
+        console.log("noop", { key, type });
+        return;
+      }
     }
   } else if (event instanceof MouseEvent) {
     const { clientX, clientY } = event;
     position.x = Math.round(position.x * tileSize + (mouse.x - clientX)) / tileSize;
     position.y = Math.round(position.y * tileSize + (mouse.y - clientY)) / tileSize;
+    needRedraw = true;
   }
   position.y = Math.max(0, Math.min(position.y, position.tiles));
-  redraw(type);
+  if (needRedraw)
+    redraw(type);
 };
 
 // src/client/events/onmouse.ts

@@ -3,6 +3,7 @@ import { mouse } from './globals/mouse';
 import { position } from './globals/position';
 import { container, tileSize } from './index';
 import { createHTMLElement } from './utils/createHTMLElement';
+import { imagesToFetch } from './utils/imagesToFetch';
 import { px2nm } from './utils/px2nm';
 import { rad2deg } from './utils/rad2deg';
 import { x2lon } from './utils/x2lon';
@@ -39,5 +40,6 @@ export const updateInfoBox = () => {
     `Mouse: ${rad2deg({ axis: 'NS', pad: 2, phi: latMouse })} ${rad2deg({ axis: 'EW', pad: 3, phi: lonMouse })}`,
     createHTMLElement({ tag: 'br' }),
     `User: ${rad2deg({ axis: 'NS', pad: 2, phi: position.user.latitude })} ${rad2deg({ axis: 'EW', pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`,
+    ...imagesToFetch.stateHtml(),
   );
 };

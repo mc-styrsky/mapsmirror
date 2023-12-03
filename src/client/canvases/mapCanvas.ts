@@ -4,10 +4,9 @@ import { position } from '../globals/position';
 import { settings } from '../globals/settings';
 import { tileSize } from '../index';
 import { createHTMLElement } from '../utils/createHTMLElement';
-import { drawImage } from '../utils/drawImage';
+import { drawCachedImage } from './map/drawCachedImage';
 
-export const imagesMap: Record<string, HTMLImageElement> = {};
-
+export const imagesMap: Record<string, PromiseLike<OffscreenCanvas | null>> = {};
 export const createMapCanvas = async ({
   height, width, x, y, z,
 }: XYZ & Size) => {
@@ -52,10 +51,9 @@ export const createMapCanvas = async ({
       return settings.tiles.order.reduce(async (prom, entry) => {
         const { alpha, source } = typeof entry === 'string' ? { alpha: 1, source: entry } : entry;
         if (source && settings.tiles.enabled[source]) {
-          const drawProm = drawImage({ alpha, context, source, trans, ttl, usedImages, x: dx, y: dy, z });
+          const draw = drawCachedImage({ alpha, context, source, trans, ttl, usedImages, x: dx, y: dy, z });
           await prom;
-          const draw = await drawProm;
-          draw();
+          await (await draw)();
         }
         return prom;
       }, Promise.resolve());

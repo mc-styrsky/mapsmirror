@@ -18,7 +18,9 @@ const zoomIn = () => {
     position.x *= 2;
     position.y *= 2;
     position.tiles = 1 << position.z;
+    return true;
   }
+  return false;
 };
 const zoomOut = () => {
   if (position.z > 2) {
@@ -26,24 +28,27 @@ const zoomOut = () => {
     position.x /= 2;
     position.y /= 2;
     position.tiles = 1 << position.z;
+    return true;
   }
+  return false;
 };
 
 export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEvent) => {
   if (!container) return;
   const { height, width } = container.getBoundingClientRect();
   const { type } = event;
+  let needRedraw = false;
 
   if (event instanceof WheelEvent) {
     const { clientX, clientY, deltaY } = event;
 
     if (deltaY > 0) {
-      zoomOut();
+      needRedraw = zoomOut();
       position.x -= (clientX - width / 2) / tileSize / 2;
       position.y -= (clientY - height / 2) / tileSize / 2;
     }
     else if (deltaY < 0) {
-      zoomIn();
+      needRedraw = zoomIn();
       position.x += (clientX - width / 2) / tileSize;
       position.y += (clientY - height / 2) / tileSize;
     }
@@ -55,40 +60,44 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
   else if (event instanceof KeyboardEvent) {
     if (event.isComposing) return;
     const { key } = event;
-    if (key === 'ArrowLeft') position.x--;
-    else if (key === 'ArrowRight') position.x++;
-    else if (key === 'ArrowUp') position.y--;
-    else if (key === 'ArrowDown') position.y++;
-    else if (key === 'PageDown') zoomIn();
-    else if (key === 'PageUp') zoomOut();
-    else if (key >= '0' && key <= '9') {
+    if (key >= '0' && key <= '9') {
       setBaseLayer(settings.tiles.baselayers[parseInt(key)]);
     }
     else if (key === 'c') crosshairToggle.click();
     else if (key === 'd') coordsToggle.click();
     else if (key === 'l') updateGeoLocation();
     else if (key === 'n') navionicsToggle.click();
-    else if (key === 'r') {
-      position.x = Math.round(position.x);
-      position.y = Math.round(position.y);
-    }
-    else if (key === 'u') {
-      position.x = lon2x(position.user.longitude);
-      position.y = lat2y(position.user.latitude);
-    }
     else if (key === 'v') vfdensityToggle.click();
     else {
-      console.log('noop', { key, type });
-      return;
+      needRedraw = true;
+      if (key === 'r') {
+        position.x = Math.round(position.x);
+        position.y = Math.round(position.y);
+      }
+      else if (key === 'u') {
+        position.x = lon2x(position.user.longitude);
+        position.y = lat2y(position.user.latitude);
+      }
+      else if (key === 'ArrowLeft') position.x--;
+      else if (key === 'ArrowRight') position.x++;
+      else if (key === 'ArrowUp') position.y--;
+      else if (key === 'ArrowDown') position.y++;
+      else if (key === 'PageDown') zoomIn();
+      else if (key === 'PageUp') zoomOut();
+      else {
+        needRedraw = false;
+        console.log('noop', { key, type });
+        return;
+      }
     }
   }
   else if (event instanceof MouseEvent) {
     const { clientX, clientY } = event;
     position.x = Math.round(position.x * tileSize + (mouse.x - clientX)) / tileSize;
     position.y = Math.round(position.y * tileSize + (mouse.y - clientY)) / tileSize;
+    needRedraw = true;
   }
 
   position.y = Math.max(0, Math.min(position.y, position.tiles));
-
-  redraw(type);
+  if (needRedraw) redraw(type);
 };

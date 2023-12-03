@@ -5,7 +5,7 @@ type Order= Layers | {source: Layers, alpha: number}
 const order: Order[] = [
   'osm',
   'openseamap',
-  { alpha: 0.5, source: 'navionics' },
+  'navionics',
   { alpha: 0.5, source: 'vfdensity' },
 ];
 export const settings: {

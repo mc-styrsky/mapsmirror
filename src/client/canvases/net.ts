@@ -67,38 +67,70 @@ export const createNetCanvas = ({
   const top = y - height / 2 / tileSize;
   const bottom = y + height / 2 / tileSize;
 
+  const strokeText = (text: string, x: number, y: number) => {
+    context.strokeText(text, x, y);
+    context.fillText(text, x, y);
+  };
 
-  context.beginPath();
-  context.strokeStyle = '#808080';
   const latTop = Math.floor(y2lat(top) / scaleY) * scaleY;
   const latBottom = Math.ceil(y2lat(bottom) / scaleY) * scaleY;
+  const pointsY: {latGrid: number, x1: number, x2: number, y1: number}[] = [];
   for (let ctr = 0; ctr < 1000; ctr++) {
     const latGrid = latTop - scaleY * ctr;
     if (latGrid < latBottom) break;
-    const gridY = lat2y(latGrid);
-    context.strokeText(
-      rad2deg({ axis: 'NS', pad: 2, phi: latGrid }),
-      (left - x) * tileSize + 3,
-      (gridY - y) * tileSize - 3,
-    );
-    context.moveTo((left - x) * tileSize, (gridY - y) * tileSize);
-    context.lineTo((right - x) * tileSize, (gridY - y) * tileSize);
+    pointsY.push({
+      latGrid,
+      x1: (left - x) * tileSize,
+      x2: (right - x) * tileSize,
+      y1: (lat2y(latGrid) - y) * tileSize,
+    });
   }
   const lonLeft = Math.floor(x2lon(left) / scaleX) * scaleX;
   const lonRight = Math.ceil(x2lon(right) / scaleX) * scaleX;
+  const pointsX: {lonGrid: number, y1: number, y2: number, x1: number}[] = [];
   for (let ctr = 0; ctr < 1000; ctr++) {
     const lonGrid = lonLeft + scaleX * ctr;
     if (lonGrid > lonRight) break;
-    const gridX = lon2x(lonGrid);
-    context.strokeText(
-      rad2deg({ axis: 'EW', pad: 3, phi: lonGrid }),
-      (gridX - x) * tileSize + 3,
-      (bottom - y) * tileSize - 3,
-    );
-    // console.log(`${rad2deg(lonGrid, 2, 'NS')}: (${left - x}/${gridY - y}) - (${right - x}/${gridY - y})`);
-    context.moveTo((gridX - x) * tileSize, (top - y) * tileSize);
-    context.lineTo((gridX - x) * tileSize, (bottom - y) * tileSize);
+    pointsX.push({
+      lonGrid,
+      x1: (lon2x(lonGrid) - x) * tileSize,
+      y1: (top - y) * tileSize,
+      y2: (bottom - y) * tileSize,
+    });
   }
+
+  context.beginPath();
+  context.strokeStyle = '#808080';
+  pointsY.forEach(({ x1, x2, y1 }) => {
+    context.moveTo(x1, y1);
+    context.lineTo(x2, y1);
+  });
+  pointsX.forEach(({ x1, y1, y2 }) => {
+    context.moveTo(x1, y1);
+    context.lineTo(x1, y2);
+  });
   context.stroke();
+
+  context.beginPath();
+  context.strokeStyle = '#ffffff';
+  context.fillStyle = '#000000';
+  context.lineWidth = 3;
+  pointsY.forEach(({ latGrid, x1, y1 }) => {
+    strokeText(
+      rad2deg({ axis: 'NS', pad: 2, phi: latGrid }),
+      x1 + 3,
+      y1 - 3,
+    );
+  });
+  pointsX.forEach(({ lonGrid, x1, y1 }) => {
+    strokeText(
+      rad2deg({ axis: 'EW', pad: 3, phi: lonGrid }),
+      x1 + 3,
+      y1 - 3,
+    );
+  });
+  context.fill();
+  context.stroke();
+
   return canvas;
 };

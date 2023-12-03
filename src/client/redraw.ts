@@ -8,6 +8,7 @@ import { overlayContainer } from './containers/overlayContainer';
 import { position } from './globals/position';
 import { container, tileSize } from './index';
 import { updateInfoBox } from './updateInfoBox';
+import { imagesToFetch } from './utils/imagesToFetch';
 
 let working = false;
 let newWorker: boolean = false;
@@ -74,12 +75,13 @@ export const redraw = async (type: string) => {
     window.location.origin
   }${
     window.location.pathname
-  }?${
-    Object.entries({ ttl: position.ttl, x: position.x, y, z })
+  }?z=${z}&${
+    Object.entries({ ttl: position.ttl, x: position.x, y })
     .map(([k, v]) => `${k}=${v}`)
     .join('&')
   }`;
   window.history.pushState({ path: newlocation }, '', newlocation);
+  imagesToFetch.reset();
 
   setTimeout(() => working = false, 100);
 };
