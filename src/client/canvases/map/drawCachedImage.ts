@@ -32,7 +32,6 @@ export const drawCachedImage = async ({
 
   const cachedCanvas = await imagesMap[src];
   if (cachedCanvas) return () => {
-    console.log(`used cached ${src}`);
     drawCanvas(cachedCanvas);
     return Promise.resolve(true);
   };

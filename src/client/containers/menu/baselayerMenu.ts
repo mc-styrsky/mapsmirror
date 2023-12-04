@@ -10,7 +10,7 @@ const baselayerMenuButton = createHTMLElement({
   },
   role: 'button',
   tag: 'a',
-  zhilds: ['Baselayer'],
+  zhilds: [settings.tiles.order[0]],
 });
 
 export const setBaseLayer = (source: Baselayers) => {

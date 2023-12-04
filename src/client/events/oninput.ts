@@ -59,6 +59,7 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
   }
   else if (event instanceof KeyboardEvent) {
     if (event.isComposing) return;
+    if (event.target instanceof HTMLInputElement) return;
     const { key } = event;
     if (key >= '0' && key <= '9') {
       setBaseLayer(settings.tiles.baselayers[parseInt(key)]);

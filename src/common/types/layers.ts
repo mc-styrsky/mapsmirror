@@ -6,12 +6,13 @@ export type Baselayers =
 | 'googlehybrid'
 | 'googlesat'
 | 'googlestreet'
+| 'opentopomap'
 | 'osm'
 
 export type Overlays =
+| 'navionics'
 | 'openseamap'
 | 'vfdensity'
-| 'navionics'
 
 export type Layers = Baselayers | Overlays;
 

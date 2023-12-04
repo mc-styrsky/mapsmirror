@@ -6,6 +6,8 @@ import { tileSize } from '../index';
 import { createHTMLElement } from '../utils/createHTMLElement';
 import { drawCachedImage } from './map/drawCachedImage';
 
+const imagesLastUsed: Set<string> = new Set();
+
 export const imagesMap: Record<string, PromiseLike<OffscreenCanvas | null>> = {};
 export const createMapCanvas = async ({
   height, width, x, y, z,
@@ -59,8 +61,13 @@ export const createMapCanvas = async ({
       }, Promise.resolve());
     }));
   })).then(() => {
-    Object.keys(imagesMap).forEach(src => {
-      if (!usedImages.has(src)) delete imagesMap[src];
+    usedImages.forEach(i => {
+      imagesLastUsed.delete(i);
+      imagesLastUsed.add(i);
+    });
+    [...imagesLastUsed].slice(0, -1000).forEach(src => {
+      delete imagesMap[src];
+      imagesLastUsed.delete(src);
     });
   });
   return canvas;

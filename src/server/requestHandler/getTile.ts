@@ -14,6 +14,7 @@ import { xyz2googlesat } from '../urls/googlesat';
 import { xyz2googlestreet } from '../urls/googlestreet';
 import { xyz2navionics } from '../urls/navionics';
 import { xyz2openseamap } from '../urls/openseamap';
+import { xyz2opentopomap } from '../urls/opentopomap';
 import { xyz2osm } from '../urls/osm';
 import { xyz2vfdensity } from '../urls/vfdensity';
 import { fetchFromTileServer } from '../utils/fetchFromTileServer';
@@ -63,6 +64,7 @@ export const getTile = async (
           googlestreet: xyz2googlestreet,
           navionics: xyz2navionics,
           openseamap: xyz2openseamap,
+          opentopomap: xyz2opentopomap,
           osm: xyz2osm,
           vfdensity: xyz2vfdensity,
         }[provider] ?? xyz2default)(x, y, zoom);

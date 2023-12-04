@@ -1,11 +1,13 @@
 import type { Size } from '../common/types/size';
 import type { XYZ } from '../common/types/xyz';
+import stringify from 'json-stable-stringify';
 import { createCrosshairsCanvas } from './canvases/crosshairs';
 import { createMapCanvas } from './canvases/mapCanvas';
 import { createNetCanvas } from './canvases/net';
 import { mapContainer } from './containers/mapContainer';
 import { overlayContainer } from './containers/overlayContainer';
 import { position } from './globals/position';
+import { settings } from './globals/settings';
 import { container, tileSize } from './index';
 import { updateInfoBox } from './updateInfoBox';
 import { imagesToFetch } from './utils/imagesToFetch';
@@ -71,17 +73,22 @@ export const redraw = async (type: string) => {
     mapContainer.append(newCanvas);
   });
 
-  const newlocation = `${
-    window.location.origin
-  }${
-    window.location.pathname
-  }?z=${z}&${
-    Object.entries({ ttl: position.ttl, x: position.x, y })
-    .map(([k, v]) => `${k}=${v}`)
-    .join('&')
-  }`;
-  window.history.pushState({ path: newlocation }, '', newlocation);
   imagesToFetch.reset();
-
+  (() => {
+    const { origin, pathname, search } = window.location;
+    const newsearch = `?z=${z}&${
+      Object.entries({ ttl: position.ttl, x: position.x, y: position.y })
+      .map(([k, v]) => `${k}=${v}`)
+      .join('&')
+    }`;
+    if (newsearch !== search) {
+      const newlocation = `${origin}${pathname}${newsearch}`;
+      window.history.pushState({ path: newlocation }, '', newlocation);
+    }
+    const newsettings = stringify(settings);
+    if (window.localStorage.getItem('settings') !== newsettings) {
+      window.localStorage.setItem('settings', newsettings);
+    }
+  })();
   setTimeout(() => working = false, 100);
 };

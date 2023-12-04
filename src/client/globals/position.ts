@@ -11,7 +11,6 @@ const { ttl, x, y, z } = extractProperties(Object.fromEntries(new URL(window.loc
 
 export const position = {
   map: <XYZ> { x, y, z },
-  show: { crosshair: true },
   tiles: 1 << z,
   ttl,
   user: {

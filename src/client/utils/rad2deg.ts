@@ -1,7 +1,8 @@
-import { units } from '../globals/units';
+import { settings } from '../globals/settings';
 
-type CoordsParams = {phi: number, pad: number, axis: string};
-const func: Record<typeof units.coords, (CoordsParams) => string> = {
+type Axis = ' -' | 'NS' | 'EW'
+type CoordsParams = {phi: number, pad: number, axis: Axis};
+export const rad2degFunctions: Record<typeof settings.units.coords, (params: CoordsParams) => string> = {
   d: ({ axis = ' -', pad = 0, phi }) => {
     let deg = Math.round(phi * 180 / Math.PI % 360 * 100000) / 100000;
     while (deg > 180) deg -= 360;
@@ -49,4 +50,4 @@ const func: Record<typeof units.coords, (CoordsParams) => string> = {
   },
 };
 
-export const rad2deg = ({ axis = ' -', pad = 0, phi }: CoordsParams) => func[units.coords]({ axis, pad, phi });
+export const rad2deg = ({ axis = ' -', pad = 0, phi }: CoordsParams) => rad2degFunctions[settings.units.coords]({ axis, pad, phi });

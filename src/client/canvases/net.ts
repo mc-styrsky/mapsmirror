@@ -122,11 +122,11 @@ export const createNetCanvas = ({
       y1 - 3,
     );
   });
-  pointsX.forEach(({ lonGrid, x1, y1 }) => {
+  pointsX.forEach(({ lonGrid, x1, y2 }) => {
     strokeText(
       rad2deg({ axis: 'EW', pad: 3, phi: lonGrid }),
       x1 + 3,
-      y1 - 3,
+      y2 - 3,
     );
   });
   context.fill();

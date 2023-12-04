@@ -14,7 +14,7 @@ import { mkdir, stat, unlink } from "fs/promises";
 function extractProperties(obj, builder) {
   return Object.entries(builder).reduce((ret, entry) => {
     const [key, constructor] = entry;
-    ret[key] = constructor(obj[key]);
+    ret[key] = constructor(obj?.[key]);
     return ret;
   }, {});
 }
@@ -148,6 +148,15 @@ var xyz2openseamap = async (x, y, z) => {
     return {};
   return {
     url: `https://tiles.openseamap.org/seamark/${z}/${x}/${y}.png`
+  };
+};
+
+// src/server/urls/opentopomap.ts
+var xyz2opentopomap = async (x, y, z) => {
+  if (z > 17)
+    return {};
+  return {
+    url: `https://tile.opentopomap.org/${z}/${x}/${y}.png`
   };
 };
 
@@ -360,6 +369,7 @@ var getTile = async (req, res) => {
           googlestreet: xyz2googlestreet,
           navionics: xyz2navionics,
           openseamap: xyz2openseamap,
+          opentopomap: xyz2opentopomap,
           osm: xyz2osm,
           vfdensity: xyz2vfdensity
         }[provider] ?? xyz2default)(x, y, zoom);
