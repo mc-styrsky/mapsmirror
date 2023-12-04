@@ -1,4 +1,4 @@
-import { tileSize } from '../../index';
+import { tileSize } from '../../globals/tileSize';
 import { imagesToFetch } from '../../utils/imagesToFetch';
 import { drawImage } from './drawImage';
 import { navionicsWatermark } from './navionicsWatermark';

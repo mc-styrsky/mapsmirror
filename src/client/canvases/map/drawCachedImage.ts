@@ -1,6 +1,6 @@
 import type { DrawImage } from '../../../common/types/drawImage';
 import type { XYZ } from '../../../common/types/xyz';
-import { tileSize } from '../../index';
+import { tileSize } from '../../globals/tileSize';
 import { imagesMap } from '../mapCanvas';
 import { drawImage } from './drawImage';
 import { drawNavionics } from './drawNavionics';

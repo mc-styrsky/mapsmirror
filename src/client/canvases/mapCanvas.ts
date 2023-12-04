@@ -2,7 +2,7 @@ import type { Size } from '../../common/types/size';
 import type { XYZ } from '../../common/types/xyz';
 import { position } from '../globals/position';
 import { settings } from '../globals/settings';
-import { tileSize } from '../index';
+import { tileSize } from '../globals/tileSize';
 import { createHTMLElement } from '../utils/createHTMLElement';
 import { drawCachedImage } from './map/drawCachedImage';
 

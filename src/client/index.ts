@@ -15,8 +15,6 @@ if (container) {
   container.append(mapContainer, overlayContainer, infoBox, menuContainer);
 }
 
-export const tileSize = 256;
-
 if (container) {
   window.addEventListener('keydown', onchange);
   window.addEventListener('wheel', onchange);

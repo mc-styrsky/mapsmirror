@@ -1,7 +1,8 @@
 import { infoBox } from './containers/infoBox';
 import { mouse } from './globals/mouse';
 import { position } from './globals/position';
-import { container, tileSize } from './index';
+import { tileSize } from './globals/tileSize';
+import { container } from './index';
 import { createHTMLElement } from './utils/createHTMLElement';
 import { imagesToFetch } from './utils/imagesToFetch';
 import { px2nm } from './utils/px2nm';

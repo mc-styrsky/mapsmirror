@@ -1,5 +1,5 @@
 import { position } from '../globals/position';
-import { tileSize } from '../index';
+import { tileSize } from '../globals/tileSize';
 
 
 export const px2nm = (lat: number) => {

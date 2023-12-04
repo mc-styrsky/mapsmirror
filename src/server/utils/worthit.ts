@@ -45,7 +45,7 @@ export const worthIt = async ({ x, y, z }: { x: number; y: number; z: number; })
   const z8 = z - 8;
   const x8 = x >> 8;
   const y8 = y >> 8;
-  const tileMax = worthItDatabase.min[z8]?.[x8]?.[y8];
+  const tileMax = worthItDatabase.max[z8]?.[x8]?.[y8];
   const tileMin = worthItDatabase.min[z8]?.[x8]?.[y8];
 
   if (tileMin && tileMax) {

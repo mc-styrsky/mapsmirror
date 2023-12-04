@@ -8,7 +8,8 @@ import { mapContainer } from './containers/mapContainer';
 import { overlayContainer } from './containers/overlayContainer';
 import { position } from './globals/position';
 import { settings } from './globals/settings';
-import { container, tileSize } from './index';
+import { tileSize } from './globals/tileSize';
+import { container } from './index';
 import { updateInfoBox } from './updateInfoBox';
 import { imagesToFetch } from './utils/imagesToFetch';
 

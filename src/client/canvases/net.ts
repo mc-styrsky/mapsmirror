@@ -1,6 +1,6 @@
 import type { Size } from '../../common/types/size';
 import type { XYZ } from '../../common/types/xyz';
-import { tileSize } from '../index';
+import { tileSize } from '../globals/tileSize';
 import { createHTMLElement } from '../utils/createHTMLElement';
 import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';
@@ -59,7 +59,7 @@ export const createNetCanvas = ({
   if (!context) return canvas;
   context.translate(width / 2, height / 2);
   const lat = y2lat(y);
-  const scaleX = getScale(0, context.measureText(rad2deg({ axis: 'WW', pad: 3, phi: 0 })).width);
+  const scaleX = getScale(0, context.measureText(rad2deg({ axis: 'EW', pad: 3, phi: 0 })).width);
   const scaleY = getScale(lat);
 
   const left = x - width / 2 / tileSize;

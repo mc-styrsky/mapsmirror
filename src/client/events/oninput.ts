@@ -1,4 +1,4 @@
-import { container, tileSize } from '..';
+import { container } from '..';
 import { setBaseLayer } from '../containers/menu/baselayerMenu';
 import { coordsToggle } from '../containers/menu/coordsToggle';
 import { crosshairToggle } from '../containers/menu/crosshairToggle';
@@ -8,6 +8,7 @@ import { updateGeoLocation } from '../getUserLocation';
 import { mouse } from '../globals/mouse';
 import { position } from '../globals/position';
 import { settings } from '../globals/settings';
+import { tileSize } from '../globals/tileSize';
 import { redraw } from '../redraw';
 import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';

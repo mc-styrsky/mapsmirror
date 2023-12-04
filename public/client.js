@@ -41,7 +41,7 @@ var require_parse = __commonJS({
       t: "	"
     };
     var text;
-    function error(m) {
+    function error2(m) {
       throw {
         name: "SyntaxError",
         message: m,
@@ -51,7 +51,7 @@ var require_parse = __commonJS({
     }
     function next(c) {
       if (c && c !== ch) {
-        error("Expected '" + c + "' instead of '" + ch + "'");
+        error2("Expected '" + c + "' instead of '" + ch + "'");
       }
       ch = text.charAt(at);
       at += 1;
@@ -88,7 +88,7 @@ var require_parse = __commonJS({
       }
       num = Number(str);
       if (!isFinite(num)) {
-        error("Bad number");
+        error2("Bad number");
       }
       return num;
     }
@@ -124,7 +124,7 @@ var require_parse = __commonJS({
           }
         }
       }
-      error("Bad string");
+      error2("Bad string");
     }
     function white() {
       while (ch && ch <= " ") {
@@ -153,7 +153,7 @@ var require_parse = __commonJS({
           next("l");
           return null;
         default:
-          error("Unexpected '" + ch + "'");
+          error2("Unexpected '" + ch + "'");
       }
     }
     function array() {
@@ -176,7 +176,7 @@ var require_parse = __commonJS({
           white();
         }
       }
-      error("Bad array");
+      error2("Bad array");
     }
     function object() {
       var key;
@@ -193,7 +193,7 @@ var require_parse = __commonJS({
           white();
           next(":");
           if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            error('Duplicate key "' + key + '"');
+            error2('Duplicate key "' + key + '"');
           }
           obj[key] = value();
           white();
@@ -205,7 +205,7 @@ var require_parse = __commonJS({
           white();
         }
       }
-      error("Bad object");
+      error2("Bad object");
     }
     function value() {
       white();
@@ -230,7 +230,7 @@ var require_parse = __commonJS({
       result = value();
       white();
       if (ch) {
-        error("Syntax error");
+        error2("Syntax error");
       }
       return typeof reviver === "function" ? function walk(holder, key) {
         var k;
@@ -1285,7 +1285,7 @@ var require_json_stable_stringify = __commonJS({
         };
       };
       var seen = [];
-      return function stringify2(parent, key, node, level) {
+      return function stringify3(parent, key, node, level) {
         var indent = space ? "\n" + strRepeat(level, space) : "";
         var colonSeparator = space ? ": " : ":";
         if (node && node.toJSON && typeof node.toJSON === "function") {
@@ -1301,7 +1301,7 @@ var require_json_stable_stringify = __commonJS({
         if (isArray(node)) {
           var out = "";
           for (var i = 0; i < node.length; i++) {
-            var item = stringify2(node, i, node[i], level + 1) || jsonStringify(null);
+            var item = stringify3(node, i, node[i], level + 1) || jsonStringify(null);
             out += indent + space + item;
             if (i + 1 < node.length) {
               out += ",";
@@ -1322,7 +1322,7 @@ var require_json_stable_stringify = __commonJS({
         var needsComma = false;
         for (var i = 0; i < keys.length; i++) {
           var key = keys[i];
-          var value = stringify2(node, key, node[key], level + 1);
+          var value = stringify3(node, key, node[key], level + 1);
           if (!value) {
             continue;
           }
@@ -1512,6 +1512,9 @@ console.log(settings);
 
 // src/client/redraw.ts
 var import_json_stable_stringify = __toESM(require_json_stable_stringify(), 1);
+
+// src/client/globals/tileSize.ts
+var tileSize = 256;
 
 // src/client/sphericCircle.ts
 var sphericCircle = (lat, lon, radius, steps = 256) => {
@@ -2125,7 +2128,7 @@ var createNetCanvas = ({
     return canvas;
   context.translate(width / 2, height / 2);
   const lat = y2lat(y2);
-  const scaleX = getScale(0, context.measureText(rad2deg({ axis: "WW", pad: 3, phi: 0 })).width);
+  const scaleX = getScale(0, context.measureText(rad2deg({ axis: "EW", pad: 3, phi: 0 })).width);
   const scaleY = getScale(lat);
   const left = x2 - width / 2 / tileSize;
   const right = x2 + width / 2 / tileSize;
@@ -2342,12 +2345,13 @@ var coordsToggle = createHTMLElement({
 });
 
 // src/client/containers/menu/iconButton.ts
-var iconButton = ({ active, onclick, src }) => {
+var iconButton = ({ active, onclick, src, style }) => {
   const ret = createHTMLElement({
     classes: ["btn", active() ? "btn-success" : "btn-secondary"],
     role: "button",
     style: {
-      padding: "0.25rem"
+      padding: "0.25rem",
+      ...style
     },
     tag: "a",
     zhilds: [
@@ -2381,11 +2385,29 @@ var crosshairToggle = iconButton({
   src: "bootstrap-icons-1.11.2/crosshair.svg"
 });
 
-// src/client/containers/menu/gotoMenu.ts
+// src/client/containers/menu/goto/form.ts
+var import_parse_dms2 = __toESM(require_parse_dms(), 1);
+
+// src/client/containers/menu/goto/error.ts
+var error = createHTMLElement({
+  classes: ["form-text"],
+  tag: "div"
+});
+
+// src/client/containers/menu/goto/gotoInput.ts
 var import_parse_dms = __toESM(require_parse_dms(), 1);
-var coodUnits = ["d", "dm", "dms"];
+
+// src/client/globals/coordUnits.ts
+var coordUnits = ["d", "dm", "dms"];
+
+// src/common/fromEntriesTyped.ts
+function fromEntriesTyped(entries) {
+  return Object.fromEntries(entries);
+}
+
+// src/client/containers/menu/goto/info.ts
 var info = fromEntriesTyped(
-  coodUnits.map((c) => [
+  coordUnits.map((c) => [
     c,
     createHTMLElement({
       classes: ["form-text"],
@@ -2396,41 +2418,137 @@ var info = fromEntriesTyped(
     })
   ])
 );
+
+// src/client/containers/menu/goto/gotoInput.ts
 var gotoInput = createHTMLElement({
   autocomplete: "off",
   classes: ["form-control"],
   oninput: () => {
     console.log("oninput");
-    coodUnits.forEach((u) => {
+    coordUnits.forEach((u) => {
       info[u].style.display = "none";
     });
-    const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms.default)(gotoInput.value);
-    const { lat, lon } = {
-      lat: latDeg * Math.PI / 180,
-      lon: lonDeg * Math.PI / 180
-    };
-    if (latDeg && lonDeg)
-      coodUnits.forEach((u) => {
-        console.log("update lat/lon");
-        const func = rad2degFunctions[u];
-        info[u].innerText = `${func({ axis: "NS", pad: 2, phi: lat })} ${func({ axis: "EW", pad: 3, phi: lon })}`;
-        info[u].style.display = "block";
-      });
+    try {
+      const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms.default)(gotoInput.value);
+      const { lat, lon } = {
+        lat: latDeg * Math.PI / 180,
+        lon: lonDeg * Math.PI / 180
+      };
+      if (typeof latDeg === "number" && typeof lonDeg === "number")
+        coordUnits.forEach((u) => {
+          console.log("update lat/lon");
+          const func = rad2degFunctions[u];
+          info[u].innerText = `${func({ axis: "NS", pad: 2, phi: lat })} ${func({ axis: "EW", pad: 3, phi: lon })}`;
+          info[u].style.display = "block";
+          error.style.display = "none";
+        });
+    } catch (e) {
+      error.innerText = e.toString();
+      error.style.display = "block";
+    }
   },
   tag: "input",
   type: "text"
 });
+
+// src/client/utils/savedPositionsFromLocalStoreage.ts
+var savedPositionsFromLocalStoreage = () => {
+  const list = JSON.parse(window.localStorage.getItem("savedPositions") ?? "[]");
+  console.log(list);
+  if (Array.isArray(list)) {
+    if (list.every((item) => {
+      const check = item.x + item.y + item.z;
+      return typeof check === "number" && !Number.isNaN(check);
+    }))
+      return list;
+    console.log("x, y, or z is NaN", list);
+  } else
+    console.log("savedPositions not an array");
+  window.localStorage.setItem("savedPositions", "[]");
+  return [];
+};
+
+// src/client/containers/menu/goto/savedPositions/editSavedPosition.ts
+var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
+var editSavedPosition = ({ func, x: x2, y: y2, z: z2 }) => {
+  const list = new Set(savedPositionsFromLocalStoreage().map((e) => (0, import_json_stable_stringify2.default)(e)));
+  list[func]((0, import_json_stable_stringify2.default)({
+    x: Math.round(x2 * tileSize),
+    y: Math.round(y2 * tileSize),
+    z: z2
+  }));
+  window.localStorage.setItem("savedPositions", (0, import_json_stable_stringify2.default)([...list].map((e) => JSON.parse(e))));
+  updateSavedPositionsList();
+};
+
+// src/client/containers/menu/goto/savedPositions/updateSavedPositionsList.ts
+var updateSavedPositionsList = () => {
+  savedPositions.innerHTML = "";
+  const list = savedPositionsFromLocalStoreage();
+  list.forEach((e) => {
+    const { x: x2, y: y2, z: z2 } = extractProperties(e, {
+      x: (val) => Number(val) / tileSize,
+      y: (val) => Number(val) / tileSize,
+      z: Number
+    });
+    console.log({ e, x: x2, y: y2, z: z2 });
+    savedPositions.append(createHTMLElement({
+      classes: ["btn-group", "my-2", "d-flex"],
+      role: "group",
+      tag: "div",
+      zhilds: [
+        createHTMLElement({
+          classes: ["btn", "btn-secondary"],
+          onclick: () => {
+            position.x = x2;
+            position.y = y2;
+            position.z = z2;
+            redraw("load position");
+          },
+          role: "button",
+          tag: "a",
+          zhilds: [[
+            rad2deg({ axis: "NS", pad: 2, phi: y2lat(y2, 1 << z2) }),
+            rad2deg({ axis: "EW", pad: 3, phi: x2lon(x2, 1 << z2) }),
+            `(${z2})`
+          ].join(" ")]
+        }),
+        iconButton({
+          active: () => false,
+          onclick: () => {
+            editSavedPosition({ func: "delete", x: x2, y: y2, z: z2 });
+          },
+          src: "bootstrap-icons-1.11.2/x.svg",
+          style: {
+            color: "red",
+            flexGrow: "0"
+          }
+        })
+      ]
+    }));
+  });
+};
+
+// src/client/containers/menu/goto/savedPositions.ts
+var savedPositions = createHTMLElement({
+  tag: "div"
+});
+updateSavedPositionsList();
+
+// src/client/containers/menu/goto/submit.ts
 var submit = createHTMLElement({
   classes: ["btn", "btn-primary"],
   tag: "button",
   type: "submit",
   zhilds: ["Goto"]
 });
+
+// src/client/containers/menu/goto/form.ts
 var form = createHTMLElement({
   action: "javascript:void(0)",
   classes: ["dropdown-menu", "p-2"],
   onsubmit: () => {
-    const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms.default)(gotoInput.value);
+    const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms2.default)(gotoInput.value);
     const { lat, lon } = {
       lat: latDeg * Math.PI / 180,
       lon: lonDeg * Math.PI / 180
@@ -2454,11 +2572,15 @@ var form = createHTMLElement({
         submit
       ]
     }),
+    error,
     info.d,
     info.dm,
-    info.dms
+    info.dms,
+    savedPositions
   ]
 });
+
+// src/client/containers/menu/gotoMenu.ts
 var gotoMenu = createHTMLElement({
   classes: ["dropdown"],
   tag: "div",
@@ -2475,9 +2597,6 @@ var gotoMenu = createHTMLElement({
     form
   ]
 });
-function fromEntriesTyped(entries) {
-  return Object.fromEntries(entries);
-}
 
 // src/client/containers/menu/overlayToggle.ts
 var overlayToggle = (source) => iconButton({
@@ -2488,6 +2607,17 @@ var overlayToggle = (source) => iconButton({
 
 // src/client/containers/menu/navionicsToggle.ts
 var navionicsToggle = overlayToggle("navionics");
+
+// src/client/containers/menu/savePosition.ts
+var savePosition = createHTMLElement({
+  classes: ["btn", "btn-secondary"],
+  onclick: () => {
+    editSavedPosition({ func: "add", ...position });
+  },
+  role: "button",
+  tag: "a",
+  zhilds: ["Save"]
+});
 
 // src/client/containers/menu/vfdensityToggle.ts
 var vfdensityToggle = overlayToggle("vfdensity");
@@ -2513,7 +2643,8 @@ var menuContainer = createHTMLElement({
         coordsToggle
       ]
     }),
-    gotoMenu
+    gotoMenu,
+    savePosition
   ]
 });
 
@@ -2668,7 +2799,6 @@ if (container) {
   container.innerHTML = "";
   container.append(mapContainer, overlayContainer, infoBox, menuContainer);
 }
-var tileSize = 256;
 if (container) {
   window.addEventListener("keydown", onchange);
   window.addEventListener("wheel", onchange);
@@ -2677,7 +2807,6 @@ if (container) {
   redraw("initial");
 }
 export {
-  container,
-  tileSize
+  container
 };
 //# sourceMappingURL=client.js.map

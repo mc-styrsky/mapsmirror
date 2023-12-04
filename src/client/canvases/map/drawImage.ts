@@ -1,5 +1,5 @@
 import type { DrawImage } from '../../../common/types/drawImage';
-import { tileSize } from '../../index';
+import { tileSize } from '../../globals/tileSize';
 import { frac } from '../../utils/frac';
 import { imagesToFetch } from '../../utils/imagesToFetch';
 

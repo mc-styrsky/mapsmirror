@@ -1,7 +1,7 @@
 import type { Size } from '../../common/types/size';
 import type { XYZ } from '../../common/types/xyz';
 import { settings } from '../globals/settings';
-import { tileSize } from '../index';
+import { tileSize } from '../globals/tileSize';
 import { sphericCircle, sphericLatLon } from '../sphericCircle';
 import { createHTMLElement } from '../utils/createHTMLElement';
 import { frac } from '../utils/frac';
