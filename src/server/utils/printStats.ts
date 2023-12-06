@@ -13,8 +13,8 @@ export const printStats = () => {
     (sum, [key, queue]) => {
       const len = queue.length;
       const collapsed = queues.childsCollapsed[key] ?? 0;
-      sum += Math.round(collapsed * partialSum(17 - parseInt(key)));
-      sum += Math.round(len * partialSum(16 - parseInt(key)));
+      sum += Math.round(collapsed * partialSum(maxzoom - parseInt(key)));
+      sum += Math.round(len * partialSum(maxzoom - 1 - parseInt(key)));
       return sum;
     }, 0);
   const done = todoLast - todo;

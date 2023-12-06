@@ -789,8 +789,8 @@ var require_get_intrinsic = __commonJS({
     }() : throwTypeError;
     var hasSymbols = require_has_symbols()();
     var hasProto = require_has_proto()();
-    var getProto = Object.getPrototypeOf || (hasProto ? function(x2) {
-      return x2.__proto__;
+    var getProto = Object.getPrototypeOf || (hasProto ? function(x) {
+      return x.__proto__;
     } : null);
     var needsEval = {};
     var TypedArray = typeof Uint8Array === "undefined" || !getProto ? undefined2 : getProto(Uint8Array);
@@ -1412,6 +1412,28 @@ var require_parse_dms = __commonJS({
   }
 });
 
+// src/client/boundingRect.ts
+var Size = class {
+  constructor(container2) {
+    this._container = container2;
+    this.refresh();
+  }
+  refresh = () => {
+    const { height, width } = this._container.getBoundingClientRect();
+    this._height = height;
+    this._width = width;
+  };
+  _container;
+  _height = 0;
+  _width = 0;
+  get height() {
+    return this._height;
+  }
+  get width() {
+    return this._width;
+  }
+};
+
 // src/client/utils/createHTMLElement.ts
 function createHTMLElement(params) {
   const { classes, dataset, style, tag, zhilds, ...data } = params;
@@ -1513,6 +1535,12 @@ console.log(settings);
 // src/client/redraw.ts
 var import_json_stable_stringify = __toESM(require_json_stable_stringify(), 1);
 
+// src/common/modulo.ts
+var modulo = (val, mod) => {
+  const ret = val % mod;
+  return ret < 0 ? ret + mod : ret;
+};
+
 // src/client/globals/tileSize.ts
 var tileSize = 256;
 
@@ -1556,29 +1584,95 @@ var sphericLatLon = ({ cosLat, cosRadius, lat, omega, radius, sinLat, sinRadius 
 };
 
 // src/client/utils/frac.ts
-var frac = (x2) => x2 - Math.floor(x2);
+var frac = (x) => x - Math.floor(x);
 
 // src/client/globals/position.ts
-var { ttl, x, y, z } = extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
-  ttl: (val) => parseInt(val ?? 0),
-  x: (val) => parseFloat(val ?? 2),
-  y: (val) => parseFloat(val ?? 2),
-  z: (val) => parseInt(val ?? 2)
-});
-var position = {
-  map: { x, y, z },
-  tiles: 1 << z,
-  ttl,
-  user: {
+var Position = class {
+  constructor({ ttl, x, y, z }) {
+    this._x = x;
+    this._y = y;
+    this._z = z;
+    this._ttl = ttl;
+    this._tiles = 1 << z;
+    this.map = { x, y, z };
+  }
+  set ttl(val) {
+    this._ttl = val;
+  }
+  get ttl() {
+    return this._ttl;
+  }
+  set x(val) {
+    this._x = modulo(val, this._tiles);
+  }
+  get x() {
+    return this._x;
+  }
+  set y(val) {
+    this._y = Math.max(0, Math.min(val, this._tiles));
+  }
+  get y() {
+    return this._y;
+  }
+  set z(val) {
+    this._z = val;
+    this._tiles = 1 << val;
+  }
+  get z() {
+    return this._z;
+  }
+  set xyz({ x, y, z }) {
+    this.z = z;
+    this.x = x;
+    this.y = y;
+  }
+  get xyz() {
+    return {
+      x: this._x,
+      y: this._y,
+      z: this._z
+    };
+  }
+  get tiles() {
+    return this._tiles;
+  }
+  zoomIn = () => {
+    if (this._z < 20) {
+      this.z++;
+      this.x *= 2;
+      this.y *= 2;
+      return true;
+    }
+    return false;
+  };
+  zoomOut = () => {
+    if (this.z > 2) {
+      this.z--;
+      this.x /= 2;
+      this.y /= 2;
+      return true;
+    }
+    return false;
+  };
+  map;
+  user = {
     accuracy: 0,
     latitude: 0,
     longitude: 0,
     timestamp: 0
-  },
-  x,
-  y,
-  z
+  };
+  _ttl;
+  _x;
+  _y;
+  _z;
+  _tiles;
 };
+var position = new Position(extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
+  ttl: (val) => parseInt(val ?? 0),
+  x: (val) => parseFloat(val ?? 2),
+  y: (val) => parseFloat(val ?? 2),
+  z: (val) => parseInt(val ?? 2)
+}));
 
 // src/client/utils/lat2y.ts
 var lat2y = (lat, tiles = position.tiles) => {
@@ -1598,17 +1692,17 @@ var nm2px = (lat) => {
 };
 
 // src/client/utils/x2lon.ts
-var x2lon = (x2, tiles = position.tiles) => (x2 / tiles - 0.5) * Math.PI * 2;
+var x2lon = (x, tiles = position.tiles) => (x / tiles - 0.5) * Math.PI * 2;
 
 // src/client/utils/y2lat.ts
-var y2lat = (y2, tiles = position.tiles) => Math.asin(Math.tanh((0.5 - y2 / tiles) * 2 * Math.PI));
+var y2lat = (y, tiles = position.tiles) => Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
 
 // src/client/canvases/crosshairs.ts
 var createCrosshairsCanvas = ({
   height,
   width,
-  x: x2,
-  y: y2
+  x,
+  y
 }) => {
   const canvas = createHTMLElement({
     height,
@@ -1623,8 +1717,8 @@ var createCrosshairsCanvas = ({
   const context = canvas.getContext("2d");
   if (!settings.crosshair.show || !context)
     return canvas;
-  const lat = y2lat(y2);
-  const lon = x2lon(x2);
+  const lat = y2lat(y);
+  const lon = x2lon(x);
   const milesPerTile = 100 / nm2px(lat);
   const scale = Math.log10(milesPerTile);
   const scaleFloor = Math.floor(scale);
@@ -1647,8 +1741,8 @@ var createCrosshairsCanvas = ({
     const radDiv = min2rad(minArc);
     const circlePoints = sphericCircle(lat, lon, radDiv).map(([latPoint, lonPoint, draw]) => ({
       draw,
-      tx: (lon2x(lonPoint) - x2) * tileSize,
-      ty: (lat2y(latPoint) - y2) * tileSize
+      tx: (lon2x(lonPoint) - x) * tileSize,
+      ty: (lat2y(latPoint) - y) * tileSize
     }));
     context.beginPath();
     context.strokeStyle = "#ff0000";
@@ -1666,32 +1760,32 @@ var createCrosshairsCanvas = ({
     for (let minDiv = minLast + milesPerDiv; minDiv < minArc; minDiv += milesPerDiv) {
       const radDiv2 = min2rad(minDiv);
       if (lat + radDiv2 < piHalf) {
-        const top = (lat2y(lat + radDiv2) - y2) * tileSize;
+        const top = (lat2y(lat + radDiv2) - y) * tileSize;
         context.moveTo(-5, top);
         context.lineTo(5, top);
       }
       if (lat - radDiv2 > -piHalf) {
-        const bottom = (lat2y(lat - radDiv2) - y2) * tileSize;
+        const bottom = (lat2y(lat - radDiv2) - y) * tileSize;
         context.moveTo(-5, bottom);
         context.lineTo(5, bottom);
       }
       const { cosOmega2, lat2, lon2 } = sphericLatLon({ lat, omega: piHalf, radius: radDiv2 });
       const sinOmega2 = Math.sqrt(1 - cosOmega2 * cosOmega2);
       context.moveTo(
-        (lon2x(lon + lon2) - x2) * tileSize + cosOmega2 * 5,
-        (lat2y(lat2) - y2) * tileSize - sinOmega2 * 5
+        (lon2x(lon + lon2) - x) * tileSize + cosOmega2 * 5,
+        (lat2y(lat2) - y) * tileSize - sinOmega2 * 5
       );
       context.lineTo(
-        (lon2x(lon + lon2) - x2) * tileSize - cosOmega2 * 5,
-        (lat2y(lat2) - y2) * tileSize + sinOmega2 * 5
+        (lon2x(lon + lon2) - x) * tileSize - cosOmega2 * 5,
+        (lat2y(lat2) - y) * tileSize + sinOmega2 * 5
       );
       context.moveTo(
-        (lon2x(lon - lon2) - x2) * tileSize - cosOmega2 * 5,
-        (lat2y(lat2) - y2) * tileSize - sinOmega2 * 5
+        (lon2x(lon - lon2) - x) * tileSize - cosOmega2 * 5,
+        (lat2y(lat2) - y) * tileSize - sinOmega2 * 5
       );
       context.lineTo(
-        (lon2x(lon - lon2) - x2) * tileSize + cosOmega2 * 5,
-        (lat2y(lat2) - y2) * tileSize + sinOmega2 * 5
+        (lon2x(lon - lon2) - x) * tileSize + cosOmega2 * 5,
+        (lat2y(lat2) - y) * tileSize + sinOmega2 * 5
       );
       context.strokeStyle = "#ff0000";
     }
@@ -1700,6 +1794,33 @@ var createCrosshairsCanvas = ({
   }
   return canvas;
 };
+
+// src/client/globals/details.ts
+var NavionicsDetails = class {
+  list = /* @__PURE__ */ new Map();
+  add = (item) => {
+    this.list.set(item.id, item);
+  };
+  delete = (item) => {
+    this.list.delete(item.id);
+  };
+  clear = () => this.list.clear();
+  toHtml = () => [...this.list.values()].map((item) => {
+    return createHTMLElement({
+      tag: "div",
+      zhilds: [
+        createHTMLElement({
+          src: `https://webapp.navionics.com/api/v2/assets/images/${item.icon_id}`,
+          tag: "img"
+        }),
+        item.name,
+        item.name === item.details?.label ? null : item.details?.label,
+        item.details ? item.details.properties.map(({ label }) => label).join(" ") : null
+      ].filter(Boolean)
+    });
+  });
+};
+var details = new NavionicsDetails();
 
 // src/client/globals/mouse.ts
 var mouse = {
@@ -1715,31 +1836,20 @@ var px2nm = (lat) => {
 };
 
 // src/client/utils/rad2deg.ts
+var rad2ModuloDeg = (phi) => modulo(phi * 180 / Math.PI + 180, 360) - 180;
 var rad2degFunctions = {
   d: ({ axis = " -", pad = 0, phi }) => {
-    let deg = Math.round(phi * 180 / Math.PI % 360 * 1e5) / 1e5;
-    while (deg > 180)
-      deg -= 360;
-    while (deg < -180)
-      deg += 360;
+    const deg = Math.round(rad2ModuloDeg(phi) * 1e5) / 1e5;
     return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad + 6, "0")}\xB0`;
   },
   dm: ({ axis = " -", pad = 0, phi }) => {
-    let deg = Math.round(phi * 180 / Math.PI % 360 * 6e4) / 6e4;
-    while (deg > 180)
-      deg -= 360;
-    while (deg < -180)
-      deg += 360;
+    const deg = Math.round(rad2ModuloDeg(phi) * 6e4) / 6e4;
     const degrees = deg | 0;
     const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
     return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}'`;
   },
   dms: ({ axis = " -", pad = 0, phi }) => {
-    let deg = Math.round(phi * 180 / Math.PI % 360 * 36e4) / 36e4;
-    while (deg > 180)
-      deg -= 360;
-    while (deg < -180)
-      deg += 360;
+    const deg = Math.round(rad2ModuloDeg(phi) * 36e4) / 36e4;
     const degrees = deg | 0;
     const min = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
     const minutes = min | 0;
@@ -1751,13 +1861,12 @@ var rad2deg = ({ axis = " -", pad = 0, phi }) => rad2degFunctions[settings.units
 
 // src/client/updateInfoBox.ts
 var updateInfoBox = () => {
-  if (!container)
-    return;
-  const { height, width } = container.getBoundingClientRect();
-  const lat = y2lat(position.y);
-  const lon = x2lon(position.x);
-  const latMouse = y2lat(position.y + (mouse.y - height / 2) / tileSize);
-  const lonMouse = x2lon(position.x + (mouse.x - width / 2) / tileSize);
+  const { height, width } = boundingRect;
+  const { x, y } = position;
+  const lat = y2lat(y);
+  const lon = x2lon(x);
+  const latMouse = y2lat(y + (mouse.y - height / 2) / tileSize);
+  const lonMouse = x2lon(x + (mouse.x - width / 2) / tileSize);
   const scale = (() => {
     let nm = px2nm(lat);
     let px = 1;
@@ -1778,7 +1887,8 @@ var updateInfoBox = () => {
     `Mouse: ${rad2deg({ axis: "NS", pad: 2, phi: latMouse })} ${rad2deg({ axis: "EW", pad: 3, phi: lonMouse })}`,
     createHTMLElement({ tag: "br" }),
     `User: ${rad2deg({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2deg({ axis: "EW", pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`,
-    ...imagesToFetch.stateHtml()
+    ...imagesToFetch.stateHtml(),
+    ...details.toHtml()
   );
 };
 
@@ -1786,7 +1896,7 @@ var updateInfoBox = () => {
 var ImagesToFetch = class {
   constructor() {
   }
-  xyz2string = ({ x: x2, y: y2, z: z2 }) => `${z2.toString(16)}_${x2.toString(16)}_${y2.toString(16)}`;
+  xyz2string = ({ x, y, z }) => `${z.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
   data = {};
   total = {};
   getSet = (source) => this.data[source] ??= /* @__PURE__ */ new Set();
@@ -1797,12 +1907,11 @@ var ImagesToFetch = class {
   };
   delete = ({ source, ...xyz }) => {
     this.getSet(source).delete(this.xyz2string(xyz));
-    if (this.getSet(source).size === 0)
+    if (this.getSet(source).size === 0) {
       delete this.data[source];
+      delete this.total[source];
+    }
     updateInfoBox();
-  };
-  reset = () => {
-    this.total = {};
   };
   state = () => {
     return Object.entries(this.data).map(([key, val]) => [key, val.size]);
@@ -1825,20 +1934,20 @@ var drawImage = ({
   context,
   scale = 1,
   source,
-  ttl: ttl2,
-  x: x2,
-  y: y2,
-  z: z2
+  ttl,
+  x,
+  y,
+  z
 }) => {
   const src = `/tile/${source}/${[
-    z2,
-    Math.floor(x2 / scale).toString(16),
-    Math.floor(y2 / scale).toString(16)
-  ].join("/")}?ttl=${ttl2}`;
-  const sx = Math.floor(frac(x2 / scale) * scale) * tileSize / scale;
-  const sy = Math.floor(frac(y2 / scale) * scale) * tileSize / scale;
+    z,
+    Math.floor(x / scale).toString(16),
+    Math.floor(y / scale).toString(16)
+  ].join("/")}?ttl=${ttl}`;
+  const sx = Math.floor(frac(x / scale) * scale) * tileSize / scale;
+  const sy = Math.floor(frac(y / scale) * scale) * tileSize / scale;
   const sw = tileSize / scale;
-  imagesToFetch.add({ source, x: x2, y: y2, z: z2 });
+  imagesToFetch.add({ source, x, y, z });
   const img = new Image();
   img.src = src;
   const prom = new Promise((resolve) => {
@@ -1855,21 +1964,21 @@ var drawImage = ({
         tileSize
       );
       resolve(true);
-      imagesToFetch.delete({ source, x: x2, y: y2, z: z2 });
+      imagesToFetch.delete({ source, x, y, z });
     };
     img.onerror = () => {
       resolve(
-        z2 > 0 ? drawImage({
+        z > 0 ? drawImage({
           context,
           scale: scale << 1,
           source,
-          ttl: ttl2,
-          x: x2,
-          y: y2,
-          z: z2 - 1
+          ttl,
+          x,
+          y,
+          z: z - 1
         }) : false
       );
-      imagesToFetch.delete({ source, x: x2, y: y2, z: z2 });
+      imagesToFetch.delete({ source, x, y, z });
     };
   });
   return prom;
@@ -1911,12 +2020,19 @@ var navionicsWatermark = (async () => {
 // src/client/canvases/map/drawNavionics.ts
 var backgroundColors = [
   2142456,
+  4767992,
+  5816568,
   5818616,
   6867192,
+  7917816,
   8442104,
+  8966392,
+  9492728,
+  10017016,
   10541304,
   11067640,
   11591928,
+  12116216,
   12642552,
   16316664
 ].reduce((arr, val) => {
@@ -1933,17 +2049,17 @@ var backgroundColors = [
   }
   return arr;
 }, /* @__PURE__ */ new Set());
-var drawNavionics = async ({ context, source, ttl: ttl2, x: x2, y: y2, z: z2 }) => {
+var drawNavionics = async ({ context, source, ttl, x, y, z }) => {
   const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
   const workerContext = workerCanvas.getContext("2d");
   const watermark = await navionicsWatermark;
   if (!workerContext || !watermark)
     return false;
-  const drawProm = drawImage({ context: workerContext, source, ttl: ttl2, x: x2, y: y2, z: z2 });
+  const drawProm = drawImage({ context: workerContext, source, ttl, x, y, z });
   const draw = await drawProm;
   if (!draw)
     return false;
-  imagesToFetch.add({ source: "transparent", x: x2, y: y2, z: z2 });
+  imagesToFetch.add({ source: "transparent", x, y, z });
   const img = workerContext.getImageData(0, 0, tileSize, tileSize);
   const { data } = img;
   for (let i = 0; i < watermark.length; i++) {
@@ -1956,7 +2072,7 @@ var drawNavionics = async ({ context, source, ttl: ttl2, x: x2, y: y2, z: z2 }) 
       data[i * 4 + 3] = 0;
   }
   workerContext.putImageData(img, 0, 0);
-  imagesToFetch.delete({ source: "transparent", x: x2, y: y2, z: z2 });
+  imagesToFetch.delete({ source: "transparent", x, y, z });
   context.drawImage(workerCanvas, 0, 0);
   return true;
 };
@@ -1967,25 +2083,25 @@ var drawCachedImage = async ({
   context,
   source,
   trans,
-  ttl: ttl2,
+  ttl,
   usedImages,
-  x: x2,
-  y: y2,
-  z: z2
+  x,
+  y,
+  z
 }) => {
   const isNavionics = source === "navionics";
   const src = `/${source}/${[
-    z2,
-    x2.toString(16),
-    y2.toString(16)
+    z,
+    modulo(x, position.tiles).toString(16),
+    modulo(y, position.tiles).toString(16)
   ].join("/")}`;
   const drawCanvas = (cnvs) => {
     usedImages.add(src);
     context.globalAlpha = alpha;
     context.drawImage(
       cnvs,
-      x2 * tileSize + trans.x,
-      y2 * tileSize + trans.y
+      x * tileSize + trans.x,
+      y * tileSize + trans.y
     );
   };
   const cachedCanvas = await imagesMap[src];
@@ -1998,7 +2114,7 @@ var drawCachedImage = async ({
   const workerContext = workerCanvas.getContext("2d");
   if (!workerContext)
     return () => Promise.resolve(true);
-  const successProm = isNavionics ? drawNavionics({ context: workerContext, source, ttl: ttl2, x: x2, y: y2, z: z2 }) : drawImage({ context: workerContext, source, ttl: ttl2, x: x2, y: y2, z: z2 });
+  const successProm = isNavionics ? drawNavionics({ context: workerContext, source, ttl, x, y, z }) : drawImage({ context: workerContext, source, ttl, x, y, z });
   imagesMap[src] = successProm.then((success) => success ? workerCanvas : null);
   return async () => {
     const success = await successProm;
@@ -2015,9 +2131,9 @@ var imagesMap = {};
 var createMapCanvas = async ({
   height,
   width,
-  x: x2,
-  y: y2,
-  z: z2
+  x,
+  y,
+  z
 }) => {
   const canvasWidth = width + 2 * tileSize;
   const canvasHeight = height + 2 * tileSize;
@@ -2038,36 +2154,48 @@ var createMapCanvas = async ({
     return canvas;
   context.translate(tileSize, tileSize);
   const trans = {
-    x: Math.round(width / 2 - x2 * tileSize),
-    y: Math.round(height / 2 - y2 * tileSize)
+    x: Math.round(width / 2 - x * tileSize),
+    y: Math.round(height / 2 - y * tileSize)
   };
+  const marginTiles = 1;
   const maxdx = Math.ceil((width - trans.x) / tileSize);
   const maxdy = Math.ceil((height - trans.y) / tileSize);
   const mindx = -Math.ceil(trans.x / tileSize);
   const mindy = -Math.ceil(trans.y / tileSize);
   const dxArray = [];
-  for (let dx = mindx; dx < maxdx; dx++)
-    dxArray.push(dx);
+  for (let dx = mindx; dx < maxdx; dx++) {
+    dxArray.push({ dx, marginX: false });
+  }
+  dxArray.push(
+    { dx: mindx - marginTiles, marginX: true },
+    { dx: maxdx + marginTiles, marginX: true }
+  );
   const dyArray = [];
-  for (let dy = mindy; dy < maxdy; dy++) {
+  for (let dy = mindy - marginTiles; dy < maxdy + marginTiles; dy++) {
     if (dy >= 0 && dy < position.tiles)
-      dyArray.push(dy);
+      dyArray.push({ dy, marginY: dy < mindx || dy > maxdy });
   }
   const usedImages = /* @__PURE__ */ new Set();
-  const ttl2 = Math.max(Math.min(17, z2 + Math.max(0, position.ttl)) - z2, 0);
-  await Promise.all(dxArray.map(async (dx) => {
-    await Promise.all(dyArray.map((dy) => {
-      return settings.tiles.order.reduce(async (prom, entry) => {
-        const { alpha, source } = typeof entry === "string" ? { alpha: 1, source: entry } : entry;
-        if (source && settings.tiles.enabled[source]) {
-          const draw = drawCachedImage({ alpha, context, source, trans, ttl: ttl2, usedImages, x: dx, y: dy, z: z2 });
-          await prom;
-          await (await draw)();
-        }
-        return prom;
-      }, Promise.resolve());
-    }));
-  })).then(() => {
+  const ttl = Math.max(Math.min(17, z + Math.max(0, position.ttl)) - z, 0);
+  const neededTileProms = [];
+  const optionalTileProms = [];
+  dxArray.map(({ dx, marginX }) => {
+    dyArray.map(({ dy, marginY }) => {
+      (marginX || marginY ? optionalTileProms : neededTileProms).push(
+        settings.tiles.order.reduce(async (prom, entry) => {
+          const { alpha, source } = typeof entry === "string" ? { alpha: 1, source: entry } : entry;
+          if (source && settings.tiles.enabled[source]) {
+            const draw = drawCachedImage({ alpha, context, source, trans, ttl, usedImages, x: dx, y: dy, z });
+            await prom;
+            await (await draw)();
+          }
+          return prom;
+        }, Promise.resolve())
+      );
+    });
+  });
+  await Promise.all(neededTileProms);
+  Promise.all(optionalTileProms).then(() => Promise.all(neededTileProms)).then(() => {
     usedImages.forEach((i) => {
       imagesLastUsed.delete(i);
       imagesLastUsed.add(i);
@@ -2110,8 +2238,8 @@ var getScale = (lat, minPx = 100) => {
 var createNetCanvas = ({
   height,
   width,
-  x: x2,
-  y: y2
+  x,
+  y
 }) => {
   const canvas = createHTMLElement({
     height,
@@ -2127,16 +2255,16 @@ var createNetCanvas = ({
   if (!context)
     return canvas;
   context.translate(width / 2, height / 2);
-  const lat = y2lat(y2);
+  const lat = y2lat(y);
   const scaleX = getScale(0, context.measureText(rad2deg({ axis: "EW", pad: 3, phi: 0 })).width);
   const scaleY = getScale(lat);
-  const left = x2 - width / 2 / tileSize;
-  const right = x2 + width / 2 / tileSize;
-  const top = y2 - height / 2 / tileSize;
-  const bottom = y2 + height / 2 / tileSize;
-  const strokeText = (text, x3, y3) => {
-    context.strokeText(text, x3, y3);
-    context.fillText(text, x3, y3);
+  const left = x - width / 2 / tileSize;
+  const right = x + width / 2 / tileSize;
+  const top = y - height / 2 / tileSize;
+  const bottom = y + height / 2 / tileSize;
+  const strokeText = (text, x2, y2) => {
+    context.strokeText(text, x2, y2);
+    context.fillText(text, x2, y2);
   };
   const latTop = Math.floor(y2lat(top) / scaleY) * scaleY;
   const latBottom = Math.ceil(y2lat(bottom) / scaleY) * scaleY;
@@ -2147,9 +2275,9 @@ var createNetCanvas = ({
       break;
     pointsY.push({
       latGrid,
-      x1: (left - x2) * tileSize,
-      x2: (right - x2) * tileSize,
-      y1: (lat2y(latGrid) - y2) * tileSize
+      x1: (left - x) * tileSize,
+      x2: (right - x) * tileSize,
+      y1: (lat2y(latGrid) - y) * tileSize
     });
   }
   const lonLeft = Math.floor(x2lon(left) / scaleX) * scaleX;
@@ -2161,20 +2289,20 @@ var createNetCanvas = ({
       break;
     pointsX.push({
       lonGrid,
-      x1: (lon2x(lonGrid) - x2) * tileSize,
-      y1: (top - y2) * tileSize,
-      y2: (bottom - y2) * tileSize
+      x1: (lon2x(lonGrid) - x) * tileSize,
+      y1: (top - y) * tileSize,
+      y2: (bottom - y) * tileSize
     });
   }
   context.beginPath();
   context.strokeStyle = "#808080";
-  pointsY.forEach(({ x1, x2: x22, y1 }) => {
+  pointsY.forEach(({ x1, x2, y1 }) => {
     context.moveTo(x1, y1);
-    context.lineTo(x22, y1);
+    context.lineTo(x2, y1);
   });
-  pointsX.forEach(({ x1, y1, y2: y22 }) => {
+  pointsX.forEach(({ x1, y1, y2 }) => {
     context.moveTo(x1, y1);
-    context.lineTo(x1, y22);
+    context.lineTo(x1, y2);
   });
   context.stroke();
   context.beginPath();
@@ -2188,11 +2316,11 @@ var createNetCanvas = ({
       y1 - 3
     );
   });
-  pointsX.forEach(({ lonGrid, x1, y2: y22 }) => {
+  pointsX.forEach(({ lonGrid, x1, y2 }) => {
     strokeText(
       rad2deg({ axis: "EW", pad: 3, phi: lonGrid }),
       x1 + 3,
-      y22 - 3
+      y2 - 3
     );
   });
   context.fill();
@@ -2215,10 +2343,12 @@ var overlayContainer = createHTMLElement({
 // src/client/redraw.ts
 var working = false;
 var newWorker = false;
-function moveCanvas({ canvas, height, width, x: x2, y: y2, z: z2 }) {
-  const scaleZ = z2 >= position.map.z ? 1 << z2 - position.map.z : 1 / (1 << position.map.z - z2);
-  const shiftX = (position.map.x * scaleZ - x2) * tileSize;
-  const shiftY = (position.map.y * scaleZ - y2) * tileSize;
+function moveCanvas({ canvas, height, width, x, y, z }) {
+  const { map: map2, tiles } = position;
+  const scaleZ = z >= map2.z ? 1 << z - map2.z : 1 / (1 << map2.z - z);
+  const tiles_2 = tiles / 2;
+  const shiftX = (modulo(map2.x * scaleZ - x + tiles_2, tiles) - tiles_2) * tileSize;
+  const shiftY = (modulo(map2.y * scaleZ - y + tiles_2, tiles) - tiles_2) * tileSize;
   canvas.style.height = `${scaleZ * canvas.height}px`;
   canvas.style.width = `${scaleZ * canvas.width}px`;
   canvas.style.left = `${(width - canvas.width * scaleZ) / 2 + shiftX}px`;
@@ -2226,17 +2356,15 @@ function moveCanvas({ canvas, height, width, x: x2, y: y2, z: z2 }) {
 }
 var map = null;
 var redraw = async (type) => {
-  if (!container)
-    return;
-  const { height, width } = container.getBoundingClientRect();
-  const { tiles, x: x2, y: y2, z: z2 } = position;
-  const crosshairs = createCrosshairsCanvas({ height, width, x: x2, y: y2 });
-  const net = createNetCanvas({ height, width, x: x2, y: y2 });
+  const { height, width } = boundingRect;
+  const { tiles, ttl, x, y, z } = position;
+  const crosshairs = createCrosshairsCanvas({ height, width, x, y });
+  const net = createNetCanvas({ height, width, x, y });
   overlayContainer.innerHTML = "";
   overlayContainer.append(crosshairs, net);
   updateInfoBox();
   if (map)
-    moveCanvas({ canvas: map, height, width, x: x2, y: y2, z: z2 });
+    moveCanvas({ canvas: map, height, width, x, y, z });
   await new Promise((r) => setTimeout(r, 1));
   if (working) {
     if (newWorker)
@@ -2251,21 +2379,17 @@ var redraw = async (type) => {
   working = true;
   newWorker = false;
   console.log(`${type} redraw@${(/* @__PURE__ */ new Date()).toISOString()}`);
-  await createMapCanvas({ height, width, x: x2, y: y2, z: z2 }).then((newCanvas) => {
-    if (!container)
-      return;
-    position.x = (position.x + position.tiles) % position.tiles;
+  await createMapCanvas({ height, width, x, y, z }).then((newCanvas) => {
     map = newCanvas;
-    position.map.x = (x2 + tiles) % tiles;
-    position.map.y = y2;
-    position.map.z = z2;
+    position.map.x = modulo(x, tiles);
+    position.map.y = y;
+    position.map.z = z;
     mapContainer.innerHTML = "";
     mapContainer.append(newCanvas);
   });
-  imagesToFetch.reset();
   (() => {
     const { origin, pathname, search } = window.location;
-    const newsearch = `?z=${z2}&${Object.entries({ ttl: position.ttl, x: position.x, y: position.y }).map(([k, v]) => `${k}=${v}`).join("&")}`;
+    const newsearch = `?z=${z}&${Object.entries({ ttl, x, y }).map(([k, v]) => `${k}=${v}`).join("&")}`;
     if (newsearch !== search) {
       const newlocation = `${origin}${pathname}${newsearch}`;
       window.history.pushState({ path: newlocation }, "", newlocation);
@@ -2345,7 +2469,7 @@ var coordsToggle = createHTMLElement({
 });
 
 // src/client/containers/menu/iconButton.ts
-var iconButton = ({ active, onclick, src, style }) => {
+var iconButton = ({ active, onclick: onclick2, src, style }) => {
   const ret = createHTMLElement({
     classes: ["btn", active() ? "btn-success" : "btn-secondary"],
     role: "button",
@@ -2358,6 +2482,7 @@ var iconButton = ({ active, onclick, src, style }) => {
       createHTMLElement({
         src,
         style: {
+          color: "#ff0000",
           height: "1.75rem"
         },
         tag: "img"
@@ -2365,7 +2490,7 @@ var iconButton = ({ active, onclick, src, style }) => {
     ]
   });
   ret.onclick = () => {
-    onclick();
+    onclick2();
     if (active()) {
       ret.classList.add("btn-success");
       ret.classList.remove("btn-secondary");
@@ -2470,12 +2595,12 @@ var savedPositionsFromLocalStoreage = () => {
 
 // src/client/containers/menu/goto/savedPositions/editSavedPosition.ts
 var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
-var editSavedPosition = ({ func, x: x2, y: y2, z: z2 }) => {
+var editSavedPosition = ({ func, x, y, z }) => {
   const list = new Set(savedPositionsFromLocalStoreage().map((e) => (0, import_json_stable_stringify2.default)(e)));
   list[func]((0, import_json_stable_stringify2.default)({
-    x: Math.round(x2 * tileSize),
-    y: Math.round(y2 * tileSize),
-    z: z2
+    x: Math.round(x * tileSize),
+    y: Math.round(y * tileSize),
+    z
   }));
   window.localStorage.setItem("savedPositions", (0, import_json_stable_stringify2.default)([...list].map((e) => JSON.parse(e))));
   updateSavedPositionsList();
@@ -2485,13 +2610,13 @@ var editSavedPosition = ({ func, x: x2, y: y2, z: z2 }) => {
 var updateSavedPositionsList = () => {
   savedPositions.innerHTML = "";
   const list = savedPositionsFromLocalStoreage();
-  list.forEach((e) => {
-    const { x: x2, y: y2, z: z2 } = extractProperties(e, {
+  list.forEach((item) => {
+    const { x, y, z } = extractProperties(item, {
       x: (val) => Number(val) / tileSize,
       y: (val) => Number(val) / tileSize,
       z: Number
     });
-    console.log({ e, x: x2, y: y2, z: z2 });
+    console.log({ item, x, y, z });
     savedPositions.append(createHTMLElement({
       classes: ["btn-group", "my-2", "d-flex"],
       role: "group",
@@ -2500,27 +2625,24 @@ var updateSavedPositionsList = () => {
         createHTMLElement({
           classes: ["btn", "btn-secondary"],
           onclick: () => {
-            position.x = x2;
-            position.y = y2;
-            position.z = z2;
+            position.xyz = { x, y, z };
             redraw("load position");
           },
           role: "button",
           tag: "a",
           zhilds: [[
-            rad2deg({ axis: "NS", pad: 2, phi: y2lat(y2, 1 << z2) }),
-            rad2deg({ axis: "EW", pad: 3, phi: x2lon(x2, 1 << z2) }),
-            `(${z2})`
+            rad2deg({ axis: "NS", pad: 2, phi: y2lat(y, 1 << z) }),
+            rad2deg({ axis: "EW", pad: 3, phi: x2lon(x, 1 << z) }),
+            `(${z})`
           ].join(" ")]
         }),
         iconButton({
           active: () => false,
           onclick: () => {
-            editSavedPosition({ func: "delete", x: x2, y: y2, z: z2 });
+            editSavedPosition({ func: "delete", x, y, z });
           },
           src: "bootstrap-icons-1.11.2/x.svg",
           style: {
-            color: "red",
             flexGrow: "0"
           }
         })
@@ -2612,7 +2734,7 @@ var navionicsToggle = overlayToggle("navionics");
 var savePosition = createHTMLElement({
   classes: ["btn", "btn-secondary"],
   onclick: () => {
-    editSavedPosition({ func: "add", ...position });
+    editSavedPosition({ func: "add", ...position.xyz });
   },
   role: "button",
   tag: "a",
@@ -2624,7 +2746,7 @@ var vfdensityToggle = overlayToggle("vfdensity");
 
 // src/client/containers/menuContainer.ts
 var menuContainer = createHTMLElement({
-  classes: ["d-flex", "d-flex-row", "gap-2", "m-2"],
+  classes: ["d-flex", "gap-2", "m-2"],
   dataset: {
     bsTheme: "dark"
   },
@@ -2647,6 +2769,38 @@ var menuContainer = createHTMLElement({
     savePosition
   ]
 });
+
+// src/client/events/onclick.ts
+var onclick = (event) => {
+  console.log(event.target);
+  details.clear();
+  updateInfoBox();
+  fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${y2lat(position.y) * 180 / Math.PI}/${x2lon(position.x) * 180 / Math.PI}?su=kmph&du=kilometers&dpu=meters&ugc=true&scl=false&z=11&sd=20&lang=de&_=1701878860273`).then(
+    async (res) => {
+      if (!res.ok)
+        return;
+      const list = await Promise.all((await res.json()).items.forEach(async (item) => {
+        console.log(item);
+        const hasDetails = item.details;
+        item.details = null;
+        details.add(item);
+        updateInfoBox();
+        if (hasDetails) {
+          const itemDetails = await fetch(`https://webapp.navionics.com/api/v2/objectinfo/marine/${item.id}?su=kmph&du=kilometers&dpu=meters&ugc=true&scl=false&z=11&sd=20&lang=de&_=1701878860274`).then(
+            async (res2) => res2.ok ? (await res2.json()).properties : null,
+            () => null
+          );
+          item.details = itemDetails;
+          console.log(itemDetails);
+          details.add(item);
+          updateInfoBox();
+        }
+      }));
+      console.log(list);
+    },
+    (rej) => console.error(rej)
+  );
+};
 
 // src/client/getUserLocation.ts
 var geolocationBlocked = false;
@@ -2681,40 +2835,20 @@ var updateGeoLocation = async () => {
 };
 
 // src/client/events/oninput.ts
-var zoomIn = () => {
-  if (position.z < 20) {
-    position.z++;
-    position.x *= 2;
-    position.y *= 2;
-    position.tiles = 1 << position.z;
-    return true;
-  }
-  return false;
-};
-var zoomOut = () => {
-  if (position.z > 2) {
-    position.z--;
-    position.x /= 2;
-    position.y /= 2;
-    position.tiles = 1 << position.z;
-    return true;
-  }
-  return false;
-};
 var onchange = (event) => {
-  if (!container)
-    return;
-  const { height, width } = container.getBoundingClientRect();
+  const { height, width } = boundingRect;
   const { type } = event;
   let needRedraw = false;
+  if (!(event.target instanceof HTMLBodyElement))
+    return;
   if (event instanceof WheelEvent) {
     const { clientX, clientY, deltaY } = event;
     if (deltaY > 0) {
-      needRedraw = zoomOut();
+      needRedraw = position.zoomOut();
       position.x -= (clientX - width / 2) / tileSize / 2;
       position.y -= (clientY - height / 2) / tileSize / 2;
     } else if (deltaY < 0) {
-      needRedraw = zoomIn();
+      needRedraw = position.zoomIn();
       position.x += (clientX - width / 2) / tileSize;
       position.y += (clientY - height / 2) / tileSize;
     } else {
@@ -2723,8 +2857,6 @@ var onchange = (event) => {
     }
   } else if (event instanceof KeyboardEvent) {
     if (event.isComposing)
-      return;
-    if (event.target instanceof HTMLInputElement)
       return;
     const { key } = event;
     if (key >= "0" && key <= "9") {
@@ -2756,9 +2888,9 @@ var onchange = (event) => {
       else if (key === "ArrowDown")
         position.y++;
       else if (key === "PageDown")
-        zoomIn();
+        position.zoomIn();
       else if (key === "PageUp")
-        zoomOut();
+        position.zoomOut();
       else {
         needRedraw = false;
         console.log("noop", { key, type });
@@ -2771,14 +2903,14 @@ var onchange = (event) => {
     position.y = Math.round(position.y * tileSize + (mouse.y - clientY)) / tileSize;
     needRedraw = true;
   }
-  position.y = Math.max(0, Math.min(position.y, position.tiles));
   if (needRedraw)
     redraw(type);
 };
 
 // src/client/events/onmouse.ts
 var onmouse = (event) => {
-  console.log(event.type);
+  if (!(event.target instanceof HTMLBodyElement))
+    return;
   const { clientX, clientY } = event;
   if (mouse.down) {
     if (mouse.x !== clientX || mouse.y !== clientY)
@@ -2794,19 +2926,20 @@ var onmouse = (event) => {
 var {
   container: containerId = ""
 } = Object.fromEntries(new URL(import.meta.url).searchParams.entries());
-var container = document.getElementById(containerId);
-if (container) {
-  container.innerHTML = "";
-  container.append(mapContainer, overlayContainer, infoBox, menuContainer);
-}
-if (container) {
-  window.addEventListener("keydown", onchange);
-  window.addEventListener("wheel", onchange);
-  window.addEventListener("mousemove", onmouse);
-  window.addEventListener("resize", onchange);
-  redraw("initial");
-}
+var container = document.getElementById(containerId) ?? createHTMLElement({ tag: "div" });
+var boundingRect = new Size(container);
+container.innerHTML = "";
+container.append(mapContainer, overlayContainer, infoBox, menuContainer);
+window.addEventListener("keydown", onchange);
+window.addEventListener("wheel", onchange);
+window.addEventListener("mousemove", onmouse);
+window.addEventListener("click", onclick);
+window.addEventListener("resize", (event) => {
+  boundingRect.refresh();
+  onchange(event);
+});
+redraw("initial");
 export {
-  container
+  boundingRect
 };
 //# sourceMappingURL=client.js.map

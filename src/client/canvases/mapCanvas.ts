@@ -33,34 +33,51 @@ export const createMapCanvas = async ({
     x: Math.round(width / 2 - x * tileSize),
     y: Math.round(height / 2 - y * tileSize),
   };
+
+  const marginTiles = 1;
   const maxdx = Math.ceil((width - trans.x) / tileSize);
   const maxdy = Math.ceil((height - trans.y) / tileSize);
   const mindx = - Math.ceil(trans.x / tileSize);
   const mindy = - Math.ceil(trans.y / tileSize);
 
-  const dxArray: number[] = [];
-  for (let dx = mindx; dx < maxdx; dx++) dxArray.push(dx);
-  const dyArray: number[] = [];
-  for (let dy = mindy; dy < maxdy; dy++) {
-    if (dy >= 0 && dy < position.tiles) dyArray.push(dy);
+  const dxArray: {dx: number, marginX: boolean}[] = [];
+  for (let dx = mindx; dx < maxdx; dx++) {
+    dxArray.push({ dx, marginX: false });
+  }
+  dxArray.push(
+    { dx: mindx - marginTiles, marginX: true },
+    { dx: maxdx + marginTiles, marginX: true },
+  );
+  const dyArray: {dy: number, marginY: boolean}[] = [];
+  for (let dy = mindy - marginTiles; dy < maxdy + marginTiles; dy++) {
+    if (dy >= 0 && dy < position.tiles) dyArray.push({ dy, marginY: dy < mindx || dy > maxdy });
   }
 
   const usedImages: Set<string> = new Set();
 
   const ttl = Math.max(Math.min(17, z + Math.max(0, position.ttl)) - z, 0);
-  await Promise.all(dxArray.map(async (dx) => {
-    await Promise.all(dyArray.map(dy => {
-      return settings.tiles.order.reduce(async (prom, entry) => {
-        const { alpha, source } = typeof entry === 'string' ? { alpha: 1, source: entry } : entry;
-        if (source && settings.tiles.enabled[source]) {
-          const draw = drawCachedImage({ alpha, context, source, trans, ttl, usedImages, x: dx, y: dy, z });
-          await prom;
-          await (await draw)();
-        }
-        return prom;
-      }, Promise.resolve());
-    }));
-  })).then(() => {
+  const neededTileProms: Promise<void>[] = [];
+  const optionalTileProms: Promise<void>[] = [];
+  dxArray.map(({ dx, marginX }) => {
+    dyArray.map(({ dy, marginY }) => {
+      (marginX || marginY ? optionalTileProms : neededTileProms).push(
+        settings.tiles.order.reduce(async (prom, entry) => {
+          const { alpha, source } = typeof entry === 'string' ? { alpha: 1, source: entry } : entry;
+          if (source && settings.tiles.enabled[source]) {
+            const draw = drawCachedImage({ alpha, context, source, trans, ttl, usedImages, x: dx, y: dy, z });
+            await prom;
+            await (await draw)();
+          }
+          return prom;
+        }, Promise.resolve()),
+      );
+    });
+  });
+
+  await Promise.all(neededTileProms);
+  Promise.all(optionalTileProms)
+  .then(() => Promise.all(neededTileProms))
+  .then(() => {
     usedImages.forEach(i => {
       imagesLastUsed.delete(i);
       imagesLastUsed.add(i);

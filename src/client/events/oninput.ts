@@ -1,4 +1,3 @@
-import { container } from '..';
 import { setBaseLayer } from '../containers/menu/baselayerMenu';
 import { coordsToggle } from '../containers/menu/coordsToggle';
 import { crosshairToggle } from '../containers/menu/crosshairToggle';
@@ -9,47 +8,28 @@ import { mouse } from '../globals/mouse';
 import { position } from '../globals/position';
 import { settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
+import { boundingRect } from '../index';
 import { redraw } from '../redraw';
 import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';
 
-const zoomIn = () => {
-  if (position.z < 20) {
-    position.z++;
-    position.x *= 2;
-    position.y *= 2;
-    position.tiles = 1 << position.z;
-    return true;
-  }
-  return false;
-};
-const zoomOut = () => {
-  if (position.z > 2) {
-    position.z--;
-    position.x /= 2;
-    position.y /= 2;
-    position.tiles = 1 << position.z;
-    return true;
-  }
-  return false;
-};
 
 export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEvent) => {
-  if (!container) return;
-  const { height, width } = container.getBoundingClientRect();
+  const { height, width } = boundingRect;
   const { type } = event;
   let needRedraw = false;
 
+  if (!(event.target instanceof HTMLBodyElement)) return;
   if (event instanceof WheelEvent) {
     const { clientX, clientY, deltaY } = event;
 
     if (deltaY > 0) {
-      needRedraw = zoomOut();
+      needRedraw = position.zoomOut();
       position.x -= (clientX - width / 2) / tileSize / 2;
       position.y -= (clientY - height / 2) / tileSize / 2;
     }
     else if (deltaY < 0) {
-      needRedraw = zoomIn();
+      needRedraw = position.zoomIn();
       position.x += (clientX - width / 2) / tileSize;
       position.y += (clientY - height / 2) / tileSize;
     }
@@ -60,7 +40,6 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
   }
   else if (event instanceof KeyboardEvent) {
     if (event.isComposing) return;
-    if (event.target instanceof HTMLInputElement) return;
     const { key } = event;
     if (key >= '0' && key <= '9') {
       setBaseLayer(settings.tiles.baselayers[parseInt(key)]);
@@ -84,8 +63,8 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
       else if (key === 'ArrowRight') position.x++;
       else if (key === 'ArrowUp') position.y--;
       else if (key === 'ArrowDown') position.y++;
-      else if (key === 'PageDown') zoomIn();
-      else if (key === 'PageUp') zoomOut();
+      else if (key === 'PageDown') position.zoomIn();
+      else if (key === 'PageUp') position.zoomOut();
       else {
         needRedraw = false;
         console.log('noop', { key, type });
@@ -99,7 +78,5 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
     position.y = Math.round(position.y * tileSize + (mouse.y - clientY)) / tileSize;
     needRedraw = true;
   }
-
-  position.y = Math.max(0, Math.min(position.y, position.tiles));
   if (needRedraw) redraw(type);
 };

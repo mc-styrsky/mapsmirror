@@ -19,6 +19,12 @@ function extractProperties(obj, builder) {
   }, {});
 }
 
+// src/common/modulo.ts
+var modulo = (val, mod) => {
+  const ret = val % mod;
+  return ret < 0 ? ret + mod : ret;
+};
+
 // src/server/utils/xyz2quadkey.ts
 var xyz2quadkey = ({ x, y, z }) => {
   return (parseInt(y.toString(2), 4) * 2 + parseInt(x.toString(2), 4)).toString(4).padStart(z, "0");
@@ -27,6 +33,8 @@ var xyz2quadkey = ({ x, y, z }) => {
 // src/server/urls/bingsat.ts
 var xyz2bingsat = async (x, y, z) => {
   if (z > 20)
+    return {};
+  if (z < 2)
     return {};
   return {
     url: `https://t.ssl.ak.tiles.virtualearth.net/tiles/a${xyz2quadkey({ x, y, z })}.jpeg?g=14041&n=z&prx=1`
@@ -37,6 +45,8 @@ var xyz2bingsat = async (x, y, z) => {
 var xyz2bluemarble = async (x, y, z) => {
   if (z > 9)
     return {};
+  if (z < 2)
+    return {};
   return {
     url: `https://s3.amazonaws.com/com.modestmaps.bluemarble/${z}-r${y}-c${x}.jpg`
   };
@@ -45,6 +55,8 @@ var xyz2bluemarble = async (x, y, z) => {
 // src/server/urls/cache.ts
 var xyz2cache = async (x, y, z) => {
   if (z > 9)
+    return {};
+  if (z < 2)
     return {};
   return {
     local: true,
@@ -59,6 +71,8 @@ var xyz2default = async () => ({});
 var xyz2gebco = async (x, y, z) => {
   if (z > 9)
     return {};
+  if (z < 2)
+    return {};
   return {
     local: true,
     url: `./gebco/tiles/${z}/${x}/${y}.png`
@@ -69,6 +83,8 @@ var xyz2gebco = async (x, y, z) => {
 var xyz2googlehybrid = async (x, y, z) => {
   if (z > 20)
     return {};
+  if (z < 2)
+    return {};
   return {
     url: `https://mt.google.com/vt/lyrs=y&x=${x}&y=${y}&z=${z}`
   };
@@ -78,6 +94,8 @@ var xyz2googlehybrid = async (x, y, z) => {
 var xyz2googlesat = async (x, y, z) => {
   if (z > 20)
     return {};
+  if (z < 2)
+    return {};
   return {
     url: `https://mt.google.com/vt/lyrs=s&x=${x}&y=${y}&z=${z}`
   };
@@ -86,6 +104,8 @@ var xyz2googlesat = async (x, y, z) => {
 // src/server/urls/googlestreet.ts
 var xyz2googlestreet = async (x, y, z) => {
   if (z > 20)
+    return {};
+  if (z < 2)
     return {};
   return {
     url: `https://mt.google.com/vt/lyrs=m&x=${x}&y=${y}&z=${z}`
@@ -121,6 +141,12 @@ var getNavtoken = async () => {
 var xyz2navionics = async (x, y, z) => {
   if (z > 17)
     return {};
+  if (z < 2)
+    return {};
+  if (y < 14922 >> 17 - z)
+    return {};
+  if (y > 92442 >> 17 - z)
+    return {};
   if (await getNavtoken())
     return {
       params: {
@@ -146,23 +172,113 @@ var xyz2navionics = async (x, y, z) => {
 var xyz2openseamap = async (x, y, z) => {
   if (z > 18)
     return {};
+  if (z < 2)
+    return {};
   return {
     url: `https://tiles.openseamap.org/seamark/${z}/${x}/${y}.png`
   };
+};
+
+// src/server/utils/worthit.ts
+import sharp from "../node_modules/sharp/lib/index.js";
+
+// src/server/utils/getTileParams.ts
+var getTileParams = ({ x, y, z }) => {
+  const length = z + 3 >> 2;
+  const pathX = modulo(x, 1 << z).toString(16).padStart(length, "0").split("");
+  const pathY = modulo(y, 1 << z).toString(16).padStart(length, "0").split("");
+  const tileFileId = `${pathX.pop()}${pathY.pop()}`;
+  const tilePath = pathX.map((_val, idx) => pathX[idx] + pathY[idx]).join("/");
+  const tileId = `${tilePath}/${tileFileId}`;
+  return {
+    tileFileId,
+    tileId,
+    tilePath,
+    z
+  };
+};
+
+// src/server/utils/worthit.ts
+var worthItDatabase = {
+  max: {},
+  min: {}
+};
+var populateDatabase = (z, base, func) => {
+  ((worthItDatabase[func][z] ??= {})[0] ??= {})[0] = base;
+  if (z < -8)
+    return;
+  const cmp = Math[func];
+  const nextBase = Buffer.alloc(256 * 256, 0);
+  for (let x = 0; x < 128; x++) {
+    for (let y = 0; y < 128; y++) {
+      nextBase[y * 256 + x] = cmp(
+        base[y * 2 * 256 + x * 2],
+        base[(y * 2 + 1) * 256 + x * 2],
+        base[y * 2 * 256 + (x * 2 + 1)],
+        base[(y * 2 + 1) * 256 + (x * 2 + 1)]
+      );
+    }
+  }
+  populateDatabase(z - 1, nextBase, func);
+};
+populateDatabase(0, await sharp("tiles/gebcomax/0/00.png").greyscale().toFormat("raw").toBuffer(), "max");
+populateDatabase(0, await sharp("tiles/gebcomin/0/00.png").greyscale().toFormat("raw").toBuffer(), "min");
+console.log(worthItDatabase);
+var worthItMinMax = async ({ x, y, z }) => {
+  while (x < 0)
+    x += 1 << z;
+  while (y < 0)
+    y += 1 << z;
+  if (z > 17) {
+    x = x >> z - 17;
+    y = y >> z - 17;
+    z = 17;
+  }
+  if (y >= (1 << z) / 4 * 3)
+    return null;
+  const z8 = z - 8;
+  const x8 = x >> 8;
+  const y8 = y >> 8;
+  const tileMax = worthItDatabase.max[z8]?.[x8]?.[y8];
+  const tileMin = worthItDatabase.min[z8]?.[x8]?.[y8];
+  if (tileMin && tileMax) {
+    const pos = (x & 255) + (y & 255) * 256;
+    const max = tileMax[pos];
+    const min = tileMin[pos];
+    return { max, min };
+  }
+  const { tileId } = getTileParams({ x: x8, y: y8, z: z8 });
+  if (z8 < 0)
+    console.log({ tileId, x, x8, y, y8, z, z8 });
+  const path = `${z8.toString(36)}/${tileId}`;
+  ((worthItDatabase.max[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomax/${path}.png`).greyscale().toFormat("raw").toBuffer();
+  ((worthItDatabase.min[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomin/${path}.png`).greyscale().toFormat("raw").toBuffer();
+  return worthItMinMax({ x, y, z });
 };
 
 // src/server/urls/opentopomap.ts
 var xyz2opentopomap = async (x, y, z) => {
   if (z > 17)
     return {};
+  if (z < 2)
+    return {};
   return {
-    url: `https://tile.opentopomap.org/${z}/${x}/${y}.png`
+    url: `https://tile.opentopomap.org/${z}/${x}/${y}.png`,
+    worthIt: async ({ x: x2, y: y2, z: z2 }) => {
+      const res = await worthItMinMax({ x: x2, y: y2, z: z2 });
+      if (!res)
+        return false;
+      const { max, min } = res;
+      return max > 126 && min < 144;
+    }
   };
 };
 
 // src/server/urls/osm.ts
 var xyz2osm = async (x, y, z) => {
   if (z > 20)
+    return {};
+  if (z < 2)
     return {};
   return {
     url: `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
@@ -213,22 +329,6 @@ var fetchFromTileServer = ({ params, provider, url, x, y, z }) => fetch2(url, pa
   };
 });
 
-// src/server/utils/getTileParams.ts
-var getTileParams = ({ x, y, z }) => {
-  const length = z + 3 >> 2;
-  const pathX = (x % (1 << z)).toString(16).padStart(length, "0").split("");
-  const pathY = (y % (1 << z)).toString(16).padStart(length, "0").split("");
-  const tileFileId = `${pathX.pop()}${pathY.pop()}`;
-  const tilePath = pathX.map((_val, idx) => pathX[idx] + pathY[idx]).join("/");
-  const tileId = `${tilePath}/${tileFileId}`;
-  return {
-    tileFileId,
-    tileId,
-    tilePath,
-    z
-  };
-};
-
 // src/server/utils/printStats.ts
 var todoLast = 0;
 var fetchedLast = 0;
@@ -241,8 +341,8 @@ var printStats = () => {
     (sum, [key, queue]) => {
       const len = queue.length;
       const collapsed = queues.childsCollapsed[key] ?? 0;
-      sum += Math.round(collapsed * partialSum(17 - parseInt(key)));
-      sum += Math.round(len * partialSum(16 - parseInt(key)));
+      sum += Math.round(collapsed * partialSum(maxzoom - parseInt(key)));
+      sum += Math.round(len * partialSum(maxzoom - 1 - parseInt(key)));
       return sum;
     },
     0
@@ -275,65 +375,6 @@ var printStats = () => {
   maxzoom = -1;
 };
 
-// src/server/utils/worthit.ts
-import sharp from "../node_modules/sharp/lib/index.js";
-var worthItDatabase = {
-  max: {},
-  min: {}
-};
-var populateDatabase = (z, base, func) => {
-  ((worthItDatabase[func][z] ??= {})[0] ??= {})[0] = base;
-  if (z < -8)
-    return;
-  const cmp = Math[func];
-  const nextBase = Buffer.alloc(256 * 256, 0);
-  for (let x = 0; x < 128; x++) {
-    for (let y = 0; y < 128; y++) {
-      nextBase[y * 256 + x] = cmp(
-        base[y * 2 * 256 + x * 2],
-        base[(y * 2 + 1) * 256 + x * 2],
-        base[y * 2 * 256 + (x * 2 + 1)],
-        base[(y * 2 + 1) * 256 + (x * 2 + 1)]
-      );
-    }
-  }
-  populateDatabase(z - 1, nextBase, func);
-};
-populateDatabase(0, await sharp("tiles/gebcomax/0/00.png").greyscale().toFormat("raw").toBuffer(), "max");
-populateDatabase(0, await sharp("tiles/gebcomin/0/00.png").greyscale().toFormat("raw").toBuffer(), "min");
-console.log(worthItDatabase);
-var worthIt = async ({ x, y, z }) => {
-  while (x < 0)
-    x += 1 << z;
-  while (y < 0)
-    y += 1 << z;
-  if (z > 17) {
-    x = x >> z - 17;
-    y = y >> z - 17;
-    z = 17;
-  }
-  if (y >= (1 << z) / 4 * 3)
-    return false;
-  const z8 = z - 8;
-  const x8 = x >> 8;
-  const y8 = y >> 8;
-  const tileMax = worthItDatabase.max[z8]?.[x8]?.[y8];
-  const tileMin = worthItDatabase.min[z8]?.[x8]?.[y8];
-  if (tileMin && tileMax) {
-    const pos = (x & 255) + (y & 255) * 256;
-    const max = tileMax[pos];
-    const min = tileMin[pos];
-    return max > 96 && min < 144;
-  }
-  const { tileId } = getTileParams({ x: x8, y: y8, z: z8 });
-  if (z8 < 0)
-    console.log({ tileId, x, x8, y, y8, z, z8 });
-  const path = `${z8.toString(36)}/${tileId}`;
-  ((worthItDatabase.max[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomax/${path}.png`).greyscale().toFormat("raw").toBuffer();
-  ((worthItDatabase.min[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomin/${path}.png`).greyscale().toFormat("raw").toBuffer();
-  return worthIt({ x, y, z });
-};
-
 // src/server/requestHandler/getTile.ts
 var getTile = async (req, res) => {
   try {
@@ -344,8 +385,7 @@ var getTile = async (req, res) => {
       setMaxzoom(zoom);
     const max = 1 << zoom;
     const parsePosition = (val) => {
-      const ret = parseInt(String(val), 16) % max;
-      return ret < 0 ? ret + max : ret;
+      return modulo(parseInt(String(val), 16), max);
     };
     const { provider, x, y } = extractProperties(req.params, {
       provider: String,
@@ -359,7 +399,22 @@ var getTile = async (req, res) => {
     const queue = quiet ? queues.quiet : queues.verbose;
     const fetchChilds = await queue.enqueue(async () => {
       try {
-        const { local = false, params = {}, url = "" } = await ({
+        const {
+          local = false,
+          params = {},
+          url = "",
+          worthIt = async ({ x: x2, y: y2, z }) => {
+            const res2 = await worthItMinMax({ x: x2, y: y2, z });
+            if (!res2)
+              return false;
+            const { max: max2, min } = res2;
+            if (z <= 6)
+              return min < 132;
+            if (z <= 10)
+              return max2 > 1 && min < 132;
+            return max2 > 96 && min < 144 && (max2 < 132 || max2 - min > 3);
+          }
+        } = await ({
           bingsat: xyz2bingsat,
           bluemarble: xyz2bluemarble,
           cache: xyz2cache,

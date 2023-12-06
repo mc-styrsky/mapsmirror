@@ -1,7 +1,9 @@
+import { modulo } from '../../common/modulo';
+
 export const getTileParams = ({ x, y, z }: { x: number; y: number; z: number; }) => {
   const length = z + 3 >> 2;
-  const pathX = (x % (1 << z)).toString(16).padStart(length, '0').split('');
-  const pathY = (y % (1 << z)).toString(16).padStart(length, '0').split('');
+  const pathX = modulo(x, 1 << z).toString(16).padStart(length, '0').split('');
+  const pathY = modulo(y, 1 << z).toString(16).padStart(length, '0').split('');
 
 
   const tileFileId = `${pathX.pop()}${pathY.pop()}`;

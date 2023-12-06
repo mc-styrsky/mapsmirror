@@ -1,12 +1,13 @@
+import { modulo } from '../../common/modulo';
 import { settings } from '../globals/settings';
+
+const rad2ModuloDeg = (phi: number) => modulo(phi * 180 / Math.PI + 180, 360) - 180;
 
 type Axis = ' -' | 'NS' | 'EW'
 type CoordsParams = {phi: number, pad: number, axis: Axis};
 export const rad2degFunctions: Record<typeof settings.units.coords, (params: CoordsParams) => string> = {
   d: ({ axis = ' -', pad = 0, phi }) => {
-    let deg = Math.round(phi * 180 / Math.PI % 360 * 100000) / 100000;
-    while (deg > 180) deg -= 360;
-    while (deg < -180) deg += 360;
+    const deg = Math.round(rad2ModuloDeg(phi) * 100000) / 100000;
 
     return `${
       axis[deg < 0 ? 1 : 0] ?? ''
@@ -15,9 +16,7 @@ export const rad2degFunctions: Record<typeof settings.units.coords, (params: Coo
     }°`;
   },
   dm: ({ axis = ' -', pad = 0, phi }: CoordsParams) => {
-    let deg = Math.round(phi * 180 / Math.PI % 360 * 60000) / 60000;
-    while (deg > 180) deg -= 360;
-    while (deg < -180) deg += 360;
+    const deg = Math.round(rad2ModuloDeg(phi) * 60000) / 60000;
     const degrees = deg | 0;
     const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
 
@@ -30,9 +29,7 @@ export const rad2degFunctions: Record<typeof settings.units.coords, (params: Coo
     }'`;
   },
   dms: ({ axis = ' -', pad = 0, phi }: CoordsParams) => {
-    let deg = Math.round(phi * 180 / Math.PI % 360 * 360000) / 360000;
-    while (deg > 180) deg -= 360;
-    while (deg < -180) deg += 360;
+    const deg = Math.round(rad2ModuloDeg(phi) * 360000) / 360000;
     const degrees = deg | 0;
     const min = Math.round((Math.abs(deg) - Math.abs(degrees)) * 360000) / 6000;
     const minutes = min | 0;

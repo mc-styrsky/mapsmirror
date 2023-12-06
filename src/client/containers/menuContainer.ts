@@ -10,7 +10,7 @@ import { vfdensityToggle } from './menu/vfdensityToggle';
 
 
 export const menuContainer = createHTMLElement({
-  classes: ['d-flex', 'd-flex-row', 'gap-2', 'm-2'],
+  classes: ['d-flex', 'gap-2', 'm-2'],
   dataset: {
     bsTheme: 'dark',
   },

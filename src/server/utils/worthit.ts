@@ -1,3 +1,4 @@
+import type { XYZ } from '../../common/types/xyz';
 import sharp from 'sharp';
 import { getTileParams } from './getTileParams';
 
@@ -33,7 +34,7 @@ populateDatabase(0, await sharp('tiles/gebcomin/0/00.png').greyscale().toFormat(
 
 console.log(worthItDatabase);
 
-export const worthIt = async ({ x, y, z }: { x: number; y: number; z: number; }) => {
+export const worthItMinMax = async ({ x, y, z }: XYZ): Promise<{ min: number; max: number; } | null> => {
   while (x < 0) x += 1 << z;
   while (y < 0) y += 1 << z;
   if (z > 17) {
@@ -41,7 +42,7 @@ export const worthIt = async ({ x, y, z }: { x: number; y: number; z: number; })
     y = y >> z - 17;
     z = 17;
   }
-  if (y >= (1 << z) / 4 * 3) return false;
+  if (y >= (1 << z) / 4 * 3) return null;
   const z8 = z - 8;
   const x8 = x >> 8;
   const y8 = y >> 8;
@@ -52,8 +53,7 @@ export const worthIt = async ({ x, y, z }: { x: number; y: number; z: number; })
     const pos = (x & 0xff) + (y & 0xff) * 256;
     const max = tileMax[pos];
     const min = tileMin[pos];
-    // return max > 64;
-    return max > 96 && min < 144;
+    return { max, min };
   }
 
   const { tileId } = getTileParams({ x: x8, y: y8, z: z8 });
@@ -62,5 +62,5 @@ export const worthIt = async ({ x, y, z }: { x: number; y: number; z: number; })
   const path = `${z8.toString(36)}/${tileId}`;
   ((worthItDatabase.max[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomax/${path}.png`).greyscale().toFormat('raw').toBuffer();
   ((worthItDatabase.min[z8] ??= {})[x8] ??= {})[y8] = await sharp(`tiles/gebcomin/${path}.png`).greyscale().toFormat('raw').toBuffer();
-  return worthIt({ x, y, z });
+  return worthItMinMax({ x, y, z });
 };

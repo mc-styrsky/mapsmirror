@@ -5,7 +5,7 @@ import { editSavedPosition } from './goto/savedPositions/editSavedPosition';
 export const savePosition = createHTMLElement({
   classes: ['btn', 'btn-secondary'],
   onclick: () => {
-    editSavedPosition({ func: 'add', ...position });
+    editSavedPosition({ func: 'add', ...position.xyz });
   },
   role: 'button',
   tag: 'a',

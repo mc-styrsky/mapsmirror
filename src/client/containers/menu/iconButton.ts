@@ -14,6 +14,7 @@ export const iconButton = ({ active, onclick, src, style }: { active: () => bool
       createHTMLElement({
         src,
         style: {
+          color: '#ff0000',
           height: '1.75rem',
         },
         tag: 'img',

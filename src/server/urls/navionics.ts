@@ -29,6 +29,9 @@ const getNavtoken = async () => {
 
 export const xyz2navionics: XYZ2Url = async (x, y, z) => {
   if (z > 17) return {};
+  if (z < 2) return {};
+  if (y < 14922 >> 17 - z) return {};
+  if (y > 92442 >> 17 - z) return {};
   if (await getNavtoken()) return {
     params: {
       credentials: 'omit',

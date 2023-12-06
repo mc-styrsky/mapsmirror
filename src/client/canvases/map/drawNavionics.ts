@@ -5,12 +5,19 @@ import { navionicsWatermark } from './navionicsWatermark';
 
 const backgroundColors = [
   0x20b0f8,
+  0x48c0f8,
+  0x58c0f8,
   0x58c8f8,
   0x68c8f8,
+  0x78d0f8,
   0x80d0f8,
+  0x88d0f8,
+  0x90d8f8,
+  0x98d8f8,
   0xa0d8f8,
   0xa8e0f8,
   0xb0e0f8,
+  0xb8e0f8,
   0xc0e8f8,
   0xf8f8f8,
 ].reduce((arr, val) => {

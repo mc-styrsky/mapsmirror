@@ -3,7 +3,7 @@ import { updateInfoBox } from '../updateInfoBox';
 import { onchange } from './oninput';
 
 export const onmouse = (event: MouseEvent) => {
-  console.log(event.type);
+  if (!(event.target instanceof HTMLBodyElement)) return;
   const { clientX, clientY } = event;
   if (mouse.down) {
     if (mouse.x !== clientX || mouse.y !== clientY) onchange(event);

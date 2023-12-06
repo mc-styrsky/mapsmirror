@@ -3,6 +3,7 @@ import { StyQueue } from '@mc-styrsky/queue';
 import { createWriteStream } from 'fs';
 import { mkdir, stat, unlink } from 'fs/promises';
 import { extractProperties } from '../../common/extractProperties';
+import { modulo } from '../../common/modulo';
 import { pwd, queues } from '../index';
 import { xyz2bingsat } from '../urls/bingsat';
 import { xyz2bluemarble } from '../urls/bluemarble';
@@ -20,7 +21,7 @@ import { xyz2vfdensity } from '../urls/vfdensity';
 import { fetchFromTileServer } from '../utils/fetchFromTileServer';
 import { getTileParams } from '../utils/getTileParams';
 import { getMaxzoom, setMaxzoom } from '../utils/printStats';
-import { worthIt } from '../utils/worthit';
+import { worthItMinMax } from '../utils/worthit';
 
 export const getTile = async (
   req: express.Request<{
@@ -38,8 +39,7 @@ export const getTile = async (
     if (zoom > getMaxzoom()) setMaxzoom(zoom);
     const max = 1 << zoom;
     const parsePosition = (val: any) => {
-      const ret = parseInt(String(val), 16) % max;
-      return ret < 0 ? ret + max : ret;
+      return modulo(parseInt(String(val), 16), max);
     };
     const { provider, x, y } = extractProperties(req.params, {
       provider: String,
@@ -54,7 +54,19 @@ export const getTile = async (
     const queue = quiet ? queues.quiet : queues.verbose;
     const fetchChilds = await queue.enqueue(async () => {
       try {
-        const { local = false, params = {}, url = '' } = await ({
+        const {
+          local = false,
+          params = {},
+          url = '',
+          worthIt = async ({ x, y, z }) => {
+            const res = await worthItMinMax({ x, y, z });
+            if (!res) return false;
+            const { max, min } = res;
+            if (z <= 6) return min < 132;
+            if (z <= 10) return max > 1 && min < 132;
+            return max > 96 && min < 144 && (max < 132 || max - min > 3);
+          },
+        } = await ({
           bingsat: xyz2bingsat,
           bluemarble: xyz2bluemarble,
           cache: xyz2cache,
@@ -116,7 +128,6 @@ export const getTile = async (
           worthIt({ x: x + 1, y: y - 1, z: zoom }),
           worthIt({ x: x + 1, y: y + 1, z: zoom }),
         ])).some(Boolean)) {
-          // console.log('[get]   ', { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
           const imageStream = await queues.fetch.enqueue(async () => {
             const timeoutController = new globalThis.AbortController();
             const timeoutTimeout = setTimeout(() => timeoutController.abort(), 10000);

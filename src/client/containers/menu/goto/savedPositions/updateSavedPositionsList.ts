@@ -16,13 +16,13 @@ import { editSavedPosition } from './editSavedPosition';
 export const updateSavedPositionsList = () => {
   savedPositions.innerHTML = '';
   const list: XYZ[] = savedPositionsFromLocalStoreage();
-  list.forEach(e => {
-    const { x, y, z } = extractProperties(e, {
+  list.forEach(item => {
+    const { x, y, z } = extractProperties(item, {
       x: val => Number(val) / tileSize,
       y: val => Number(val) / tileSize,
       z: Number,
     });
-    console.log({ e, x, y, z });
+    console.log({ item, x, y, z });
     savedPositions.append(createHTMLElement({
       classes: ['btn-group', 'my-2', 'd-flex'],
       role: 'group',
@@ -31,9 +31,7 @@ export const updateSavedPositionsList = () => {
         createHTMLElement({
           classes: ['btn', 'btn-secondary'],
           onclick: () => {
-            position.x = x;
-            position.y = y;
-            position.z = z;
+            position.xyz = { x, y, z };
             redraw('load position');
           },
           role: 'button',
@@ -51,7 +49,6 @@ export const updateSavedPositionsList = () => {
           },
           src: 'bootstrap-icons-1.11.2/x.svg',
           style: {
-            color: 'red',
             flexGrow: '0',
           },
         }),

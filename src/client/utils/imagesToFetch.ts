@@ -21,11 +21,11 @@ class ImagesToFetch {
   };
   delete = ({ source, ...xyz }: XYZ & {source: VirtLayers}) => {
     this.getSet(source).delete(this.xyz2string(xyz));
-    if (this.getSet(source).size === 0) delete this.data[source];
+    if (this.getSet(source).size === 0) {
+      delete this.data[source];
+      delete this.total[source];
+    }
     updateInfoBox();
-  };
-  reset = () => {
-    this.total = {};
   };
   state = () => {
     return Object.entries(this.data)

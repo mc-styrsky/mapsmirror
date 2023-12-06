@@ -1,6 +1,7 @@
 import type { Size } from '../common/types/size';
 import type { XYZ } from '../common/types/xyz';
 import stringify from 'json-stable-stringify';
+import { modulo } from '../common/modulo';
 import { createCrosshairsCanvas } from './canvases/crosshairs';
 import { createMapCanvas } from './canvases/mapCanvas';
 import { createNetCanvas } from './canvases/net';
@@ -9,19 +10,20 @@ import { overlayContainer } from './containers/overlayContainer';
 import { position } from './globals/position';
 import { settings } from './globals/settings';
 import { tileSize } from './globals/tileSize';
-import { container } from './index';
+import { boundingRect } from './index';
 import { updateInfoBox } from './updateInfoBox';
-import { imagesToFetch } from './utils/imagesToFetch';
 
 let working = false;
 let newWorker: boolean = false;
 
 function moveCanvas ({ canvas, height, width, x, y, z }: XYZ & Size & { canvas: HTMLCanvasElement; }) {
-  const scaleZ = z >= position.map.z ?
-    1 << z - position.map.z :
-    1 / (1 << position.map.z - z);
-  const shiftX = (position.map.x * scaleZ - x) * tileSize;
-  const shiftY = (position.map.y * scaleZ - y) * tileSize;
+  const { map, tiles } = position;
+  const scaleZ = z >= map.z ?
+    1 << z - map.z :
+    1 / (1 << map.z - z);
+  const tiles_2 = tiles / 2;
+  const shiftX = (modulo(map.x * scaleZ - x + tiles_2, tiles) - tiles_2) * tileSize;
+  const shiftY = (modulo(map.y * scaleZ - y + tiles_2, tiles) - tiles_2) * tileSize;
 
   canvas.style.height = `${scaleZ * canvas.height}px`;
   canvas.style.width = `${scaleZ * canvas.width}px`;
@@ -32,10 +34,9 @@ function moveCanvas ({ canvas, height, width, x, y, z }: XYZ & Size & { canvas: 
 let map: HTMLCanvasElement | null = null;
 
 export const redraw = async (type: string) => {
-  if (!container) return;
-  const { height, width } = container.getBoundingClientRect();
+  const { height, width } = boundingRect;
 
-  const { tiles, x, y, z } = position;
+  const { tiles, ttl, x, y, z } = position;
 
   const crosshairs = createCrosshairsCanvas({ height, width, x, y });
   const net = createNetCanvas({ height, width, x, y });
@@ -64,21 +65,18 @@ export const redraw = async (type: string) => {
 
   await createMapCanvas({ height, width, x, y, z })
   .then(newCanvas => {
-    if (!container) return;
-    position.x = (position.x + position.tiles) % position.tiles;
     map = newCanvas;
-    position.map.x = (x + tiles) % tiles;
+    position.map.x = modulo(x, tiles);
     position.map.y = y;
     position.map.z = z;
     mapContainer.innerHTML = '';
     mapContainer.append(newCanvas);
   });
 
-  imagesToFetch.reset();
   (() => {
     const { origin, pathname, search } = window.location;
     const newsearch = `?z=${z}&${
-      Object.entries({ ttl: position.ttl, x: position.x, y: position.y })
+      Object.entries({ ttl, x, y })
       .map(([k, v]) => `${k}=${v}`)
       .join('&')
     }`;

@@ -1,5 +1,7 @@
 import type { DrawImage } from '../../../common/types/drawImage';
 import type { XYZ } from '../../../common/types/xyz';
+import { modulo } from '../../../common/modulo';
+import { position } from '../../globals/position';
 import { tileSize } from '../../globals/tileSize';
 import { imagesMap } from '../mapCanvas';
 import { drawImage } from './drawImage';
@@ -16,8 +18,8 @@ export const drawCachedImage = async ({
   const isNavionics = source === 'navionics';
   const src = `/${source}/${[
     z,
-    x.toString(16),
-    y.toString(16),
+    modulo(x, position.tiles).toString(16),
+    modulo(y, position.tiles).toString(16),
   ].join('/')}`;
 
   const drawCanvas = (cnvs: OffscreenCanvas) => {
