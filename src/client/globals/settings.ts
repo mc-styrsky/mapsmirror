@@ -64,4 +64,3 @@ settings.tiles.order[0] = settings.tiles.baselayers.includes(baselayer) ?
   baselayer :
   'osm';
 settings.tiles.enabled[settings.tiles.order[0]] = true;
-console.log(settings);

@@ -5,11 +5,6 @@ import express from "../node_modules/express/index.js";
 // src/common/consts.ts
 var port = 3e3;
 
-// src/server/requestHandler/getTile.ts
-import { StyQueue } from "../node_modules/@mc-styrsky/queue/lib/index.js";
-import { createWriteStream } from "fs";
-import { mkdir, stat, unlink } from "fs/promises";
-
 // src/common/extractProperties.ts
 function extractProperties(obj, builder) {
   return Object.entries(builder).reduce((ret, entry) => {
@@ -18,6 +13,93 @@ function extractProperties(obj, builder) {
     return ret;
   }, {});
 }
+
+// src/server/requestHandler/getNavionicsIcon.ts
+var getNavionicsIcon = async (req, res) => {
+  const { iconId } = extractProperties(req.params, {
+    iconId: String
+  });
+  try {
+    await fetch(`https://webapp.navionics.com/api/v2/assets/images/${iconId}`).then(
+      async (r) => {
+        if (r.ok) {
+          const contentType = r.headers?.get("content-type");
+          if (contentType)
+            res?.contentType(contentType);
+          res?.send(Buffer.from(await r.arrayBuffer()));
+        } else
+          res?.sendStatus(r.status);
+      },
+      () => {
+        res?.sendStatus(500);
+      }
+    );
+  } catch (e) {
+    console.error(e);
+    res?.status(500).send("internal server error");
+    return;
+  }
+};
+
+// src/server/requestHandler/getNavionicsObjectinfo.ts
+var getNavionicsObjectinfo = async (req, res) => {
+  const { itemId } = extractProperties(req.params, {
+    itemId: String
+  });
+  try {
+    await fetch(`https://webapp.navionics.com/api/v2/objectinfo/marine/${itemId}?su=kmph&du=kilometers&dpu=meters&ugc=true&scl=false&z=11&sd=20&lang=de&_=1701878860274`).then(
+      async (r) => {
+        if (r.ok) {
+          const contentType = r.headers?.get("content-type");
+          if (contentType)
+            res?.contentType(contentType);
+          res?.send(Buffer.from(await r.arrayBuffer()));
+        } else
+          res?.sendStatus(r.status);
+      },
+      () => {
+        res?.sendStatus(500);
+      }
+    );
+  } catch (e) {
+    console.error(e);
+    res?.status(500).send("internal server error");
+    return;
+  }
+};
+
+// src/server/requestHandler/getNavionicsQuickinfo.ts
+var getNavionicsQuickinfo = async (req, res) => {
+  const { lat, lon } = extractProperties(req.params, {
+    lat: String,
+    lon: String
+  });
+  try {
+    await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?su=kmph&du=kilometers&dpu=meters&ugc=true&scl=false&z=11&sd=20&lang=de&_=1701878860273`).then(
+      async (r) => {
+        if (r.ok) {
+          const contentType = r.headers?.get("content-type");
+          if (contentType)
+            res?.contentType(contentType);
+          res?.send(Buffer.from(await r.arrayBuffer()));
+        } else
+          res?.sendStatus(r.status);
+      },
+      () => {
+        res?.sendStatus(500);
+      }
+    );
+  } catch (e) {
+    console.error(e);
+    res?.status(500).send("internal server error");
+    return;
+  }
+};
+
+// src/server/requestHandler/getTile.ts
+import { StyQueue } from "../node_modules/@mc-styrsky/queue/lib/index.js";
+import { createWriteStream } from "fs";
+import { mkdir, stat, unlink } from "fs/promises";
 
 // src/common/modulo.ts
 var modulo = (val, mod) => {
@@ -563,7 +645,7 @@ var queues = {
   worthit: 0,
   worthitCount: 0
 };
-express().use(express.json()).use(express.urlencoded({ extended: true })).use("", express.static("public")).get("/tile/:provider/:zoom/:x/:y", getTile).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
+express().use(express.json()).use(express.urlencoded({ extended: true })).use("", express.static("public")).get("/tile/:provider/:zoom/:x/:y", getTile).get("/navionics/icon/:iconId", getNavionicsIcon).get("/navionics/quickinfo/:lat/:lon", getNavionicsQuickinfo).get("/navionics/objectinfo/:itemId", getNavionicsObjectinfo).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
   console.error(`cannot start listener on port ${port}`);
   console.log(e);
 });

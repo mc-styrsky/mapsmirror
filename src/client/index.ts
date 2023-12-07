@@ -3,7 +3,6 @@ import { infoBox } from './containers/infoBox';
 import { mapContainer } from './containers/mapContainer';
 import { menuContainer } from './containers/menuContainer';
 import { overlayContainer } from './containers/overlayContainer';
-import { onclick } from './events/onclick';
 import { onchange } from './events/oninput';
 import { onmouse } from './events/onmouse';
 import { redraw } from './redraw';
@@ -22,7 +21,8 @@ container.append(mapContainer, overlayContainer, infoBox, menuContainer);
 window.addEventListener('keydown', onchange);
 window.addEventListener('wheel', onchange);
 window.addEventListener('mousemove', onmouse);
-window.addEventListener('click', onclick);
+window.addEventListener('mousedown', onmouse);
+window.addEventListener('mouseup', onmouse);
 window.addEventListener('resize', (event) => {
   boundingRect.refresh();
   onchange(event);

@@ -43,7 +43,6 @@ export const updateSavedPositionsList = () => {
           ].join(' ')],
         }),
         iconButton({
-          active: () => false,
           onclick: () => {
             editSavedPosition({ func: 'delete', x, y, z });
           },

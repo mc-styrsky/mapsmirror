@@ -1,6 +1,6 @@
 import { infoBox } from './containers/infoBox';
-import { details } from './globals/details';
 import { mouse } from './globals/mouse';
+import { navionicsDetails } from './globals/navionicsDetails';
 import { position } from './globals/position';
 import { tileSize } from './globals/tileSize';
 import { boundingRect } from './index';
@@ -42,7 +42,7 @@ export const updateInfoBox = () => {
     `Mouse: ${rad2deg({ axis: 'NS', pad: 2, phi: latMouse })} ${rad2deg({ axis: 'EW', pad: 3, phi: lonMouse })}`,
     createHTMLElement({ tag: 'br' }),
     `User: ${rad2deg({ axis: 'NS', pad: 2, phi: position.user.latitude })} ${rad2deg({ axis: 'EW', pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`,
+    navionicsDetails.toHtml(),
     ...imagesToFetch.stateHtml(),
-    ...details.toHtml(),
   );
 };

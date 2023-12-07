@@ -1,7 +1,17 @@
 import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 
-export const iconButton = ({ active, onclick, src, style }: { active: () => boolean, onclick: () => void; src: string; style?: Partial<HTMLAnchorElement['style']>; }) => {
+export const iconButton = ({
+  active = () => false,
+  onclick = () => void 0,
+  src,
+  style,
+}: {
+  active?: () => boolean,
+  onclick?: () => void;
+  src: string;
+  style?: Partial<HTMLAnchorElement['style']>;
+}) => {
   const ret = createHTMLElement({
     classes: ['btn', active() ? 'btn-success' : 'btn-secondary'],
     role: 'button',

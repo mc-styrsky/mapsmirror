@@ -1,5 +1,9 @@
 export const mouse = {
-  down: false,
+  down: {
+    state: false,
+    x: 0,
+    y: 0,
+  },
   x: 0,
   y: 0,
 };
