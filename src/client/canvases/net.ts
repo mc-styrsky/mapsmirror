@@ -1,5 +1,7 @@
 import type { Size } from '../../common/types/size';
 import type { XYZ } from '../../common/types/xyz';
+import type { Marker } from '../globals/marker';
+import { position } from '../globals/position';
 import { tileSize } from '../globals/tileSize';
 import { createHTMLElement } from '../utils/createHTMLElement';
 import { lat2y } from '../utils/lat2y';
@@ -131,6 +133,38 @@ export const createNetCanvas = ({
   });
   context.fill();
   context.stroke();
+
+  position.markers.forEach(marker => {
+    const markerX = (marker.x - x) * tileSize;
+    const markerY = (marker.y - y) * tileSize;
+
+    context.beginPath();
+    context.strokeStyle = '#000000';
+    context.lineWidth = 3;
+    context.arc(
+      markerX,
+      markerY,
+      5,
+      2 * Math.PI,
+      0,
+    );
+    context.stroke();
+    context.beginPath();
+    const colors: Record<Marker['type'], string> = {
+      navionics: '#00ff00',
+      user: '#800000',
+    };
+    context.strokeStyle = colors[marker.type];
+    context.lineWidth = 1;
+    context.arc(
+      markerX,
+      markerY,
+      5,
+      2 * Math.PI,
+      0,
+    );
+    context.stroke();
+  });
 
   return canvas;
 };

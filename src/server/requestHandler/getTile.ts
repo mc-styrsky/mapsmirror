@@ -6,7 +6,6 @@ import { extractProperties } from '../../common/extractProperties';
 import { modulo } from '../../common/modulo';
 import { pwd, queues } from '../index';
 import { xyz2bingsat } from '../urls/bingsat';
-import { xyz2bluemarble } from '../urls/bluemarble';
 import { xyz2cache } from '../urls/cache';
 import { xyz2default } from '../urls/default';
 import { xyz2gebco } from '../urls/gebco';
@@ -68,7 +67,6 @@ export const getTile = async (
           },
         } = await ({
           bingsat: xyz2bingsat,
-          bluemarble: xyz2bluemarble,
           cache: xyz2cache,
           gebco: xyz2gebco,
           googlehybrid: xyz2googlehybrid,

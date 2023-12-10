@@ -12,6 +12,5 @@ export const xyz2opentopomap: XYZ2Url = async (x, y, z) => {
       const { max, min } = res;
       return max > 126 && min < 144;
     },
-
   };
 };

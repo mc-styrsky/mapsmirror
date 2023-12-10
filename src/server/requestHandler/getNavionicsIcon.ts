@@ -15,8 +15,6 @@ export const getNavionicsIcon = async (
     .then(
       async r => {
         if (r.ok) {
-          const contentType = r.headers?.get('content-type');
-          if (contentType)res?.contentType(contentType);
           res?.send(Buffer.from(await r.arrayBuffer()));
         }
         else res?.sendStatus(r.status);

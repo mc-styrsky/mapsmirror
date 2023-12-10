@@ -1,4 +1,5 @@
 import { position } from './globals/position';
+import { Marker } from './globals/marker';
 import { updateInfoBox } from './updateInfoBox';
 
 let geolocationBlocked = false;
@@ -23,6 +24,11 @@ export const updateGeoLocation = async () => {
       longitude: longitude * Math.PI / 180,
       timestamp: pos.timestamp,
     };
+    new Marker({
+      lat: latitude,
+      lon: longitude,
+      type: 'user',
+    });
   })
   .catch((err) => {
     if (err.code === 1) geolocationBlocked = true;

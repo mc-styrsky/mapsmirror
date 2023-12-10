@@ -1,7 +1,6 @@
 export type Baselayers =
 | ''
 | 'bingsat'
-| 'bluemarble'
 | 'gebco'
 | 'googlehybrid'
 | 'googlesat'

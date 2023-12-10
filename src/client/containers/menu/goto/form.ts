@@ -1,9 +1,9 @@
 import parseDMS from 'parse-dms';
+import { lat2y } from '../../../utils/lat2y';
+import { lon2x } from '../../../utils/lon2x';
 import { position } from '../../../globals/position';
 import { redraw } from '../../../redraw';
 import { createHTMLElement } from '../../../utils/createHTMLElement';
-import { lat2y } from '../../../utils/lat2y';
-import { lon2x } from '../../../utils/lon2x';
 import { error } from './error';
 import { gotoInput } from './gotoInput';
 import { info } from './info';
@@ -21,8 +21,10 @@ export const form = createHTMLElement({
     };
 
     if (latDeg && lonDeg) {
-      position.x = lon2x(lon);
-      position.y = lat2y(lat);
+      position.xyz = {
+        x: lon2x(lon),
+        y: lat2y(lat),
+      };
     }
     redraw('goto');
   },

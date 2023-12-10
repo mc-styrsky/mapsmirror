@@ -1,6 +1,6 @@
 {
   "dependencies": {
-    "@mc-styrsky/queue": "^1.0.2",
+    "@mc-styrsky/queue": "^1.1.0",
     "express": "^4.18.2",
     "json-stable-stringify": "1.1.0",
     "node-fetch": "^3.3.2",
@@ -11,11 +11,11 @@
     "@mc-styrsky/eslint-config-typescript": "^1.0.1",
     "@types/express": "^4.17.21",
     "@types/json-stable-stringify": "^1.0.36",
-    "@types/node": "^20.10.3",
+    "@types/node": "^20.10.4",
     "esbuild": "^0.19.8",
     "geotiff": "^2.1.0",
     "npm-check-updates": "^16.14.11",
-    "typescript": "^5.3.2"
+    "typescript": "^5.3.3"
   },
   "name": "mapsmirror",
   "scripts": {
@@ -23,6 +23,7 @@
     "bundle": "npm run bundle:client && npm run bundle:server",
     "bundle:client": "npx esbuild src/client/index.ts --bundle --format=esm --outfile=public/client.js --platform=browser --sourcemap",
     "bundle:server": "npx esbuild src/server/index.ts --bundle --external:./node_modules/* --format=esm --outfile=dist/index.js --platform=node --sourcemap",
+    "bundle:watch": "npx esbuild src/client/index.ts --bundle --format=esm --outfile=public/client.js --platform=browser --sourcemap --watch",
     "start": "node --enable-source-maps dist/index.js"
   },
   "type": "module"

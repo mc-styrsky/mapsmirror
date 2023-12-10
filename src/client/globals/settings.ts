@@ -4,9 +4,8 @@ import { extractProperties } from '../../common/extractProperties';
 export type CoordUnits = 'd' | 'dm' | 'dms';
 type Order= Layers | {source: Layers, alpha: number}
 type Settings = {
-  crosshair: {
-    show: boolean
-  }
+  crosshair: { show: boolean }
+  navionicsDetails: { show: boolean }
   tiles:{
     baselayers: Baselayers[]
     enabled: Partial<Record<Layers, boolean>>
@@ -36,6 +35,9 @@ export const settings: Settings = {
   crosshair: extractProperties(localStorageSettings?.crosshair, {
     show: val => Boolean(val ?? true),
   }),
+  navionicsDetails: extractProperties(localStorageSettings?.navionicsDetails, {
+    show: val => Boolean(val ?? true),
+  }),
   tiles: {
     baselayers: [
       '',
@@ -45,7 +47,6 @@ export const settings: Settings = {
       'googlehybrid',
       'gebco',
       'bingsat',
-      'bluemarble',
       'opentopomap',
     ],
     enabled: Object.fromEntries(order

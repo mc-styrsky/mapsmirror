@@ -3,6 +3,7 @@ import { baselayerMenu } from './menu/baselayerMenu';
 import { coordsToggle } from './menu/coordsToggle';
 import { crosshairToggle } from './menu/crosshairToggle';
 import { gotoMenu } from './menu/gotoMenu';
+import { navionicsDetailsToggle } from './menu/navionicsDetailsToggle';
 import { navionicsToggle } from './menu/navionicsToggle';
 import { overlayToggle } from './menu/overlayToggle';
 import { savePosition } from './menu/savePosition';
@@ -25,6 +26,7 @@ export const menuContainer = createHTMLElement({
         overlayToggle('openseamap'),
         vfdensityToggle,
         navionicsToggle,
+        navionicsDetailsToggle,
         crosshairToggle,
         coordsToggle,
       ],

@@ -23,9 +23,9 @@ window.addEventListener('wheel', onchange);
 window.addEventListener('mousemove', onmouse);
 window.addEventListener('mousedown', onmouse);
 window.addEventListener('mouseup', onmouse);
-window.addEventListener('resize', (event) => {
+window.addEventListener('resize', () => {
   boundingRect.refresh();
-  onchange(event);
+  redraw('resize');
 });
 
 redraw('initial');

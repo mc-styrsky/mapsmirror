@@ -8,6 +8,7 @@ export const getMaxzoom = () => maxzoom;
 export const setMaxzoom = (z: number) => maxzoom = z;
 
 export const printStats = () => {
+  if (!queues.statsCount && !queues.worthitCount && maxzoom < 0 && !queues.checked) return;
   const partialSum = (n: number) => (1 - Math.pow(4, n)) / (1 - 4);
   const todo = Object.entries(queues.childs).reduce(
     (sum, [key, queue]) => {

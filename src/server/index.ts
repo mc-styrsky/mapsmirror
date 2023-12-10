@@ -29,7 +29,7 @@ express()
 .use('', express.static('public'))
 .get('/tile/:provider/:zoom/:x/:y', getTile)
 .get('/navionics/icon/:iconId', getNavionicsIcon)
-.get('/navionics/quickinfo/:lat/:lon', getNavionicsQuickinfo)
+.get('/navionics/quickinfo/:z/:lat/:lon', getNavionicsQuickinfo)
 .get('/navionics/objectinfo/:itemId', getNavionicsObjectinfo)
 .listen(port, () => console.log(`backend listener running on port ${port}`))
 .on('error', (e) => {

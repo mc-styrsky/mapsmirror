@@ -1,15 +1,14 @@
+import type { Marker } from './marker';
 import type { XYZ } from '../../common/types/xyz';
 import { extractProperties } from '../../common/extractProperties';
 import { modulo } from '../../common/modulo';
+import { navionicsDetails } from './navionicsDetails';
 
 
 class Position {
   constructor ({ ttl, x, y, z }: XYZ & { ttl: number }) {
-    this._x = x;
-    this._y = y;
-    this._z = z;
+    this.xyz = { x, y, z };
     this._ttl = ttl;
-    this._tiles = 1 << z;
     this.map = { x, y, z };
   }
   set ttl (val: number) {
@@ -18,31 +17,23 @@ class Position {
   get ttl () {
     return this._ttl;
   }
-  set x (val: XYZ['x']) {
-    this._x = modulo(val, this._tiles);
-  }
   get x () {
     return this._x;
-  }
-  set y (val: XYZ['y']) {
-    this._y = Math.max(0, Math.min(val, this._tiles));
   }
   get y () {
     return this._y;
   }
-  set z (val: XYZ['z']) {
-    this._z = val;
-    this._tiles = 1 << val;
-  }
   get z () {
     return this._z;
   }
-  set xyz ({ x, y, z }: XYZ) {
-    this.z = z;
-    this.x = x;
-    this.y = y;
+  set xyz ({ x = this._x, y = this._y, z = this._z }: Partial<XYZ>) {
+    this._z = z;
+    this._tiles = 1 << z;
+    this._x = modulo(x, this._tiles);
+    this._y = Math.max(0, Math.min(y, this._tiles));
+    setTimeout(() => navionicsDetails.fetch(this), 100);
   }
-  get xyz () {
+  get xyz (): XYZ {
     return {
       x: this._x,
       y: this._y,
@@ -55,24 +46,30 @@ class Position {
 
   readonly zoomIn = () => {
     if (this._z < 20) {
-      this.z++;
-      this.x *= 2;
-      this.y *= 2;
+      this.xyz = {
+        x: this._x * 2,
+        y: this._y * 2,
+        z: this._z + 1,
+
+      };
       return true;
     }
     return false;
   };
   readonly zoomOut = () => {
     if (this.z > 2) {
-      this.z--;
-      this.x /= 2;
-      this.y /= 2;
+      this.xyz = {
+        x: this._x /= 2,
+        y: this._y /= 2,
+        z: this._z - 1,
+      };
       return true;
     }
     return false;
   };
 
   readonly map: XYZ;
+  readonly markers: Map<Marker['type'], Marker> = new Map();
   user = {
     accuracy: 0,
     latitude: 0,
@@ -80,10 +77,10 @@ class Position {
     timestamp: 0,
   };
   private _ttl: number;
-  private _x: XYZ['x'];
-  private _y: XYZ['y'];
-  private _z: XYZ['z'];
-  private _tiles: number;
+  private _x: XYZ['x'] = 0;
+  private _y: XYZ['y'] = 0;
+  private _z: XYZ['z'] = 0;
+  private _tiles: number = 0;
 }
 
 export const position = new Position(extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {

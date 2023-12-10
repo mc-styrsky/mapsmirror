@@ -1,12 +1,12 @@
 import type { Size } from '../../common/types/size';
 import type { XYZ } from '../../common/types/xyz';
+import { lat2y } from '../utils/lat2y';
+import { lon2x } from '../utils/lon2x';
 import { settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
 import { sphericCircle, sphericLatLon } from '../sphericCircle';
 import { createHTMLElement } from '../utils/createHTMLElement';
 import { frac } from '../utils/frac';
-import { lat2y } from '../utils/lat2y';
-import { lon2x } from '../utils/lon2x';
 import { min2rad } from '../utils/min2rad';
 import { nm2px } from '../utils/nm2px';
 import { x2lon } from '../utils/x2lon';

@@ -1285,7 +1285,7 @@ var require_json_stable_stringify = __commonJS({
         };
       };
       var seen = [];
-      return function stringify3(parent, key, node, level) {
+      return function stringify4(parent, key, node, level) {
         var indent = space ? "\n" + strRepeat(level, space) : "";
         var colonSeparator = space ? ": " : ":";
         if (node && node.toJSON && typeof node.toJSON === "function") {
@@ -1301,7 +1301,7 @@ var require_json_stable_stringify = __commonJS({
         if (isArray(node)) {
           var out = "";
           for (var i = 0; i < node.length; i++) {
-            var item = stringify3(node, i, node[i], level + 1) || jsonStringify(null);
+            var item = stringify4(node, i, node[i], level + 1) || jsonStringify(null);
             out += indent + space + item;
             if (i + 1 < node.length) {
               out += ",";
@@ -1322,7 +1322,7 @@ var require_json_stable_stringify = __commonJS({
         var needsComma = false;
         for (var i = 0; i < keys.length; i++) {
           var key = keys[i];
-          var value = stringify3(node, key, node[key], level + 1);
+          var value = stringify4(node, key, node[key], level + 1);
           if (!value) {
             continue;
           }
@@ -1420,6 +1420,7 @@ var Size = class {
   }
   refresh = () => {
     const { height, width } = this._container.getBoundingClientRect();
+    console.log("new bounding rect", { height, width });
     this._height = height;
     this._width = width;
   };
@@ -1461,12 +1462,12 @@ function createHTMLElement(params) {
 var infoBox = createHTMLElement({
   classes: ["float-end"],
   dataset: {
-    bsTheme: "dark"
+    // bsTheme: 'dark',
   },
   style: {
-    backgroundColor: "#80808080",
-    borderBottomLeftRadius: "1em",
-    borderTopLeftRadius: "1em",
+    backgroundColor: "#aaaa",
+    borderBottomLeftRadius: "0.5em",
+    borderTopLeftRadius: "0.5em",
     padding: "0.3em",
     width: "23em"
   },
@@ -1513,6 +1514,9 @@ var settings = {
   crosshair: extractProperties(localStorageSettings?.crosshair, {
     show: (val) => Boolean(val ?? true)
   }),
+  navionicsDetails: extractProperties(localStorageSettings?.navionicsDetails, {
+    show: (val) => Boolean(val ?? true)
+  }),
   tiles: {
     baselayers: [
       "",
@@ -1522,7 +1526,6 @@ var settings = {
       "googlehybrid",
       "gebco",
       "bingsat",
-      "bluemarble",
       "opentopomap"
     ],
     enabled: Object.fromEntries(order.map((e) => typeof e === "string" ? e : e.source).filter((e) => e !== "openseamap").map((e) => [e, Boolean(localStorageSettings?.tiles?.enabled?.[e] ?? true)])),
@@ -1537,7 +1540,7 @@ settings.tiles.order[0] = settings.tiles.baselayers.includes(baselayer) ? basela
 settings.tiles.enabled[settings.tiles.order[0]] = true;
 
 // src/client/redraw.ts
-var import_json_stable_stringify = __toESM(require_json_stable_stringify(), 1);
+var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
 
 // src/common/modulo.ts
 var modulo = (val, mod) => {
@@ -1545,8 +1548,622 @@ var modulo = (val, mod) => {
   return ret < 0 ? ret + mod : ret;
 };
 
+// node_modules/@mc-styrsky/queue/lib/index.js
+var StyQueue = class {
+  constructor(defaultConcurrency = 5) {
+    this.defaultConcurrency = defaultConcurrency;
+    this.queue = [];
+    this.working = 0;
+  }
+  defaultConcurrency;
+  queue = [];
+  working;
+  queue2working = async () => {
+    if (this.working < this.queue[0]?.concurrency) {
+      const { args, func, resolve } = this.queue.shift();
+      this.working++;
+      resolve(await func(...args ?? []));
+      this.working--;
+      this.queue2working();
+    }
+  };
+  get length() {
+    return this.queue.length + this.working;
+  }
+  shift = () => this.queue.shift();
+  pop = () => this.queue.pop();
+  enqueue = (func, args, concurrency = this.defaultConcurrency) => {
+    const promise = new Promise((resolve) => {
+      this.queue.push({
+        args,
+        concurrency: concurrency < 1 ? 1 : concurrency,
+        func,
+        resolve
+      });
+    });
+    this.queue2working();
+    return promise;
+  };
+};
+
+// src/client/globals/mouse.ts
+var mouse = {
+  down: {
+    state: false,
+    x: 0,
+    y: 0
+  },
+  x: 0,
+  y: 0
+};
+
 // src/client/globals/tileSize.ts
 var tileSize = 256;
+
+// src/client/utils/imagesToFetch.ts
+var ImagesToFetch = class {
+  constructor() {
+  }
+  xyz2string = ({ x, y, z }) => `${z.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
+  data = {};
+  total = {};
+  getSet = (source) => this.data[source] ??= /* @__PURE__ */ new Set();
+  add = ({ source, ...xyz }) => {
+    this.getSet(source).add(this.xyz2string(xyz));
+    this.total[source] = (this.total[source] ?? 0) + 1;
+    updateInfoBox();
+  };
+  delete = ({ source, ...xyz }) => {
+    this.getSet(source).delete(this.xyz2string(xyz));
+    if (this.getSet(source).size === 0) {
+      delete this.data[source];
+      delete this.total[source];
+    }
+    updateInfoBox();
+  };
+  state = () => {
+    return Object.entries(this.data).map(([key, val]) => [key, val.size]);
+  };
+  stateHtml = () => {
+    return this.state().reduce(
+      (arr, [source, size]) => {
+        arr.push(createHTMLElement({ tag: "br" }));
+        arr.push(`${source}: ${size}/${this.total[source]}`);
+        return arr;
+      },
+      []
+    );
+  };
+};
+var imagesToFetch = new ImagesToFetch();
+
+// src/client/utils/px2nm.ts
+var px2nm = (lat) => {
+  const stretch = 1 / Math.cos(lat);
+  return 360 * 60 / position.tiles / tileSize / stretch;
+};
+
+// src/client/utils/rad2deg.ts
+var rad2ModuloDeg = (phi) => modulo(phi * 180 / Math.PI + 180, 360) - 180;
+var rad2degFunctions = {
+  d: ({ axis = " -", pad = 0, phi }) => {
+    const deg = Math.round(rad2ModuloDeg(phi) * 1e5) / 1e5;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad + 6, "0")}\xB0`;
+  },
+  dm: ({ axis = " -", pad = 0, phi }) => {
+    const deg = Math.round(rad2ModuloDeg(phi) * 6e4) / 6e4;
+    const degrees = deg | 0;
+    const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}'`;
+  },
+  dms: ({ axis = " -", pad = 0, phi }) => {
+    const deg = Math.round(rad2ModuloDeg(phi) * 36e4) / 36e4;
+    const degrees = deg | 0;
+    const min = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
+    const minutes = min | 0;
+    const seconds = (min - minutes) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}"`;
+  }
+};
+var rad2deg = ({ axis = " -", pad = 0, phi }) => rad2degFunctions[settings.units.coords]({ axis, pad, phi });
+
+// src/client/utils/x2lon.ts
+var x2lon = (x, tiles = position.tiles) => (x / tiles - 0.5) * Math.PI * 2;
+
+// src/client/utils/y2lat.ts
+var y2lat = (y, tiles = position.tiles) => Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
+
+// src/client/updateInfoBox.ts
+var updateInfoBox = () => {
+  const { height, width } = boundingRect;
+  const { x, y } = position;
+  const lat = y2lat(y);
+  const lon = x2lon(x);
+  const latMouse = y2lat(y + (mouse.y - height / 2) / tileSize);
+  const lonMouse = x2lon(x + (mouse.x - width / 2) / tileSize);
+  const scale = (() => {
+    let nm = px2nm(lat);
+    let px = 1;
+    if (nm >= 1)
+      return `${px2nm(lat).toPrecision(3)}nm/px`;
+    while (nm < 1) {
+      nm *= 10;
+      px *= 10;
+    }
+    return `${nm.toPrecision(3)}nm/${px.toFixed(0)}px`;
+  })();
+  infoBox.innerHTML = "";
+  infoBox.append(
+    `Scale: ${scale} (Zoom ${position.z})`,
+    createHTMLElement({ tag: "br" }),
+    `Lat/Lon: ${rad2deg({ axis: "NS", pad: 2, phi: lat })} ${rad2deg({ axis: "EW", pad: 3, phi: lon })}`,
+    createHTMLElement({ tag: "br" }),
+    `Mouse: ${rad2deg({ axis: "NS", pad: 2, phi: latMouse })} ${rad2deg({ axis: "EW", pad: 3, phi: lonMouse })}`,
+    createHTMLElement({ tag: "br" }),
+    `User: ${rad2deg({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2deg({ axis: "EW", pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`
+  );
+  if (settings.navionicsDetails.show)
+    infoBox.append(navionicsDetails.toHtml());
+  infoBox.append(...imagesToFetch.stateHtml());
+};
+
+// src/client/utils/lon2x.ts
+var lon2x = (lon, tiles = position.tiles) => (lon / Math.PI / 2 + 0.5) * tiles;
+
+// src/client/globals/marker.ts
+var Marker = class {
+  constructor({ id = "", lat, lon, type }) {
+    this.lat = lat * Math.PI / 180;
+    this.lon = lon * Math.PI / 180;
+    this.type = type;
+    this.id = id;
+    position.markers.set(type, this);
+  }
+  lat;
+  lon;
+  id;
+  get x() {
+    return lon2x(this.lon);
+  }
+  get y() {
+    return lat2y(this.lat);
+  }
+  type;
+  delete() {
+    position.markers.delete(this.type);
+  }
+};
+
+// src/client/globals/navionicsDetails/goto.ts
+var goto = (item) => {
+  if (item.position)
+    return createHTMLElement({
+      onclick: (event) => {
+        const { lat, lon } = item.position;
+        position.xyz = {
+          x: lon2x(lon * Math.PI / 180),
+          y: lat2y(lat * Math.PI / 180)
+        };
+        redraw("goto");
+        event.stopPropagation();
+      },
+      style: {
+        marginLeft: "auto",
+        padding: "0.25rem"
+      },
+      tag: "a",
+      zhilds: [
+        createHTMLElement({
+          src: "/bootstrap-icons-1.11.2/arrow-right-circle.svg",
+          style: {
+            color: "#ff0000",
+            height: "1.75rem"
+          },
+          tag: "img"
+        })
+      ]
+    });
+  return void 0;
+};
+
+// src/client/globals/navionicsDetails/icon.ts
+var icon = (item) => createHTMLElement({
+  classes: ["d-flex"],
+  style: {
+    height: "2em",
+    width: "2em"
+  },
+  tag: "div",
+  zhilds: [createHTMLElement({
+    style: {
+      margin: "auto"
+    },
+    tag: "div",
+    zhilds: [
+      createHTMLElement({
+        src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
+        style: {
+          maxHeight: "1.5em",
+          maxWidth: "1.5em"
+        },
+        tag: "img"
+      })
+    ]
+  })]
+});
+
+// src/client/globals/navionicsDetails/itemDetails.ts
+var itemDetails = (item, nodeId) => {
+  if (item.properties)
+    return createHTMLElement({
+      classes: ["accordion-collapse", "collapse", "px-2"],
+      dataset: {
+        bsParent: "#navionicsDetailsList"
+      },
+      id: nodeId,
+      tag: "div",
+      zhilds: item.properties.map((prop) => createHTMLElement({
+        tag: "p",
+        zhilds: [prop]
+      }))
+    });
+  return void 0;
+};
+
+// src/client/globals/navionicsDetails/label.ts
+var import_json_stable_stringify = __toESM(require_json_stable_stringify(), 1);
+var label = (item) => createHTMLElement({
+  classes: ["d-flex"],
+  tag: "div",
+  zhilds: [
+    createHTMLElement({
+      style: {
+        margin: "auto"
+      },
+      tag: "div",
+      title: (0, import_json_stable_stringify.default)(item, { space: 2 }),
+      zhilds: [item.name]
+    })
+  ]
+});
+
+// src/client/globals/navionicsDetails/spinner.ts
+var spinner = (item) => {
+  if (item.details && !item.properties)
+    return createHTMLElement({
+      classes: ["d-flex"],
+      tag: "div",
+      zhilds: [createHTMLElement({
+        classes: [
+          "spinner-border",
+          "spinner-border-sm"
+        ],
+        style: {
+          margin: "auto"
+        },
+        tag: "div"
+      })]
+    });
+  return void 0;
+};
+
+// src/client/globals/navionicsDetails/accordionItems.ts
+var accordionItems = (parent) => [...parent.list.values()].sort((a, b) => a.distance - b.distance).map((item, idx) => {
+  const nodeId = `navionicsDetailsItem${idx}`;
+  return createHTMLElement({
+    classes: [
+      "accordion-item",
+      "mm-menu-text"
+    ],
+    tag: "div",
+    zhilds: [
+      createHTMLElement({
+        classes: [
+          "accordion-header",
+          "mm-menu-text"
+        ],
+        onmousemove: (event) => {
+          event.stopPropagation();
+          if (parent.marker?.id !== item.id) {
+            parent.marker = new Marker({
+              ...item.position,
+              id: item.id,
+              type: "navionics"
+            });
+            redraw("set navionics marker");
+          }
+        },
+        tag: "div",
+        zhilds: [
+          createHTMLElement({
+            classes: [
+              ...item.properties ? ["accordion-button", "collapsed"] : ["d-flex"],
+              "px-2",
+              "py-0",
+              "mm-menu-text"
+            ],
+            dataset: item.properties ? {
+              bsTarget: `#${nodeId}`,
+              bsToggle: "collapse"
+            } : {},
+            tag: "div",
+            zhilds: [createHTMLElement({
+              classes: ["d-flex"],
+              style: {
+                width: "100%"
+              },
+              tag: "div",
+              zhilds: [
+                icon(item),
+                label(item),
+                goto(item),
+                spinner(item)
+              ]
+            })]
+          })
+        ]
+      }),
+      itemDetails(item, nodeId)
+    ]
+  });
+});
+
+// src/client/globals/navionicsDetails.ts
+var NavionicsDetails = class {
+  constructor() {
+    this.queue.enqueue(() => new Promise((r) => setInterval(r, 1)));
+  }
+  isFetch = false;
+  _list = /* @__PURE__ */ new Map();
+  get list() {
+    return this._list;
+  }
+  marker;
+  htmlList = null;
+  queue = new StyQueue(1);
+  add = (item) => {
+    this._list.set(item.id, item);
+    this.htmlList = null;
+  };
+  clear = () => {
+    this._list.clear();
+    this.htmlList = null;
+  };
+  delete = (item) => {
+    this._list.delete(item.id);
+    this.htmlList = null;
+  };
+  fetch = async ({ x, y, z }) => {
+    if (!settings.navionicsDetails.show)
+      return;
+    while (this.queue.shift())
+      /* @__PURE__ */ (() => void 0)();
+    await this.queue.enqueue(async () => {
+      this.isFetch = true;
+      navionicsDetails.clear();
+      updateInfoBox();
+      const listMap = /* @__PURE__ */ new Map();
+      const max = 1;
+      const size = max * 2 + 1;
+      await Promise.all(new Array(size * size).fill(0).map(async (_val, idx) => {
+        const dx = (idx % size - max) / max * (max / 10);
+        const dy = (Math.floor(idx / size) - max) / max * (max / 10);
+        await fetch(`/navionics/quickinfo/${z}/${y2lat(y + dy, 1 << z) * 180 / Math.PI}/${x2lon(x + dx, 1 << z) * 180 / Math.PI}`).then(
+          async (res) => {
+            if (!res.ok)
+              return [];
+            const body = await res.json();
+            return body.items ?? [];
+          },
+          (rej) => {
+            console.error(rej);
+            return [];
+          }
+        ).then(async (list) => {
+          list.forEach((i) => listMap.set(i.id, i));
+        });
+      })).then(async () => {
+        const list = [...listMap.values()].filter((i) => ![
+          "depth_area",
+          "depth_contour"
+        ].includes(i.category_id));
+        await Promise.all(list.map(async (item) => {
+          const {
+            category_id,
+            details,
+            icon_id,
+            id,
+            name,
+            position: position2
+          } = extractProperties(item, {
+            category_id: String,
+            details: Boolean,
+            icon_id: String,
+            id: String,
+            name: String,
+            position: ({ lat, lon }) => ({
+              lat: Number(lat),
+              lon: Number(lon),
+              x: lon2x(Number(lon) * Math.PI / 180),
+              y: lat2y(Number(lat) * Math.PI / 180)
+            })
+          });
+          const distance = Math.sqrt(
+            Math.pow(position2.x - x, 2) + Math.pow(position2.y - y, 2)
+          );
+          navionicsDetails.add({
+            category_id,
+            details,
+            distance,
+            icon_id,
+            id,
+            name,
+            position: position2
+          });
+          updateInfoBox();
+          if (item.details) {
+            const { label: label2, properties } = extractProperties(
+              await fetch(`/navionics/objectinfo/${item.id}`).then(
+                async (res) => res.ok ? await res.json() : {},
+                () => {
+                }
+              ),
+              {
+                label: String,
+                properties: (val) => val?.map(({ label: label3 }) => label3)?.filter(Boolean)
+              }
+            );
+            navionicsDetails.add({
+              category_id,
+              details,
+              distance,
+              icon_id,
+              id,
+              label: label2,
+              name,
+              position: position2,
+              properties
+            });
+            updateInfoBox();
+          }
+        }));
+      });
+      this.isFetch = false;
+    });
+    this.htmlList = null;
+    updateInfoBox();
+  };
+  toHtml = () => {
+    const items = accordionItems(this);
+    if (this.isFetch)
+      items.push(createHTMLElement({
+        classes: [
+          "accordion-item",
+          "mm-menu-text"
+        ],
+        tag: "div",
+        zhilds: [createHTMLElement({
+          classes: [
+            "accordion-header",
+            "mm-menu-text"
+          ],
+          tag: "div",
+          zhilds: [createHTMLElement({
+            classes: [
+              "d-flex",
+              "mm-menu-text"
+            ],
+            tag: "div",
+            zhilds: [createHTMLElement({
+              classes: [
+                "spinner-border",
+                "spinner-border-sm"
+              ],
+              style: {
+                margin: "auto"
+              },
+              tag: "div"
+            })]
+          })]
+        })]
+      }));
+    this.htmlList ??= createHTMLElement({
+      classes: ["accordion"],
+      id: "navionicsDetailsList",
+      tag: "div",
+      zhilds: items
+    });
+    return this.htmlList;
+  };
+};
+var navionicsDetails = new NavionicsDetails();
+
+// src/client/globals/position.ts
+var Position = class {
+  constructor({ ttl, x, y, z }) {
+    this.xyz = { x, y, z };
+    this._ttl = ttl;
+    this.map = { x, y, z };
+  }
+  set ttl(val) {
+    this._ttl = val;
+  }
+  get ttl() {
+    return this._ttl;
+  }
+  get x() {
+    return this._x;
+  }
+  get y() {
+    return this._y;
+  }
+  get z() {
+    return this._z;
+  }
+  set xyz({ x = this._x, y = this._y, z = this._z }) {
+    this._z = z;
+    this._tiles = 1 << z;
+    this._x = modulo(x, this._tiles);
+    this._y = Math.max(0, Math.min(y, this._tiles));
+    setTimeout(() => navionicsDetails.fetch(this), 100);
+  }
+  get xyz() {
+    return {
+      x: this._x,
+      y: this._y,
+      z: this._z
+    };
+  }
+  get tiles() {
+    return this._tiles;
+  }
+  zoomIn = () => {
+    if (this._z < 20) {
+      this.xyz = {
+        x: this._x * 2,
+        y: this._y * 2,
+        z: this._z + 1
+      };
+      return true;
+    }
+    return false;
+  };
+  zoomOut = () => {
+    if (this.z > 2) {
+      this.xyz = {
+        x: this._x /= 2,
+        y: this._y /= 2,
+        z: this._z - 1
+      };
+      return true;
+    }
+    return false;
+  };
+  map;
+  markers = /* @__PURE__ */ new Map();
+  user = {
+    accuracy: 0,
+    latitude: 0,
+    longitude: 0,
+    timestamp: 0
+  };
+  _ttl;
+  _x = 0;
+  _y = 0;
+  _z = 0;
+  _tiles = 0;
+};
+var position = new Position(extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
+  ttl: (val) => parseInt(val ?? 0),
+  x: (val) => parseFloat(val ?? 2),
+  y: (val) => parseFloat(val ?? 2),
+  z: (val) => parseInt(val ?? 2)
+}));
+
+// src/client/utils/lat2y.ts
+var lat2y = (lat, tiles = position.tiles) => {
+  return (0.5 - Math.asinh(Math.tan(lat)) / Math.PI / 2) * tiles;
+};
 
 // src/client/sphericCircle.ts
 var sphericCircle = (lat, lon, radius, steps = 256) => {
@@ -1590,102 +2207,6 @@ var sphericLatLon = ({ cosLat, cosRadius, lat, omega, radius, sinLat, sinRadius 
 // src/client/utils/frac.ts
 var frac = (x) => x - Math.floor(x);
 
-// src/client/globals/position.ts
-var Position = class {
-  constructor({ ttl, x, y, z }) {
-    this._x = x;
-    this._y = y;
-    this._z = z;
-    this._ttl = ttl;
-    this._tiles = 1 << z;
-    this.map = { x, y, z };
-  }
-  set ttl(val) {
-    this._ttl = val;
-  }
-  get ttl() {
-    return this._ttl;
-  }
-  set x(val) {
-    this._x = modulo(val, this._tiles);
-  }
-  get x() {
-    return this._x;
-  }
-  set y(val) {
-    this._y = Math.max(0, Math.min(val, this._tiles));
-  }
-  get y() {
-    return this._y;
-  }
-  set z(val) {
-    this._z = val;
-    this._tiles = 1 << val;
-  }
-  get z() {
-    return this._z;
-  }
-  set xyz({ x, y, z }) {
-    this.z = z;
-    this.x = x;
-    this.y = y;
-  }
-  get xyz() {
-    return {
-      x: this._x,
-      y: this._y,
-      z: this._z
-    };
-  }
-  get tiles() {
-    return this._tiles;
-  }
-  zoomIn = () => {
-    if (this._z < 20) {
-      this.z++;
-      this.x *= 2;
-      this.y *= 2;
-      return true;
-    }
-    return false;
-  };
-  zoomOut = () => {
-    if (this.z > 2) {
-      this.z--;
-      this.x /= 2;
-      this.y /= 2;
-      return true;
-    }
-    return false;
-  };
-  map;
-  user = {
-    accuracy: 0,
-    latitude: 0,
-    longitude: 0,
-    timestamp: 0
-  };
-  _ttl;
-  _x;
-  _y;
-  _z;
-  _tiles;
-};
-var position = new Position(extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
-  ttl: (val) => parseInt(val ?? 0),
-  x: (val) => parseFloat(val ?? 2),
-  y: (val) => parseFloat(val ?? 2),
-  z: (val) => parseInt(val ?? 2)
-}));
-
-// src/client/utils/lat2y.ts
-var lat2y = (lat, tiles = position.tiles) => {
-  return (0.5 - Math.asinh(Math.tan(lat)) / Math.PI / 2) * tiles;
-};
-
-// src/client/utils/lon2x.ts
-var lon2x = (lon, tiles = position.tiles) => (lon / Math.PI / 2 + 0.5) * tiles;
-
 // src/client/utils/min2rad.ts
 var min2rad = (min) => min / 60 / 180 * Math.PI;
 
@@ -1694,12 +2215,6 @@ var nm2px = (lat) => {
   const stretch = 1 / Math.cos(lat);
   return position.tiles * tileSize / 360 / 60 * stretch;
 };
-
-// src/client/utils/x2lon.ts
-var x2lon = (x, tiles = position.tiles) => (x / tiles - 0.5) * Math.PI * 2;
-
-// src/client/utils/y2lat.ts
-var y2lat = (y, tiles = position.tiles) => Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
 
 // src/client/canvases/crosshairs.ts
 var createCrosshairsCanvas = ({
@@ -1799,260 +2314,6 @@ var createCrosshairsCanvas = ({
   return canvas;
 };
 
-// src/client/globals/mouse.ts
-var mouse = {
-  down: {
-    state: false,
-    x: 0,
-    y: 0
-  },
-  x: 0,
-  y: 0
-};
-
-// src/client/globals/navionicsDetails.ts
-var NavionicsDetails = class {
-  list = /* @__PURE__ */ new Map();
-  htmlList = null;
-  add = (item) => {
-    this.list.set(item.id, item);
-    this.htmlList = null;
-  };
-  delete = (item) => {
-    this.list.delete(item.id);
-    this.htmlList = null;
-  };
-  fetch = ({ x, y }) => {
-    updateInfoBox();
-    fetch(`/navionics/quickinfo/${y2lat(y) * 180 / Math.PI}/${x2lon(x) * 180 / Math.PI}`).then(
-      async (res) => {
-        if (!res.ok)
-          return;
-        const body = await res.json();
-        const list = body.items ?? [];
-        navionicsDetails.clear();
-        await Promise.all(list.map(async (item) => {
-          console.log(item);
-          const {
-            category_id,
-            details,
-            icon_id,
-            id,
-            name,
-            position: position2
-          } = extractProperties(item, {
-            category_id: String,
-            details: Boolean,
-            icon_id: String,
-            id: String,
-            name: String,
-            position: ({ lat, lon }) => ({ lat: Number(lat), lon: Number(lon) })
-          });
-          navionicsDetails.add({
-            category_id,
-            details,
-            icon_id,
-            id,
-            name,
-            position: position2
-          });
-          updateInfoBox();
-          if (item.details) {
-            const { label, properties } = extractProperties(
-              await fetch(`/navionics/objectinfo/${item.id}`).then(
-                async (res2) => res2.ok ? await res2.json() : {},
-                () => {
-                }
-              ),
-              {
-                label: String,
-                properties: (val) => val?.map(({ label: label2 }) => label2)?.filter(Boolean)
-              }
-            );
-            navionicsDetails.add({
-              category_id,
-              details,
-              icon_id,
-              id,
-              label,
-              name,
-              position: position2,
-              properties
-            });
-            updateInfoBox();
-          }
-        }));
-      },
-      (rej) => console.error(rej)
-    );
-  };
-  clear = () => {
-    this.list.clear();
-    this.htmlList = null;
-  };
-  toHtml = () => {
-    this.htmlList ??= createHTMLElement({
-      classes: ["accordion"],
-      id: "navionicsDetailsList",
-      tag: "div",
-      zhilds: [...this.list.values()].map((item, idx) => {
-        const nodeId = `navionicsDetailsItem${idx}`;
-        return createHTMLElement({
-          classes: ["accordion-item"],
-          tag: "div",
-          zhilds: [
-            createHTMLElement({
-              classes: ["accordion-header"],
-              tag: "div",
-              zhilds: [
-                item.properties ? createHTMLElement({
-                  classes: ["accordion-button", "collapsed", "px-2", "py-0"],
-                  dataset: {
-                    bsTarget: `#${nodeId}`,
-                    bsToggle: "collapse"
-                  },
-                  tag: "button",
-                  type: "button",
-                  zhilds: [
-                    createHTMLElement({
-                      src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
-                      tag: "img"
-                    }),
-                    item.name
-                  ]
-                }) : createHTMLElement({
-                  classes: ["px-2", "py-0"],
-                  tag: "div",
-                  zhilds: [
-                    createHTMLElement({
-                      src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
-                      tag: "img"
-                    }),
-                    item.name
-                  ]
-                })
-              ]
-            }),
-            item.properties ? createHTMLElement({
-              classes: ["accordion-collapse", "collapse", "px-2"],
-              dataset: {
-                bsParent: "#navionicsDetailsList"
-              },
-              id: nodeId,
-              tag: "div",
-              zhilds: [
-                item.properties?.join("\n\n") ?? "no details"
-              ]
-            }) : ""
-          ]
-        });
-      })
-    });
-    return this.htmlList;
-  };
-};
-var navionicsDetails = new NavionicsDetails();
-
-// src/client/utils/px2nm.ts
-var px2nm = (lat) => {
-  const stretch = 1 / Math.cos(lat);
-  return 360 * 60 / position.tiles / tileSize / stretch;
-};
-
-// src/client/utils/rad2deg.ts
-var rad2ModuloDeg = (phi) => modulo(phi * 180 / Math.PI + 180, 360) - 180;
-var rad2degFunctions = {
-  d: ({ axis = " -", pad = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 1e5) / 1e5;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad + 6, "0")}\xB0`;
-  },
-  dm: ({ axis = " -", pad = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 6e4) / 6e4;
-    const degrees = deg | 0;
-    const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}'`;
-  },
-  dms: ({ axis = " -", pad = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 36e4) / 36e4;
-    const degrees = deg | 0;
-    const min = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
-    const minutes = min | 0;
-    const seconds = (min - minutes) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}"`;
-  }
-};
-var rad2deg = ({ axis = " -", pad = 0, phi }) => rad2degFunctions[settings.units.coords]({ axis, pad, phi });
-
-// src/client/updateInfoBox.ts
-var updateInfoBox = () => {
-  const { height, width } = boundingRect;
-  const { x, y } = position;
-  const lat = y2lat(y);
-  const lon = x2lon(x);
-  const latMouse = y2lat(y + (mouse.y - height / 2) / tileSize);
-  const lonMouse = x2lon(x + (mouse.x - width / 2) / tileSize);
-  const scale = (() => {
-    let nm = px2nm(lat);
-    let px = 1;
-    if (nm >= 1)
-      return `${px2nm(lat).toPrecision(3)}nm/px`;
-    while (nm < 1) {
-      nm *= 10;
-      px *= 10;
-    }
-    return `${nm.toPrecision(3)}nm/${px.toFixed(0)}px`;
-  })();
-  infoBox.innerHTML = "";
-  infoBox.append(
-    `Scale: ${scale} (Zoom ${position.z})`,
-    createHTMLElement({ tag: "br" }),
-    `Lat/Lon: ${rad2deg({ axis: "NS", pad: 2, phi: lat })} ${rad2deg({ axis: "EW", pad: 3, phi: lon })}`,
-    createHTMLElement({ tag: "br" }),
-    `Mouse: ${rad2deg({ axis: "NS", pad: 2, phi: latMouse })} ${rad2deg({ axis: "EW", pad: 3, phi: lonMouse })}`,
-    createHTMLElement({ tag: "br" }),
-    `User: ${rad2deg({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2deg({ axis: "EW", pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`,
-    navionicsDetails.toHtml(),
-    ...imagesToFetch.stateHtml()
-  );
-};
-
-// src/client/utils/imagesToFetch.ts
-var ImagesToFetch = class {
-  constructor() {
-  }
-  xyz2string = ({ x, y, z }) => `${z.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
-  data = {};
-  total = {};
-  getSet = (source) => this.data[source] ??= /* @__PURE__ */ new Set();
-  add = ({ source, ...xyz }) => {
-    this.getSet(source).add(this.xyz2string(xyz));
-    this.total[source] = (this.total[source] ?? 0) + 1;
-    updateInfoBox();
-  };
-  delete = ({ source, ...xyz }) => {
-    this.getSet(source).delete(this.xyz2string(xyz));
-    if (this.getSet(source).size === 0) {
-      delete this.data[source];
-      delete this.total[source];
-    }
-    updateInfoBox();
-  };
-  state = () => {
-    return Object.entries(this.data).map(([key, val]) => [key, val.size]);
-  };
-  stateHtml = () => {
-    return this.state().reduce(
-      (arr, [source, size]) => {
-        arr.push(createHTMLElement({ tag: "br" }));
-        arr.push(`${source}: ${size}/${this.total[source]}`);
-        return arr;
-      },
-      []
-    );
-  };
-};
-var imagesToFetch = new ImagesToFetch();
-
 // src/client/canvases/map/drawImage.ts
 var drawImage = ({
   context,
@@ -2144,13 +2405,18 @@ var navionicsWatermark = (async () => {
 // src/client/canvases/map/drawNavionics.ts
 var backgroundColors = [
   2142456,
+  3717368,
   4767992,
+  5292280,
   5816568,
   5818616,
+  6342904,
   6867192,
+  7391480,
   7917816,
   8442104,
   8966392,
+  8968440,
   9492728,
   10017016,
   10541304,
@@ -2449,6 +2715,36 @@ var createNetCanvas = ({
   });
   context.fill();
   context.stroke();
+  position.markers.forEach((marker) => {
+    const markerX = (marker.x - x) * tileSize;
+    const markerY = (marker.y - y) * tileSize;
+    context.beginPath();
+    context.strokeStyle = "#000000";
+    context.lineWidth = 3;
+    context.arc(
+      markerX,
+      markerY,
+      5,
+      2 * Math.PI,
+      0
+    );
+    context.stroke();
+    context.beginPath();
+    const colors = {
+      navionics: "#00ff00",
+      user: "#800000"
+    };
+    context.strokeStyle = colors[marker.type];
+    context.lineWidth = 1;
+    context.arc(
+      markerX,
+      markerY,
+      5,
+      2 * Math.PI,
+      0
+    );
+    context.stroke();
+  });
   return canvas;
 };
 
@@ -2518,7 +2814,7 @@ var redraw = async (type) => {
       const newlocation = `${origin}${pathname}${newsearch}`;
       window.history.pushState({ path: newlocation }, "", newlocation);
     }
-    const newsettings = (0, import_json_stable_stringify.default)(settings);
+    const newsettings = (0, import_json_stable_stringify2.default)(settings);
     if (window.localStorage.getItem("settings") !== newsettings) {
       window.localStorage.setItem("settings", newsettings);
     }
@@ -2723,15 +3019,15 @@ var savedPositionsFromLocalStoreage = () => {
 };
 
 // src/client/containers/menu/goto/savedPositions/editSavedPosition.ts
-var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
+var import_json_stable_stringify3 = __toESM(require_json_stable_stringify(), 1);
 var editSavedPosition = ({ func, x, y, z }) => {
-  const list = new Set(savedPositionsFromLocalStoreage().map((e) => (0, import_json_stable_stringify2.default)(e)));
-  list[func]((0, import_json_stable_stringify2.default)({
+  const list = new Set(savedPositionsFromLocalStoreage().map((e) => (0, import_json_stable_stringify3.default)(e)));
+  list[func]((0, import_json_stable_stringify3.default)({
     x: Math.round(x * tileSize),
     y: Math.round(y * tileSize),
     z
   }));
-  window.localStorage.setItem("savedPositions", (0, import_json_stable_stringify2.default)([...list].map((e) => JSON.parse(e))));
+  window.localStorage.setItem("savedPositions", (0, import_json_stable_stringify3.default)([...list].map((e) => JSON.parse(e))));
   updateSavedPositionsList();
 };
 
@@ -2804,8 +3100,10 @@ var form = createHTMLElement({
       lon: lonDeg * Math.PI / 180
     };
     if (latDeg && lonDeg) {
-      position.x = lon2x(lon);
-      position.y = lat2y(lat);
+      position.xyz = {
+        x: lon2x(lon),
+        y: lat2y(lat)
+      };
     }
     redraw("goto");
   },
@@ -2846,6 +3144,17 @@ var gotoMenu = createHTMLElement({
     }),
     form
   ]
+});
+
+// src/client/containers/menu/navionicsDetailsToggle.ts
+var navionicsDetailsToggle = iconButton({
+  active: () => settings.navionicsDetails.show,
+  onclick: () => {
+    const newActive = !settings.navionicsDetails.show;
+    settings.navionicsDetails.show = newActive;
+    navionicsDetails.fetch(position);
+  },
+  src: "bootstrap-icons-1.11.2/question-circle.svg"
 });
 
 // src/client/containers/menu/overlayToggle.ts
@@ -2889,6 +3198,7 @@ var menuContainer = createHTMLElement({
         overlayToggle("openseamap"),
         vfdensityToggle,
         navionicsToggle,
+        navionicsDetailsToggle,
         crosshairToggle,
         coordsToggle
       ]
@@ -2921,6 +3231,11 @@ var updateGeoLocation = async () => {
       longitude: longitude * Math.PI / 180,
       timestamp: pos.timestamp
     };
+    new Marker({
+      lat: latitude,
+      lon: longitude,
+      type: "user"
+    });
   }).catch((err) => {
     if (err.code === 1)
       geolocationBlocked = true;
@@ -2935,18 +3250,27 @@ var onchange = (event) => {
   const { height, width } = boundingRect;
   const { type } = event;
   let needRedraw = false;
-  if (!(event.target instanceof HTMLBodyElement))
+  console.log(event.target);
+  if (![
+    event.target instanceof HTMLBodyElement
+    // event.target instanceof Window,
+  ].some(Boolean)) {
     return;
+  }
   if (event instanceof WheelEvent) {
     const { clientX, clientY, deltaY } = event;
     if (deltaY > 0) {
       needRedraw = position.zoomOut();
-      position.x -= (clientX - width / 2) / tileSize / 2;
-      position.y -= (clientY - height / 2) / tileSize / 2;
+      position.xyz = {
+        x: position.x - (clientX - width / 2) / tileSize / 2,
+        y: position.y - (clientY - height / 2) / tileSize / 2
+      };
     } else if (deltaY < 0) {
       needRedraw = position.zoomIn();
-      position.x += (clientX - width / 2) / tileSize;
-      position.y += (clientY - height / 2) / tileSize;
+      position.xyz = {
+        x: position.x + (clientX - width / 2) / tileSize,
+        y: position.y + (clientY - height / 2) / tileSize
+      };
     } else {
       console.log("noop", { deltaY, type });
       return;
@@ -2963,26 +3287,36 @@ var onchange = (event) => {
       coordsToggle.click();
     else if (key === "l")
       updateGeoLocation();
-    else if (key === "n")
-      navionicsToggle.click();
-    else if (key === "v")
+    else if (key === "n") {
+      if (settings.navionicsDetails.show && settings.tiles.enabled.navionics) {
+        navionicsDetailsToggle.click();
+        navionicsToggle.click();
+      } else if (settings.tiles.enabled.navionics)
+        navionicsDetailsToggle.click();
+      else
+        navionicsToggle.click();
+    } else if (key === "v")
       vfdensityToggle.click();
     else {
       needRedraw = true;
       if (key === "r") {
-        position.x = Math.round(position.x);
-        position.y = Math.round(position.y);
+        position.xyz = {
+          x: Math.round(position.x),
+          y: Math.round(position.y)
+        };
       } else if (key === "u") {
-        position.x = lon2x(position.user.longitude);
-        position.y = lat2y(position.user.latitude);
+        position.xyz = {
+          x: lon2x(position.user.longitude),
+          y: lat2y(position.user.latitude)
+        };
       } else if (key === "ArrowLeft")
-        position.x--;
+        position.xyz = { x: position.x - 1 };
       else if (key === "ArrowRight")
-        position.x++;
+        position.xyz = { x: position.x + 1 };
       else if (key === "ArrowUp")
-        position.y--;
+        position.xyz = { y: position.y - 1 };
       else if (key === "ArrowDown")
-        position.y++;
+        position.xyz = { y: position.y + 1 };
       else if (key === "PageDown")
         position.zoomIn();
       else if (key === "PageUp")
@@ -2995,12 +3329,15 @@ var onchange = (event) => {
     }
   } else if (event instanceof MouseEvent) {
     const { clientX, clientY } = event;
-    position.x = Math.round(position.x * tileSize + (mouse.x - clientX)) / tileSize;
-    position.y = Math.round(position.y * tileSize + (mouse.y - clientY)) / tileSize;
+    position.xyz = {
+      x: Math.round(position.x * tileSize + (mouse.x - clientX)) / tileSize,
+      y: Math.round(position.y * tileSize + (mouse.y - clientY)) / tileSize
+    };
     needRedraw = true;
   }
-  if (needRedraw)
+  if (needRedraw) {
     redraw(type);
+  }
 };
 
 // src/client/events/onmouse.ts
@@ -3020,16 +3357,19 @@ var onmouse = (event) => {
   if (!isDown && mouse.down.state) {
     if (mouse.down.x === clientX && mouse.down.y === clientY) {
       const { height, width } = boundingRect;
-      const { x, y } = position;
+      const { x, y, z } = position;
       navionicsDetails.fetch({
         x: x + (mouse.x - width / 2) / tileSize,
-        y: y + (mouse.y - height / 2) / tileSize
+        y: y + (mouse.y - height / 2) / tileSize,
+        z
       });
     }
   }
   mouse.down.state = isDown;
   mouse.x = clientX;
   mouse.y = clientY;
+  if (position.markers.delete("navionics"))
+    redraw("delete navionics marker");
   updateInfoBox();
 };
 
@@ -3046,9 +3386,9 @@ window.addEventListener("wheel", onchange);
 window.addEventListener("mousemove", onmouse);
 window.addEventListener("mousedown", onmouse);
 window.addEventListener("mouseup", onmouse);
-window.addEventListener("resize", (event) => {
+window.addEventListener("resize", () => {
   boundingRect.refresh();
-  onchange(event);
+  redraw("resize");
 });
 redraw("initial");
 export {

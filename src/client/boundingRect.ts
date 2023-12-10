@@ -5,6 +5,7 @@ export class Size {
   }
   refresh = () => {
     const { height, width } = this._container.getBoundingClientRect();
+    console.log('new bounding rect', { height, width });
     this._height = height;
     this._width = width;
   };

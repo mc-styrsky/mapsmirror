@@ -47,7 +47,7 @@ export const xyz2navionics: XYZ2Url = async (x, y, z) => {
       mode: 'cors',
       referrer: 'https://webapp.navionics.com/',
     },
-    url: `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_20.00_0&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${await getNavtoken()}`,
+    url: `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_20.00_1&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${await getNavtoken()}`,
   };
   return {};
 };

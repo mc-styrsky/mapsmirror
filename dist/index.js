@@ -23,9 +23,6 @@ var getNavionicsIcon = async (req, res) => {
     await fetch(`https://webapp.navionics.com/api/v2/assets/images/${iconId}`).then(
       async (r) => {
         if (r.ok) {
-          const contentType = r.headers?.get("content-type");
-          if (contentType)
-            res?.contentType(contentType);
           res?.send(Buffer.from(await r.arrayBuffer()));
         } else
           res?.sendStatus(r.status);
@@ -42,25 +39,32 @@ var getNavionicsIcon = async (req, res) => {
 };
 
 // src/server/requestHandler/getNavionicsObjectinfo.ts
+var objectinfoCache = /* @__PURE__ */ new Map();
 var getNavionicsObjectinfo = async (req, res) => {
-  const { itemId } = extractProperties(req.params, {
-    itemId: String
-  });
   try {
-    await fetch(`https://webapp.navionics.com/api/v2/objectinfo/marine/${itemId}?su=kmph&du=kilometers&dpu=meters&ugc=true&scl=false&z=11&sd=20&lang=de&_=1701878860274`).then(
-      async (r) => {
-        if (r.ok) {
-          const contentType = r.headers?.get("content-type");
-          if (contentType)
-            res?.contentType(contentType);
-          res?.send(Buffer.from(await r.arrayBuffer()));
-        } else
-          res?.sendStatus(r.status);
-      },
-      () => {
-        res?.sendStatus(500);
-      }
-    );
+    const { itemId } = extractProperties(req.params, {
+      itemId: String
+    });
+    const fromCache = objectinfoCache.get(itemId);
+    if (fromCache) {
+      console.log("[cached]", itemId);
+      res?.json(fromCache);
+    } else {
+      console.log("[fetch] ", itemId);
+      await fetch(`https://webapp.navionics.com/api/v2/objectinfo/marine/${itemId}`).then(
+        async (r) => {
+          if (r.ok) {
+            const toCache = await r.json();
+            objectinfoCache.set(itemId, toCache);
+            res?.json(toCache);
+          } else
+            res?.sendStatus(r.status);
+        },
+        () => {
+          res?.sendStatus(500);
+        }
+      );
+    }
   } catch (e) {
     console.error(e);
     res?.status(500).send("internal server error");
@@ -70,12 +74,13 @@ var getNavionicsObjectinfo = async (req, res) => {
 
 // src/server/requestHandler/getNavionicsQuickinfo.ts
 var getNavionicsQuickinfo = async (req, res) => {
-  const { lat, lon } = extractProperties(req.params, {
+  const { lat, lon, z } = extractProperties(req.params, {
     lat: String,
-    lon: String
+    lon: String,
+    z: (val) => Math.max(2, Math.min(Number(val), 17))
   });
   try {
-    await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?su=kmph&du=kilometers&dpu=meters&ugc=true&scl=false&z=11&sd=20&lang=de&_=1701878860273`).then(
+    await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${z}&sd=20&lang=en`).then(
       async (r) => {
         if (r.ok) {
           const contentType = r.headers?.get("content-type");
@@ -120,17 +125,6 @@ var xyz2bingsat = async (x, y, z) => {
     return {};
   return {
     url: `https://t.ssl.ak.tiles.virtualearth.net/tiles/a${xyz2quadkey({ x, y, z })}.jpeg?g=14041&n=z&prx=1`
-  };
-};
-
-// src/server/urls/bluemarble.ts
-var xyz2bluemarble = async (x, y, z) => {
-  if (z > 9)
-    return {};
-  if (z < 2)
-    return {};
-  return {
-    url: `https://s3.amazonaws.com/com.modestmaps.bluemarble/${z}-r${y}-c${x}.jpg`
   };
 };
 
@@ -245,7 +239,7 @@ var xyz2navionics = async (x, y, z) => {
         mode: "cors",
         referrer: "https://webapp.navionics.com/"
       },
-      url: `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_20.00_0&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${await getNavtoken()}`
+      url: `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_20.00_1&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${await getNavtoken()}`
     };
   return {};
 };
@@ -418,6 +412,8 @@ var maxzoom = -1;
 var getMaxzoom = () => maxzoom;
 var setMaxzoom = (z) => maxzoom = z;
 var printStats = () => {
+  if (!queues.statsCount && !queues.worthitCount && maxzoom < 0 && !queues.checked)
+    return;
   const partialSum = (n) => (1 - Math.pow(4, n)) / (1 - 4);
   const todo = Object.entries(queues.childs).reduce(
     (sum, [key, queue]) => {
@@ -498,7 +494,6 @@ var getTile = async (req, res) => {
           }
         } = await ({
           bingsat: xyz2bingsat,
-          bluemarble: xyz2bluemarble,
           cache: xyz2cache,
           gebco: xyz2gebco,
           googlehybrid: xyz2googlehybrid,
@@ -645,7 +640,7 @@ var queues = {
   worthit: 0,
   worthitCount: 0
 };
-express().use(express.json()).use(express.urlencoded({ extended: true })).use("", express.static("public")).get("/tile/:provider/:zoom/:x/:y", getTile).get("/navionics/icon/:iconId", getNavionicsIcon).get("/navionics/quickinfo/:lat/:lon", getNavionicsQuickinfo).get("/navionics/objectinfo/:itemId", getNavionicsObjectinfo).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
+express().use(express.json()).use(express.urlencoded({ extended: true })).use("", express.static("public")).get("/tile/:provider/:zoom/:x/:y", getTile).get("/navionics/icon/:iconId", getNavionicsIcon).get("/navionics/quickinfo/:z/:lat/:lon", getNavionicsQuickinfo).get("/navionics/objectinfo/:itemId", getNavionicsObjectinfo).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
   console.error(`cannot start listener on port ${port}`);
   console.log(e);
 });
