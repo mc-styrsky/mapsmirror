@@ -13,6 +13,8 @@ import { x2lon } from '../utils/x2lon';
 import { y2lat } from '../utils/y2lat';
 
 const scales = [
+  0.025,
+  0.05,
   0.1,
   0.2,
   0.5,

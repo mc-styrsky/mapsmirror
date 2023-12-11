@@ -1667,11 +1667,17 @@ var rad2degFunctions = {
 };
 var rad2deg = ({ axis = " -", pad = 0, phi }) => rad2degFunctions[settings.units.coords]({ axis, pad, phi });
 
+// src/common/x2lon.ts
+var x2lonCommon = (x, tiles) => (x / tiles - 0.5) * Math.PI * 2;
+
 // src/client/utils/x2lon.ts
-var x2lon = (x, tiles = position.tiles) => (x / tiles - 0.5) * Math.PI * 2;
+var x2lon = (x, tiles = position.tiles) => x2lonCommon(x, tiles);
+
+// src/common/y2lat.ts
+var y2latCommon = (y, tiles) => Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
 
 // src/client/utils/y2lat.ts
-var y2lat = (y, tiles = position.tiles) => Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
+var y2lat = (y, tiles = position.tiles) => y2latCommon(y, tiles);
 
 // src/client/updateInfoBox.ts
 var updateInfoBox = () => {
@@ -1908,6 +1914,112 @@ var accordionItems = (parent) => [...parent.list.values()].sort((a, b) => a.dist
   });
 });
 
+// src/client/globals/navionicsDetails/getNavionicsDetailsList.ts
+var getNavionicsDetailsList = async ({ parent, x, y, z }) => {
+  if (!settings.navionicsDetails.show)
+    return;
+  while (parent.queue.shift())
+    /* @__PURE__ */ (() => void 0)();
+  const listMap = /* @__PURE__ */ new Map();
+  await parent.queue.enqueue(async () => {
+    parent.isFetch = true;
+    parent.clear();
+    const max = 4;
+    const perTile = 20;
+    const points = [];
+    for (let iX = -max; iX <= max; iX++) {
+      for (let iY = -max; iY < max; iY++) {
+        const dx = Math.round(x * perTile + iX) / perTile;
+        const dy = Math.round(y * perTile + iY) / perTile;
+        const radius = Math.sqrt(iX * iX + iY * iY);
+        points.push({ dx, dy, radius });
+      }
+    }
+    await points.sort((a, b) => a.radius - b.radius).reduce(async (prom, { dx, dy, radius }) => {
+      await prom;
+      console.log({ radius });
+      const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`).then(
+        async (res) => {
+          if (!res.ok)
+            return;
+          const body = await res.json();
+          await Promise.all((body.items ?? []).map(async (item) => {
+            if (listMap.has(item.id))
+              return;
+            if ([
+              "depth_area",
+              "depth_contour"
+            ].includes(item.category_id))
+              return;
+            listMap.set(item.id, item);
+            const {
+              category_id,
+              details,
+              icon_id,
+              id,
+              name,
+              position: position2
+            } = extractProperties(item, {
+              category_id: String,
+              details: Boolean,
+              icon_id: String,
+              id: String,
+              name: String,
+              position: ({ lat, lon }) => ({
+                lat: Number(lat),
+                lon: Number(lon),
+                x: lon2x(Number(lon) * Math.PI / 180),
+                y: lat2y(Number(lat) * Math.PI / 180)
+              })
+            });
+            const pdx = position2.x - x;
+            const pdy = position2.y - y;
+            const distance = Math.sqrt(pdx * pdx + pdy * pdy);
+            parent.add({
+              category_id,
+              details,
+              distance,
+              icon_id,
+              id,
+              name,
+              position: position2
+            });
+            if (item.details) {
+              const { label: label2, properties } = extractProperties(
+                await fetch(`/navionics/objectinfo/${item.id}`).then(
+                  async (res2) => res2.ok ? await res2.json() : {},
+                  () => {
+                  }
+                ),
+                {
+                  label: String,
+                  properties: (val) => val?.map(({ label: label3 }) => label3)?.filter(Boolean)
+                }
+              );
+              parent.add({
+                category_id,
+                details,
+                distance,
+                icon_id,
+                id,
+                label: label2,
+                name,
+                position: position2,
+                properties
+              });
+            }
+          }));
+        },
+        (rej) => console.error(rej)
+      );
+      await prom;
+      return ret;
+    }, Promise.resolve());
+    parent.isFetch = false;
+  });
+  parent.clearHtmlList();
+};
+
 // src/client/globals/navionicsDetails.ts
 var NavionicsDetails = class {
   constructor() {
@@ -1923,116 +2035,21 @@ var NavionicsDetails = class {
   queue = new StyQueue(1);
   add = (item) => {
     this._list.set(item.id, item);
-    this.htmlList = null;
+    this.clearHtmlList();
   };
   clear = () => {
     this._list.clear();
-    this.htmlList = null;
+    this.clearHtmlList();
   };
-  delete = (item) => {
-    this._list.delete(item.id);
-    this.htmlList = null;
-  };
-  fetch = async ({ x, y, z }) => {
-    if (!settings.navionicsDetails.show)
-      return;
-    while (this.queue.shift())
-      /* @__PURE__ */ (() => void 0)();
-    await this.queue.enqueue(async () => {
-      this.isFetch = true;
-      navionicsDetails.clear();
-      updateInfoBox();
-      const listMap = /* @__PURE__ */ new Map();
-      const max = 1;
-      const size = max * 2 + 1;
-      await Promise.all(new Array(size * size).fill(0).map(async (_val, idx) => {
-        const dx = (idx % size - max) / max * (max / 10);
-        const dy = (Math.floor(idx / size) - max) / max * (max / 10);
-        await fetch(`/navionics/quickinfo/${z}/${y2lat(y + dy, 1 << z) * 180 / Math.PI}/${x2lon(x + dx, 1 << z) * 180 / Math.PI}`).then(
-          async (res) => {
-            if (!res.ok)
-              return [];
-            const body = await res.json();
-            return body.items ?? [];
-          },
-          (rej) => {
-            console.error(rej);
-            return [];
-          }
-        ).then(async (list) => {
-          list.forEach((i) => listMap.set(i.id, i));
-        });
-      })).then(async () => {
-        const list = [...listMap.values()].filter((i) => ![
-          "depth_area",
-          "depth_contour"
-        ].includes(i.category_id));
-        await Promise.all(list.map(async (item) => {
-          const {
-            category_id,
-            details,
-            icon_id,
-            id,
-            name,
-            position: position2
-          } = extractProperties(item, {
-            category_id: String,
-            details: Boolean,
-            icon_id: String,
-            id: String,
-            name: String,
-            position: ({ lat, lon }) => ({
-              lat: Number(lat),
-              lon: Number(lon),
-              x: lon2x(Number(lon) * Math.PI / 180),
-              y: lat2y(Number(lat) * Math.PI / 180)
-            })
-          });
-          const distance = Math.sqrt(
-            Math.pow(position2.x - x, 2) + Math.pow(position2.y - y, 2)
-          );
-          navionicsDetails.add({
-            category_id,
-            details,
-            distance,
-            icon_id,
-            id,
-            name,
-            position: position2
-          });
-          updateInfoBox();
-          if (item.details) {
-            const { label: label2, properties } = extractProperties(
-              await fetch(`/navionics/objectinfo/${item.id}`).then(
-                async (res) => res.ok ? await res.json() : {},
-                () => {
-                }
-              ),
-              {
-                label: String,
-                properties: (val) => val?.map(({ label: label3 }) => label3)?.filter(Boolean)
-              }
-            );
-            navionicsDetails.add({
-              category_id,
-              details,
-              distance,
-              icon_id,
-              id,
-              label: label2,
-              name,
-              position: position2,
-              properties
-            });
-            updateInfoBox();
-          }
-        }));
-      });
-      this.isFetch = false;
-    });
+  clearHtmlList = () => {
     this.htmlList = null;
     updateInfoBox();
   };
+  delete = (item) => {
+    this._list.delete(item.id);
+    this.clearHtmlList();
+  };
+  fetch = ({ x, y, z }) => getNavionicsDetailsList({ parent: this, x, y, z });
   toHtml = () => {
     const items = accordionItems(this);
     if (this.isFetch)
@@ -2405,40 +2422,42 @@ var navionicsWatermark = (async () => {
 // src/client/canvases/map/drawNavionics.ts
 var backgroundColors = [
   2142456,
-  3717368,
-  4767992,
-  5292280,
-  5816568,
-  5818616,
-  6342904,
-  6867192,
-  7391480,
-  7917816,
-  8442104,
-  8966392,
-  8968440,
-  9492728,
-  10017016,
-  10541304,
-  11067640,
-  11591928,
-  12116216,
-  12642552,
-  16316664
+  // 0x38b8f8,
+  // 0x48c0f8,
+  // 0x50c0f8,
+  // 0x58c0f8,
+  // 0x58c8f8,
+  // 0x60c8f8,
+  // 0x68c8f8,
+  // 0x70c8f8,
+  // 0x78d0f8,
+  // 0x80d0f8,
+  // 0x88d0f8,
+  // 0x88d8f8,
+  // 0x90d8f8,
+  // 0x98d8f8,
+  // 0xa0d8f8,
+  // 0xa8e0f8,
+  // 0xb0e0f8,
+  // 0xb8e0f8,
+  // 0xc0e8f8,
+  16316664,
+  10012672
 ].reduce((arr, val) => {
   const r = val >> 16;
   const g = val >> 8 & 255;
   const b = val & 255;
-  const diff = 2;
+  const diff = 1;
+  const alpha = val === 10012672 ? 64 : 0;
   for (let dr = -diff; dr <= diff; dr++) {
     for (let dg = -diff; dg <= diff; dg++) {
       for (let db = -diff; db <= diff; db++) {
-        arr.add((r + dr << 16) + (g + dg << 8) + b + db);
+        arr.set((r + dr << 16) + (g + dg << 8) + b + db, alpha);
       }
     }
   }
   return arr;
-}, /* @__PURE__ */ new Set());
+}, /* @__PURE__ */ new Map());
 var drawNavionics = async ({ context, source, ttl, x, y, z }) => {
   const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
   const workerContext = workerCanvas.getContext("2d");
@@ -2454,12 +2473,13 @@ var drawNavionics = async ({ context, source, ttl, x, y, z }) => {
   const { data } = img;
   for (let i = 0; i < watermark.length; i++) {
     const mask = watermark[i];
-    const [r, g, b] = data.subarray(i * 4, i * 4 + 3).map((v) => v * 248 / mask);
+    const subData = data.subarray(i * 4, i * 4 + 4);
+    const [r, g, b, a] = subData.map((v) => v * 248 / mask);
     const color = (r << 16) + (g << 8) + b;
-    if (color === 10012672)
-      data[i * 4 + 3] = 64;
-    else if (backgroundColors.has(color))
-      data[i * 4 + 3] = 0;
+    subData[0] = r;
+    subData[1] = g;
+    subData[2] = b;
+    subData[3] = backgroundColors.get(color) ?? a;
   }
   workerContext.putImageData(img, 0, 0);
   imagesToFetch.delete({ source: "transparent", x, y, z });
@@ -2600,6 +2620,8 @@ var createMapCanvas = async ({
 
 // src/client/canvases/net.ts
 var scales = [
+  0.025,
+  0.05,
   0.1,
   0.2,
   0.5,

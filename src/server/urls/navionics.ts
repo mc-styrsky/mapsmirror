@@ -39,7 +39,7 @@ export class XYZ2UrlNavionics extends XYZ2Url {
       y <= 92442 >> 17 - z,
     ].every(Boolean)) {
       this.url = getNavtoken().then(token => token ?
-        `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_20.00_1&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${token}` :
+        `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_0.00_0&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${token}` :
         '',
       );
       this.params = getNavtoken().then(token => token ?

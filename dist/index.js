@@ -72,28 +72,46 @@ var getNavionicsObjectinfo = async (req, res) => {
   }
 };
 
+// src/common/x2lon.ts
+var x2lonCommon = (x, tiles) => (x / tiles - 0.5) * Math.PI * 2;
+
+// src/common/y2lat.ts
+var y2latCommon = (y, tiles) => Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
+
 // src/server/requestHandler/getNavionicsQuickinfo.ts
+var quickinfoCache = /* @__PURE__ */ new Map();
 var getNavionicsQuickinfo = async (req, res) => {
-  const { lat, lon, z } = extractProperties(req.params, {
-    lat: String,
-    lon: String,
-    z: (val) => Math.max(2, Math.min(Number(val), 17))
+  const { x, y, z } = extractProperties(req.params, {
+    x: Number,
+    y: Number,
+    z: Number
   });
   try {
-    await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${z}&sd=20&lang=en`).then(
-      async (r) => {
-        if (r.ok) {
-          const contentType = r.headers?.get("content-type");
-          if (contentType)
-            res?.contentType(contentType);
-          res?.send(Buffer.from(await r.arrayBuffer()));
-        } else
-          res?.sendStatus(r.status);
-      },
-      () => {
-        res?.sendStatus(500);
-      }
-    );
+    const { lat, lon } = {
+      lat: y2latCommon(y, 1 << z) * 180 / Math.PI,
+      lon: x2lonCommon(x, 1 << z) * 180 / Math.PI
+    };
+    const xyz = `${z}_${x}_${y}`;
+    const fromCache = quickinfoCache.get(xyz);
+    if (fromCache) {
+      console.log("[cached]", xyz);
+      res?.json(fromCache);
+    } else {
+      console.log("[fetch] ", xyz);
+      await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${Math.max(2, Math.min(Number(z), 17))}&sd=20&lang=en`).then(
+        async (r) => {
+          if (r.ok) {
+            const toCache = await r.json();
+            quickinfoCache.set(xyz, toCache);
+            res?.json(toCache);
+          } else
+            res?.sendStatus(r.status);
+        },
+        () => {
+          res?.sendStatus(500);
+        }
+      );
+    }
   } catch (e) {
     console.error(e);
     res?.status(500).send("internal server error");
@@ -266,7 +284,7 @@ var XYZ2Url = class {
       };
     });
   };
-  getTile = async (res) => {
+  sendTile = async (res) => {
     const url = await this.url;
     const params = await this.params;
     const { x, y, z } = this;
@@ -444,7 +462,7 @@ var XYZ2UrlNavionics = class extends XYZ2Url {
       y <= 92442 >> 17 - z
     ].every(Boolean)) {
       this.url = getNavtoken().then(
-        (token) => token ? `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_20.00_1&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${token}` : ""
+        (token) => token ? `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_0.00_0&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${token}` : ""
       );
       this.params = getNavtoken().then(
         (token) => token ? {
@@ -590,7 +608,7 @@ var getTile = async (req, res) => {
           osm: XYZ2UrlOsm,
           vfdensity: XYZ2UrlVfdensity
         }[provider] ?? XYZ2Url)({ provider, quiet, x, y, z: zoom });
-        return xyz2url.getTile(res);
+        return xyz2url.sendTile(res);
       } catch (e) {
         console.log(e);
         return false;
@@ -606,7 +624,7 @@ var getTile = async (req, res) => {
     return null;
   }
 };
-async function fetchTile({ dx, dy, provider, ttl, x, y, zoom }) {
+async function fetchChildTile({ dx, dy, provider, ttl, x, y, zoom }) {
   try {
     await getTile(
       {
@@ -635,10 +653,10 @@ async function pushToQueues({ provider, ttl, x, y, zoom }) {
   while (childQueue.length > 100)
     await (queues.childs[zoom - 1] ??= new StyQueue(1e3)).enqueue(() => new Promise((r) => setTimeout(r, childQueue.length / 1)));
   queues.childsCollapsed[zoom]--;
-  childQueue.enqueue(() => fetchTile({ dx: 0, dy: 0, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchTile({ dx: 0, dy: 1, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchTile({ dx: 1, dy: 0, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchTile({ dx: 1, dy: 1, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchChildTile({ dx: 0, dy: 0, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchChildTile({ dx: 0, dy: 1, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchChildTile({ dx: 1, dy: 0, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchChildTile({ dx: 1, dy: 1, provider, ttl, x, y, zoom }));
 }
 
 // src/server/index.ts
@@ -656,7 +674,7 @@ var queues = {
   worthit: 0,
   worthitCount: 0
 };
-express().use(express.json()).use(express.urlencoded({ extended: true })).use("", express.static("public")).get("/tile/:provider/:zoom/:x/:y", getTile).get("/navionics/icon/:iconId", getNavionicsIcon).get("/navionics/quickinfo/:z/:lat/:lon", getNavionicsQuickinfo).get("/navionics/objectinfo/:itemId", getNavionicsObjectinfo).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
+express().use(express.json()).use(express.urlencoded({ extended: true })).use("", express.static("public")).get("/tile/:provider/:zoom/:x/:y", getTile).get("/navionics/icon/:iconId", getNavionicsIcon).get("/navionics/quickinfo/:z/:x/:y", getNavionicsQuickinfo).get("/navionics/objectinfo/:itemId", getNavionicsObjectinfo).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
   console.error(`cannot start listener on port ${port}`);
   console.log(e);
 });
