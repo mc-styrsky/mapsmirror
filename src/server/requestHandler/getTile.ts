@@ -1,26 +1,21 @@
 import type express from 'express';
 import { StyQueue } from '@mc-styrsky/queue';
-import { createWriteStream } from 'fs';
-import { mkdir, stat, unlink } from 'fs/promises';
 import { extractProperties } from '../../common/extractProperties';
 import { modulo } from '../../common/modulo';
-import { pwd, queues } from '../index';
-import { xyz2bingsat } from '../urls/bingsat';
-import { xyz2cache } from '../urls/cache';
-import { xyz2default } from '../urls/default';
-import { xyz2gebco } from '../urls/gebco';
-import { xyz2googlehybrid } from '../urls/googlehybrid';
-import { xyz2googlesat } from '../urls/googlesat';
-import { xyz2googlestreet } from '../urls/googlestreet';
-import { xyz2navionics } from '../urls/navionics';
-import { xyz2openseamap } from '../urls/openseamap';
-import { xyz2opentopomap } from '../urls/opentopomap';
-import { xyz2osm } from '../urls/osm';
-import { xyz2vfdensity } from '../urls/vfdensity';
-import { fetchFromTileServer } from '../utils/fetchFromTileServer';
-import { getTileParams } from '../utils/getTileParams';
+import { queues } from '../index';
+import { XYZ2UrlBingsat } from '../urls/bingsat';
+import { XYZ2UrlCache } from '../urls/cache';
+import { XYZ2Url } from '../urls/default';
+import { XYZ2UrlGebco } from '../urls/gebco';
+import { XYZ2UrlGooglehybrid } from '../urls/googlehybrid';
+import { XYZ2UrlGooglesat } from '../urls/googlesat';
+import { XYZ2UrlGooglestreet } from '../urls/googlestreet';
+import { XYZ2UrlNavionics } from '../urls/navionics';
+import { XYZ2UrlOpenseamap } from '../urls/openseamap';
+import { XYZ2UrlOpentopomap } from '../urls/opentopomap';
+import { XYZ2UrlOsm } from '../urls/osm';
+import { XYZ2UrlVfdensity } from '../urls/vfdensity';
 import { getMaxzoom, setMaxzoom } from '../utils/printStats';
-import { worthItMinMax } from '../utils/worthit';
 
 export const getTile = async (
   req: express.Request<{
@@ -36,9 +31,8 @@ export const getTile = async (
       zoom: val => parseInt(String(val)),
     });
     if (zoom > getMaxzoom()) setMaxzoom(zoom);
-    const max = 1 << zoom;
     const parsePosition = (val: any) => {
-      return modulo(parseInt(String(val), 16), max);
+      return modulo(parseInt(String(val), 16), 1 << zoom);
     };
     const { provider, x, y } = extractProperties(req.params, {
       provider: String,
@@ -51,110 +45,22 @@ export const getTile = async (
     });
 
     const queue = quiet ? queues.quiet : queues.verbose;
-    const fetchChilds = await queue.enqueue(async () => {
+    const fetchChilds = await queue.enqueue(() => {
       try {
-        const {
-          local = false,
-          params = {},
-          url = '',
-          worthIt = async ({ x, y, z }) => {
-            const res = await worthItMinMax({ x, y, z });
-            if (!res) return false;
-            const { max, min } = res;
-            if (z <= 6) return min < 132;
-            if (z <= 10) return max > 1 && min < 132;
-            return max > 96 && min < 144 && (max < 132 || max - min > 3);
-          },
-        } = await ({
-          bingsat: xyz2bingsat,
-          cache: xyz2cache,
-          gebco: xyz2gebco,
-          googlehybrid: xyz2googlehybrid,
-          googlesat: xyz2googlesat,
-          googlestreet: xyz2googlestreet,
-          navionics: xyz2navionics,
-          openseamap: xyz2openseamap,
-          opentopomap: xyz2opentopomap,
-          osm: xyz2osm,
-          vfdensity: xyz2vfdensity,
-        }[provider] ?? xyz2default)(x, y, zoom);
-
-        if (!url) {
-          res?.sendStatus(404);
-          return false;
-        }
-
-        const { tileFileId, tilePath } = getTileParams({ x, y, z: zoom });
-
-        const file = `${tileFileId}.png`;
-        const path = `tiles/${provider}/${zoom.toString(36)}/${tilePath}`;
-        await mkdir(path, { recursive: true });
-        const filename = `${pwd}/${path}/${file}`;
-
-        const statsStart = performance.now();
-        const fileStats = await stat(filename)
-        .then(async (stats) => {
-          if (!stats.isFile()) return null;
-          if (provider === 'googlesat' && stats.size < 100) {
-            await unlink(filename);
-            return null;
-          }
-          return stats;
-        })
-        .catch(() => null);
-        queues.stats = performance.now() - statsStart;
-        queues.statsCount++;
-
-        if (fileStats) {
-          if (!quiet) console.log('[cached]', filename);
-          res?.sendFile(filename);
-          return true;
-        }
-        if (local) {
-          res?.sendStatus(404);
-          return false;
-        }
-        const worthitStart = performance.now();
-        if (!quiet || (await Promise.all([
-          worthIt({ x: x, y: y, z: zoom }),
-          worthIt({ x: x, y: y - 1, z: zoom }),
-          worthIt({ x: x, y: y + 1, z: zoom }),
-          worthIt({ x: x - 1, y: y, z: zoom }),
-          worthIt({ x: x - 1, y: y - 1, z: zoom }),
-          worthIt({ x: x - 1, y: y + 1, z: zoom }),
-          worthIt({ x: x + 1, y: y, z: zoom }),
-          worthIt({ x: x + 1, y: y - 1, z: zoom }),
-          worthIt({ x: x + 1, y: y + 1, z: zoom }),
-        ])).some(Boolean)) {
-          const imageStream = await queues.fetch.enqueue(async () => {
-            const timeoutController = new globalThis.AbortController();
-            const timeoutTimeout = setTimeout(() => timeoutController.abort(), 10000);
-            params.signal = timeoutController.signal;
-            const ret = await fetchFromTileServer({ params, provider, url, x, y, z: zoom });
-            clearTimeout(timeoutTimeout);
-            return ret;
-          });
-
-          if (imageStream.body) {
-            const writeImageStream = createWriteStream(filename);
-            writeImageStream.addListener('finish', () => {
-              if (quiet) res?.sendStatus(200);
-              else res?.sendFile(filename);
-            });
-            imageStream.body.pipe(writeImageStream);
-            return true;
-          }
-
-          console.log('no imagestream', imageStream.status, { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
-          res?.sendStatus(imageStream.status ?? 500);
-          return false;
-        }
-        queues.worthit += performance.now() - worthitStart;
-        queues.worthitCount++;
-
-        res?.sendFile(`${pwd}/unworthy.png`);
-        // console.log('unworthy', { provider, x, y, zoom });
-        return false;
+        const xyz2url = new ({
+          bingsat: XYZ2UrlBingsat,
+          cache: XYZ2UrlCache,
+          gebco: XYZ2UrlGebco,
+          googlehybrid: XYZ2UrlGooglehybrid,
+          googlesat: XYZ2UrlGooglesat,
+          googlestreet: XYZ2UrlGooglestreet,
+          navionics: XYZ2UrlNavionics,
+          openseamap: XYZ2UrlOpenseamap,
+          opentopomap: XYZ2UrlOpentopomap,
+          osm: XYZ2UrlOsm,
+          vfdensity: XYZ2UrlVfdensity,
+        }[provider] ?? XYZ2Url)({ provider, quiet, x, y, z: zoom });
+        return xyz2url.sendTile(res);
       }
       catch (e) {
         console.log(e);
@@ -175,7 +81,7 @@ export const getTile = async (
   }
 };
 
-async function fetchTile ({ dx, dy, provider, ttl, x, y, zoom }: { dx: number; dy: number; provider: string; x: number; y: number; zoom: number; ttl: number }) {
+async function fetchChildTile ({ dx, dy, provider, ttl, x, y, zoom }: { dx: number; dy: number; provider: string; x: number; y: number; zoom: number; ttl: number }) {
   try {
     await getTile(
       <any>{
@@ -204,8 +110,8 @@ async function pushToQueues ({ provider, ttl, x, y, zoom }: { ttl: number, provi
   queues.childsCollapsed[zoom]++;
   while (childQueue.length > 100) await (queues.childs[zoom - 1] ??= new StyQueue(1000)).enqueue(() => new Promise(r => setTimeout(r, childQueue.length / 1)));
   queues.childsCollapsed[zoom]--;
-  childQueue.enqueue(() => fetchTile({ dx: 0, dy: 0, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchTile({ dx: 0, dy: 1, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchTile({ dx: 1, dy: 0, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchTile({ dx: 1, dy: 1, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchChildTile({ dx: 0, dy: 0, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchChildTile({ dx: 0, dy: 1, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchChildTile({ dx: 1, dy: 0, provider, ttl, x, y, zoom }));
+  childQueue.enqueue(() => fetchChildTile({ dx: 1, dy: 1, provider, ttl, x, y, zoom }));
 }

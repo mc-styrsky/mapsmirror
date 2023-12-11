@@ -1,10 +1,11 @@
-import type { XYZ2Url } from '../../common/types/xyz2url';
+import type { ConstructorProps } from '../../common/types/constructorProps';
+import { XYZ2Url } from './default';
 
-export const xyz2gebco: XYZ2Url = async (x, y, z) => {
-  if (z > 9) return {};
-  if (z < 2) return {};
-  return {
-    local: true,
-    url: `./gebco/tiles/${z}/${x}/${y}.png`,
-  };
-};
+export class XYZ2UrlGebco extends XYZ2Url {
+  constructor (params: ConstructorProps<typeof XYZ2Url>[0]) {
+    super(params);
+    const { x, y, z } = params;
+    this.local = true;
+    if (z >= 2 && z <= 9) this.url = `./gebco/tiles/${z}/${x}/${y}.png`;
+  }
+}

@@ -1,9 +1,10 @@
-import type { XYZ2Url } from '../../common/types/xyz2url';
+import type { ConstructorProps } from '../../common/types/constructorProps';
+import { XYZ2Url } from './default';
 
-export const xyz2vfdensity: XYZ2Url = async (x, y, z) => {
-  if (z > 12) return {};
-  if (z < 3) return {};
-  return {
-    url: `https://density.tiles.vesselfinder.net/all/${z}/${x}/${y}.png`,
-  };
-};
+export class XYZ2UrlVfdensity extends XYZ2Url {
+  constructor (params: ConstructorProps<typeof XYZ2Url>[0]) {
+    super(params);
+    const { x, y, z } = params;
+    if (z >= 2 && z <= 20) this.url = `https://density.tiles.vesselfinder.net/all/${z}/${x}/${y}.png`;
+  }
+}

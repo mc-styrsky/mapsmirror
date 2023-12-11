@@ -103,8 +103,6 @@ var getNavionicsQuickinfo = async (req, res) => {
 
 // src/server/requestHandler/getTile.ts
 import { StyQueue } from "../node_modules/@mc-styrsky/queue/lib/index.js";
-import { createWriteStream } from "fs";
-import { mkdir, stat, unlink } from "fs/promises";
 
 // src/common/modulo.ts
 var modulo = (val, mod) => {
@@ -117,146 +115,10 @@ var xyz2quadkey = ({ x, y, z }) => {
   return (parseInt(y.toString(2), 4) * 2 + parseInt(x.toString(2), 4)).toString(4).padStart(z, "0");
 };
 
-// src/server/urls/bingsat.ts
-var xyz2bingsat = async (x, y, z) => {
-  if (z > 20)
-    return {};
-  if (z < 2)
-    return {};
-  return {
-    url: `https://t.ssl.ak.tiles.virtualearth.net/tiles/a${xyz2quadkey({ x, y, z })}.jpeg?g=14041&n=z&prx=1`
-  };
-};
-
-// src/server/urls/cache.ts
-var xyz2cache = async (x, y, z) => {
-  if (z > 9)
-    return {};
-  if (z < 2)
-    return {};
-  return {
-    local: true,
-    url: `./cache/tiles/${z}/${x}/${y}.png`
-  };
-};
-
 // src/server/urls/default.ts
-var xyz2default = async () => ({});
-
-// src/server/urls/gebco.ts
-var xyz2gebco = async (x, y, z) => {
-  if (z > 9)
-    return {};
-  if (z < 2)
-    return {};
-  return {
-    local: true,
-    url: `./gebco/tiles/${z}/${x}/${y}.png`
-  };
-};
-
-// src/server/urls/googlehybrid.ts
-var xyz2googlehybrid = async (x, y, z) => {
-  if (z > 20)
-    return {};
-  if (z < 2)
-    return {};
-  return {
-    url: `https://mt.google.com/vt/lyrs=y&x=${x}&y=${y}&z=${z}`
-  };
-};
-
-// src/server/urls/googlesat.ts
-var xyz2googlesat = async (x, y, z) => {
-  if (z > 20)
-    return {};
-  if (z < 2)
-    return {};
-  return {
-    url: `https://mt.google.com/vt/lyrs=s&x=${x}&y=${y}&z=${z}`
-  };
-};
-
-// src/server/urls/googlestreet.ts
-var xyz2googlestreet = async (x, y, z) => {
-  if (z > 20)
-    return {};
-  if (z < 2)
-    return {};
-  return {
-    url: `https://mt.google.com/vt/lyrs=m&x=${x}&y=${y}&z=${z}`
-  };
-};
-
-// src/server/urls/navionics.ts
-var navtoken = null;
-setInterval(() => navtoken = null, 10 * 60 * 1e3);
-var getNavtoken = async () => {
-  navtoken ??= await fetch("https://backend.navionics.com/tile/get_key/NAVIONICS_WEBAPP_P01/webapp.navionics.com?_=1699259111356", {
-    credentials: "omit",
-    headers: {
-      Accept: "text/plain, */*; q=0.01",
-      "Accept-Language": "de,de-DE;q=0.8,en-US;q=0.5,en;q=0.3",
-      "Cache-Control": "no-cache",
-      Pragma: "no-cache",
-      "Sec-Fetch-Dest": "empty",
-      "Sec-Fetch-Mode": "cors",
-      "Sec-Fetch-Site": "same-site",
-      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
-    },
-    method: "GET",
-    mode: "cors",
-    referrer: "https://webapp.navionics.com/"
-  }).then((res) => {
-    if (res.status === 200)
-      return res.text();
-    return null;
-  });
-  return navtoken;
-};
-var xyz2navionics = async (x, y, z) => {
-  if (z > 17)
-    return {};
-  if (z < 2)
-    return {};
-  if (y < 14922 >> 17 - z)
-    return {};
-  if (y > 92442 >> 17 - z)
-    return {};
-  if (await getNavtoken())
-    return {
-      params: {
-        credentials: "omit",
-        headers: {
-          Accept: "image/avif,image/webp,*/*",
-          "Accept-Language": "de,de-DE;q=0.8,en-US;q=0.5,en;q=0.3",
-          "Sec-Fetch-Dest": "image",
-          "Sec-Fetch-Mode": "cors",
-          "Sec-Fetch-Site": "same-site",
-          "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
-        },
-        method: "GET",
-        mode: "cors",
-        referrer: "https://webapp.navionics.com/"
-      },
-      url: `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_20.00_1&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${await getNavtoken()}`
-    };
-  return {};
-};
-
-// src/server/urls/openseamap.ts
-var xyz2openseamap = async (x, y, z) => {
-  if (z > 18)
-    return {};
-  if (z < 2)
-    return {};
-  return {
-    url: `https://tiles.openseamap.org/seamark/${z}/${x}/${y}.png`
-  };
-};
-
-// src/server/utils/worthit.ts
-import sharp from "../node_modules/sharp/lib/index.js";
+import { createWriteStream } from "fs";
+import { mkdir, stat, unlink } from "fs/promises";
+import fetch2 from "../node_modules/node-fetch/src/index.js";
 
 // src/server/utils/getTileParams.ts
 var getTileParams = ({ x, y, z }) => {
@@ -275,6 +137,7 @@ var getTileParams = ({ x, y, z }) => {
 };
 
 // src/server/utils/worthit.ts
+import sharp from "../node_modules/sharp/lib/index.js";
 var worthItDatabase = {
   max: {},
   min: {}
@@ -332,78 +195,316 @@ var worthItMinMax = async ({ x, y, z }) => {
   return worthItMinMax({ x, y, z });
 };
 
-// src/server/urls/opentopomap.ts
-var xyz2opentopomap = async (x, y, z) => {
-  if (z > 17)
-    return {};
-  if (z < 2)
-    return {};
-  return {
-    url: `https://tile.opentopomap.org/${z}/${x}/${y}.png`,
-    worthIt: async ({ x: x2, y: y2, z: z2 }) => {
-      const res = await worthItMinMax({ x: x2, y: y2, z: z2 });
-      if (!res)
-        return false;
-      const { max, min } = res;
-      return max > 126 && min < 144;
-    }
+// src/server/urls/default.ts
+var XYZ2Url = class {
+  constructor({ provider, quiet, x, y, z }) {
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.provider = provider;
+    this.quiet = Boolean(quiet);
+    this.verbose = !this.quiet;
+    this.fallback = null;
+  }
+  provider;
+  quiet;
+  verbose;
+  fallback;
+  local = false;
+  params = {};
+  url = "";
+  worthIt = async ({ x, y, z }) => {
+    const res = await worthItMinMax({ x, y, z });
+    if (!res)
+      return false;
+    const { max, min } = res;
+    if (z <= 6)
+      return min < 132;
+    if (z <= 10)
+      return max > 1 && min < 132;
+    return max > 96 && min < 144 && (max < 132 || max - min > 3);
   };
+  x;
+  y;
+  z;
+  fetchFromTileServer = async () => {
+    const { url, x, y, z } = this;
+    return fetch2(await url, await this.params).then(async (response) => {
+      queues.fetched++;
+      if (response.status === 200)
+        return {
+          body: response.body,
+          status: response.status
+        };
+      if (response.status === 404) {
+        if (this.fallback) {
+          const fallbackProvider = this.fallback.name.substring(7).toLowerCase();
+          const fallback = new this.fallback({
+            provider: fallbackProvider,
+            quiet: this.quiet,
+            x,
+            y,
+            z
+          });
+          console.log("fallback to", fallbackProvider, await fallback.url);
+          return fallback.fetchFromTileServer();
+        }
+        return {
+          body: null,
+          status: response.status
+        };
+      }
+      console.log(response.status, response.statusText, url);
+      return {
+        body: null,
+        status: response.status
+      };
+    }).catch(() => {
+      return {
+        body: null,
+        status: 500
+      };
+    });
+  };
+  getTile = async (res) => {
+    const url = await this.url;
+    const params = await this.params;
+    const { x, y, z } = this;
+    const max = 1 << z;
+    if (!url) {
+      res?.sendStatus(404);
+      return false;
+    }
+    const { tileFileId, tilePath } = getTileParams({ x, y, z });
+    const file = `${tileFileId}.png`;
+    const path = `tiles/${this.provider}/${z.toString(36)}/${tilePath}`;
+    await mkdir(path, { recursive: true });
+    const filename = `${pwd}/${path}/${file}`;
+    const statsStart = performance.now();
+    const fileStats = await stat(filename).then(async (stats) => {
+      if (!stats.isFile())
+        return null;
+      if (this.provider === "googlesat" && stats.size < 100) {
+        await unlink(filename);
+        return null;
+      }
+      return stats;
+    }).catch(() => null);
+    queues.stats = performance.now() - statsStart;
+    queues.statsCount++;
+    if (fileStats) {
+      if (this.verbose)
+        console.log("[cached]", filename);
+      res?.sendFile(filename);
+      return true;
+    }
+    if (this.local) {
+      res?.sendStatus(404);
+      return false;
+    }
+    const worthitStart = performance.now();
+    if (this.verbose || (await Promise.all([
+      this.worthIt({ x, y, z }),
+      this.worthIt({ x, y: y - 1, z }),
+      this.worthIt({ x, y: y + 1, z }),
+      this.worthIt({ x: x - 1, y, z }),
+      this.worthIt({ x: x - 1, y: y - 1, z }),
+      this.worthIt({ x: x - 1, y: y + 1, z }),
+      this.worthIt({ x: x + 1, y, z }),
+      this.worthIt({ x: x + 1, y: y - 1, z }),
+      this.worthIt({ x: x + 1, y: y + 1, z })
+    ])).some(Boolean)) {
+      const imageStream = await queues.fetch.enqueue(async () => {
+        const timeoutController = new globalThis.AbortController();
+        const timeoutTimeout = setTimeout(() => timeoutController.abort(), 1e4);
+        params.signal = timeoutController.signal;
+        const ret = await this.fetchFromTileServer();
+        clearTimeout(timeoutTimeout);
+        return ret;
+      });
+      if (imageStream.body) {
+        const writeImageStream = createWriteStream(filename);
+        writeImageStream.addListener("finish", () => {
+          if (this.quiet)
+            res?.sendStatus(200);
+          else
+            res?.sendFile(filename);
+        });
+        imageStream.body.pipe(writeImageStream);
+        return true;
+      }
+      console.log("no imagestream", imageStream.status, { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z }, url);
+      res?.sendStatus(imageStream.status ?? 500);
+      return false;
+    }
+    queues.worthit += performance.now() - worthitStart;
+    queues.worthitCount++;
+    res?.sendFile(`${pwd}/unworthy.png`);
+    return false;
+  };
+};
+
+// src/server/urls/bingsat.ts
+var XYZ2UrlBingsat = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    if (z >= 2 && z <= 20)
+      this.url = `https://t.ssl.ak.tiles.virtualearth.net/tiles/a${xyz2quadkey({ x, y, z })}.jpeg?g=14041&n=z&prx=1`;
+  }
+};
+
+// src/server/urls/cache.ts
+var XYZ2UrlCache = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    if (z >= 2 && z <= 9)
+      this.url = `./cache/tiles/${z}/${x}/${y}.png`;
+    this.local = true;
+  }
+};
+
+// src/server/urls/gebco.ts
+var XYZ2UrlGebco = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    this.local = true;
+    if (z >= 2 && z <= 9)
+      this.url = `./gebco/tiles/${z}/${x}/${y}.png`;
+  }
+};
+
+// src/server/urls/googlehybrid.ts
+var XYZ2UrlGooglehybrid = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    if (z >= 2 && z <= 20)
+      this.url = `https://mt.google.com/vt/lyrs=y&x=${x}&y=${y}&z=${z}`;
+  }
+};
+
+// src/server/urls/googlesat.ts
+var XYZ2UrlGooglesat = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    this.fallback = XYZ2UrlGooglehybrid;
+    if (z >= 2 && z <= 20)
+      this.url = `https://mt.google.com/vt/lyrs=s&x=${x}&y=${y}&z=${z}`;
+  }
+};
+
+// src/server/urls/googlestreet.ts
+var XYZ2UrlGooglestreet = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    if (z >= 2 && z <= 20)
+      this.url = `https://mt.google.com/vt/lyrs=m&x=${x}&y=${y}&z=${z}`;
+  }
+};
+
+// src/server/urls/navionics.ts
+var navtoken = null;
+setInterval(() => navtoken = null, 10 * 60 * 1e3);
+var getNavtoken = async () => {
+  navtoken ??= await fetch("https://backend.navionics.com/tile/get_key/NAVIONICS_WEBAPP_P01/webapp.navionics.com?_=1699259111356", {
+    credentials: "omit",
+    headers: {
+      Accept: "text/plain, */*; q=0.01",
+      "Accept-Language": "de,de-DE;q=0.8,en-US;q=0.5,en;q=0.3",
+      "Cache-Control": "no-cache",
+      Pragma: "no-cache",
+      "Sec-Fetch-Dest": "empty",
+      "Sec-Fetch-Mode": "cors",
+      "Sec-Fetch-Site": "same-site",
+      "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
+    },
+    method: "GET",
+    mode: "cors",
+    referrer: "https://webapp.navionics.com/"
+  }).then((res) => {
+    if (res.status === 200)
+      return res.text();
+    return null;
+  });
+  return navtoken;
+};
+var XYZ2UrlNavionics = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    if ([
+      z <= 17,
+      z >= 2,
+      y >= 14922 >> 17 - z,
+      y <= 92442 >> 17 - z
+    ].every(Boolean)) {
+      this.url = getNavtoken().then(
+        (token) => token ? `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_20.00_1&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${token}` : ""
+      );
+      this.params = getNavtoken().then(
+        (token) => token ? {
+          credentials: "omit",
+          headers: {
+            Accept: "image/avif,image/webp,*/*",
+            "Accept-Language": "de,de-DE;q=0.8,en-US;q=0.5,en;q=0.3",
+            "Sec-Fetch-Dest": "image",
+            "Sec-Fetch-Mode": "cors",
+            "Sec-Fetch-Site": "same-site",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64; rv:109.0) Gecko/20100101 Firefox/119.0"
+          },
+          method: "GET",
+          mode: "cors",
+          referrer: "https://webapp.navionics.com/"
+        } : {}
+      );
+    }
+  }
+};
+
+// src/server/urls/openseamap.ts
+var XYZ2UrlOpenseamap = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    if (z >= 2 && z <= 18)
+      this.url = `https://tiles.openseamap.org/seamark/${z}/${x}/${y}.png`;
+  }
+};
+
+// src/server/urls/opentopomap.ts
+var XYZ2UrlOpentopomap = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    if (z >= 2 && z <= 17)
+      this.url = `https://tile.opentopomap.org/${z}/${x}/${y}.png`;
+  }
 };
 
 // src/server/urls/osm.ts
-var xyz2osm = async (x, y, z) => {
-  if (z > 20)
-    return {};
-  if (z < 2)
-    return {};
-  return {
-    url: `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
-  };
+var XYZ2UrlOsm = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    if (z >= 2 && z <= 20)
+      this.url = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+  }
 };
 
 // src/server/urls/vfdensity.ts
-var xyz2vfdensity = async (x, y, z) => {
-  if (z > 12)
-    return {};
-  if (z < 3)
-    return {};
-  return {
-    url: `https://density.tiles.vesselfinder.net/all/${z}/${x}/${y}.png`
-  };
-};
-
-// src/server/utils/fetchFromTileServer.ts
-import fetch2 from "../node_modules/node-fetch/src/index.js";
-var fetchFromTileServer = ({ params, provider, url, x, y, z }) => fetch2(url, params).then(async (response) => {
-  queues.fetched++;
-  if (response.status === 200)
-    return {
-      body: response.body,
-      status: response.status
-    };
-  if (response.status === 404) {
-    if (provider === "googlesat") {
-      const { url: urlHybrid } = await xyz2googlehybrid(x, y, z);
-      console.log("fallback to hybrid", urlHybrid);
-      if (urlHybrid)
-        return fetchFromTileServer({ params, provider: "googlehybrid", url: urlHybrid, x, y, z });
-    }
-    return {
-      body: null,
-      status: response.status
-    };
+var XYZ2UrlVfdensity = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = params;
+    if (z >= 2 && z <= 20)
+      this.url = `https://density.tiles.vesselfinder.net/all/${z}/${x}/${y}.png`;
   }
-  console.log(response.status, response.statusText, url);
-  return {
-    body: null,
-    status: response.status
-  };
-}).catch(() => {
-  return {
-    body: null,
-    status: 500
-  };
-});
+};
 
 // src/server/utils/printStats.ts
 var todoLast = 0;
@@ -461,9 +562,8 @@ var getTile = async (req, res) => {
     });
     if (zoom > getMaxzoom())
       setMaxzoom(zoom);
-    const max = 1 << zoom;
     const parsePosition = (val) => {
-      return modulo(parseInt(String(val), 16), max);
+      return modulo(parseInt(String(val), 16), 1 << zoom);
     };
     const { provider, x, y } = extractProperties(req.params, {
       provider: String,
@@ -475,106 +575,22 @@ var getTile = async (req, res) => {
       ttl: (val) => parseInt(String(val ?? 3))
     });
     const queue = quiet ? queues.quiet : queues.verbose;
-    const fetchChilds = await queue.enqueue(async () => {
+    const fetchChilds = await queue.enqueue(() => {
       try {
-        const {
-          local = false,
-          params = {},
-          url = "",
-          worthIt = async ({ x: x2, y: y2, z }) => {
-            const res2 = await worthItMinMax({ x: x2, y: y2, z });
-            if (!res2)
-              return false;
-            const { max: max2, min } = res2;
-            if (z <= 6)
-              return min < 132;
-            if (z <= 10)
-              return max2 > 1 && min < 132;
-            return max2 > 96 && min < 144 && (max2 < 132 || max2 - min > 3);
-          }
-        } = await ({
-          bingsat: xyz2bingsat,
-          cache: xyz2cache,
-          gebco: xyz2gebco,
-          googlehybrid: xyz2googlehybrid,
-          googlesat: xyz2googlesat,
-          googlestreet: xyz2googlestreet,
-          navionics: xyz2navionics,
-          openseamap: xyz2openseamap,
-          opentopomap: xyz2opentopomap,
-          osm: xyz2osm,
-          vfdensity: xyz2vfdensity
-        }[provider] ?? xyz2default)(x, y, zoom);
-        if (!url) {
-          res?.sendStatus(404);
-          return false;
-        }
-        const { tileFileId, tilePath } = getTileParams({ x, y, z: zoom });
-        const file = `${tileFileId}.png`;
-        const path = `tiles/${provider}/${zoom.toString(36)}/${tilePath}`;
-        await mkdir(path, { recursive: true });
-        const filename = `${pwd}/${path}/${file}`;
-        const statsStart = performance.now();
-        const fileStats = await stat(filename).then(async (stats) => {
-          if (!stats.isFile())
-            return null;
-          if (provider === "googlesat" && stats.size < 100) {
-            await unlink(filename);
-            return null;
-          }
-          return stats;
-        }).catch(() => null);
-        queues.stats = performance.now() - statsStart;
-        queues.statsCount++;
-        if (fileStats) {
-          if (!quiet)
-            console.log("[cached]", filename);
-          res?.sendFile(filename);
-          return true;
-        }
-        if (local) {
-          res?.sendStatus(404);
-          return false;
-        }
-        const worthitStart = performance.now();
-        if (!quiet || (await Promise.all([
-          worthIt({ x, y, z: zoom }),
-          worthIt({ x, y: y - 1, z: zoom }),
-          worthIt({ x, y: y + 1, z: zoom }),
-          worthIt({ x: x - 1, y, z: zoom }),
-          worthIt({ x: x - 1, y: y - 1, z: zoom }),
-          worthIt({ x: x - 1, y: y + 1, z: zoom }),
-          worthIt({ x: x + 1, y, z: zoom }),
-          worthIt({ x: x + 1, y: y - 1, z: zoom }),
-          worthIt({ x: x + 1, y: y + 1, z: zoom })
-        ])).some(Boolean)) {
-          const imageStream = await queues.fetch.enqueue(async () => {
-            const timeoutController = new globalThis.AbortController();
-            const timeoutTimeout = setTimeout(() => timeoutController.abort(), 1e4);
-            params.signal = timeoutController.signal;
-            const ret = await fetchFromTileServer({ params, provider, url, x, y, z: zoom });
-            clearTimeout(timeoutTimeout);
-            return ret;
-          });
-          if (imageStream.body) {
-            const writeImageStream = createWriteStream(filename);
-            writeImageStream.addListener("finish", () => {
-              if (quiet)
-                res?.sendStatus(200);
-              else
-                res?.sendFile(filename);
-            });
-            imageStream.body.pipe(writeImageStream);
-            return true;
-          }
-          console.log("no imagestream", imageStream.status, { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z: zoom }, url);
-          res?.sendStatus(imageStream.status ?? 500);
-          return false;
-        }
-        queues.worthit += performance.now() - worthitStart;
-        queues.worthitCount++;
-        res?.sendFile(`${pwd}/unworthy.png`);
-        return false;
+        const xyz2url = new ({
+          bingsat: XYZ2UrlBingsat,
+          cache: XYZ2UrlCache,
+          gebco: XYZ2UrlGebco,
+          googlehybrid: XYZ2UrlGooglehybrid,
+          googlesat: XYZ2UrlGooglesat,
+          googlestreet: XYZ2UrlGooglestreet,
+          navionics: XYZ2UrlNavionics,
+          openseamap: XYZ2UrlOpenseamap,
+          opentopomap: XYZ2UrlOpentopomap,
+          osm: XYZ2UrlOsm,
+          vfdensity: XYZ2UrlVfdensity
+        }[provider] ?? XYZ2Url)({ provider, quiet, x, y, z: zoom });
+        return xyz2url.getTile(res);
       } catch (e) {
         console.log(e);
         return false;

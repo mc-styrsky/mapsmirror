@@ -53,7 +53,8 @@ export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
     if (event.isComposing) return;
     const { key } = event;
     if (key >= '0' && key <= '9') {
-      setBaseLayer(settings.tiles.baselayers[parseInt(key)]);
+      const baselayer = settings.tiles.baselayers[parseInt(key)];
+      if (typeof baselayer !== 'undefined') setBaseLayer(baselayer);
     }
     else if (key === 'c') crosshairToggle.click();
     else if (key === 'd') coordsToggle.click();

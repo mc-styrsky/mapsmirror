@@ -1,9 +1,10 @@
-import type { XYZ2Url } from '../../common/types/xyz2url';
+import type { ConstructorProps } from '../../common/types/constructorProps';
+import { XYZ2Url } from './default';
 
-export const xyz2googlestreet: XYZ2Url = async (x, y, z) => {
-  if (z > 20) return {};
-  if (z < 2) return {};
-  return {
-    url: `https://mt.google.com/vt/lyrs=m&x=${x}&y=${y}&z=${z}`,
-  };
-};
+export class XYZ2UrlGooglestreet extends XYZ2Url {
+  constructor (params: ConstructorProps<typeof XYZ2Url>[0]) {
+    super(params);
+    const { x, y, z } = params;
+    if (z >= 2 && z <= 20) this.url = `https://mt.google.com/vt/lyrs=m&x=${x}&y=${y}&z=${z}`;
+  }
+}

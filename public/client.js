@@ -3280,7 +3280,9 @@ var onchange = (event) => {
       return;
     const { key } = event;
     if (key >= "0" && key <= "9") {
-      setBaseLayer(settings.tiles.baselayers[parseInt(key)]);
+      const baselayer2 = settings.tiles.baselayers[parseInt(key)];
+      if (typeof baselayer2 !== "undefined")
+        setBaseLayer(baselayer2);
     } else if (key === "c")
       crosshairToggle.click();
     else if (key === "d")
