@@ -32,7 +32,7 @@ export const getNavionicsQuickinfo = async (
     else {
       console.log('[fetch] ', xyz);
 
-      await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${Math.max(2, Math.min(Number(z), 17))}&sd=20&lang=en`)
+      await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${Math.max(2, Math.min(Number(z), 17))}&ugc=true&lang=en`)
       .then(
         async r => {
           if (r.ok) {

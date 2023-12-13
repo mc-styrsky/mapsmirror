@@ -1,13 +1,13 @@
 import type { NavionicsDetail } from '../navionicsDetails';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 
-export const itemDetails = (item: NavionicsDetail, nodeId: string) => {
+export const itemDetails = (item: NavionicsDetail, itemId: string, accordionId: string) => {
   if (item.properties) return createHTMLElement({
     classes: ['accordion-collapse', 'collapse', 'px-2'],
     dataset: {
-      bsParent: '#navionicsDetailsList',
+      bsParent: `#${accordionId}`,
     },
-    id: nodeId,
+    id: itemId,
     tag: 'div',
     zhilds: item.properties.map(prop => createHTMLElement({
       tag: 'p',

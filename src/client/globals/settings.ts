@@ -48,6 +48,7 @@ export const settings: Settings = {
       'gebco',
       'bingsat',
       'opentopomap',
+      'worthit',
     ],
     enabled: Object.fromEntries(order
     .map(e => typeof e === 'string' ? e : e.source)

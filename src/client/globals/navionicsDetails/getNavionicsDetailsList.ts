@@ -1,36 +1,48 @@
 import type { XYZ } from '../../../common/types/xyz';
 import type { NavionicsDetails } from '../navionicsDetails';
 import { extractProperties } from '../../../common/extractProperties';
+import { updateInfoBox } from '../../updateInfoBox';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
 import { settings } from '../settings';
+import { tileSize } from '../tileSize';
+
+const abortControllers: Set<AbortController> = new Set();
 
 export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
   parent: NavionicsDetails;
 }) => {
-  if (!settings.navionicsDetails.show) return;
   while (parent.queue.shift()) (() => void 0)();
+  abortControllers.forEach(ac => ac.abort());
+  if (!settings.navionicsDetails.show) return;
   const listMap: Map<string, any> = new Map();
   await parent.queue.enqueue(async () => {
     parent.isFetch = true;
     parent.clear();
+    const abortController = new AbortController();
+    abortControllers.add(abortController);
+    const { signal } = abortController;
     const max = 4;
     const perTile = 20;
-    const points: { dx: number; dy: number; radius: number; }[] = [];
-    for (let iX = - max; iX <= max; iX++) {
+    const points: { dx: number; dy: number; radius: number; }[] = [{
+      dx: Math.round(x * tileSize) / tileSize,
+      dy: Math.round(y * tileSize) / tileSize,
+      radius: 0,
+    }];
+    for (let iX = - max; iX < max; iX++) {
       for (let iY = - max; iY < max; iY++) {
-        const dx = Math.round(x * perTile + iX) / perTile;
-        const dy = Math.round(y * perTile + iY) / perTile;
-        const radius = Math.sqrt(iX * iX + iY * iY);
+        const dx = Math.ceil(x * perTile + iX) / perTile;
+        const dy = Math.ceil(y * perTile + iY) / perTile;
+        const radius = Math.sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y));
         points.push({ dx, dy, radius });
       }
     }
+    let done = 0;
     await points
     .sort((a, b) => a.radius - b.radius)
     .reduce(async (prom, { dx, dy, radius }) => {
-      await prom;
       console.log({ radius });
-      const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`)
+      const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`, { signal })
       .then(
         async (res) => {
           if (!res.ok) return;
@@ -71,7 +83,7 @@ export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
             });
             if (item.details) {
               const { label, properties } = extractProperties(
-                await fetch(`/navionics/objectinfo/${item.id}`)
+                await fetch(`/navionics/objectinfo/${item.id}`, { signal })
                 .then(
                   async (res) => res.ok ? await res.json() : {},
                   () => { },
@@ -98,9 +110,14 @@ export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
         rej => console.error(rej),
 
       );
-      await prom;
-      return ret;
+      await ret;
+      done++;
+      parent.fetchProgress = `${done}/${points.length}`;
+      parent.clearHtmlList();
+      updateInfoBox();
+      return prom;
     }, Promise.resolve());
+    abortControllers.delete(abortController);
     parent.isFetch = false;
   });
   parent.clearHtmlList();

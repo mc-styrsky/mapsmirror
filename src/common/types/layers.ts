@@ -7,6 +7,7 @@ export type Baselayers =
 | 'googlestreet'
 | 'opentopomap'
 | 'osm'
+| 'worthit'
 
 export type Overlays =
 | 'navionics'

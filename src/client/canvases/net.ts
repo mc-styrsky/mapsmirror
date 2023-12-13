@@ -139,6 +139,8 @@ export const createNetCanvas = ({
   position.markers.forEach(marker => {
     const markerX = (marker.x - x) * tileSize;
     const markerY = (marker.y - y) * tileSize;
+    const from = 40;
+    const to = 10;
 
     context.beginPath();
     context.strokeStyle = '#000000';
@@ -150,6 +152,14 @@ export const createNetCanvas = ({
       2 * Math.PI,
       0,
     );
+    context.moveTo(markerX + from, markerY);
+    context.lineTo(markerX + to, markerY);
+    context.moveTo(markerX - from, markerY);
+    context.lineTo(markerX - to, markerY);
+    context.moveTo(markerX, markerY + from);
+    context.lineTo(markerX, markerY + to);
+    context.moveTo(markerX, markerY - from);
+    context.lineTo(markerX, markerY - to);
     context.stroke();
     context.beginPath();
     const colors: Record<Marker['type'], string> = {
@@ -165,6 +175,14 @@ export const createNetCanvas = ({
       2 * Math.PI,
       0,
     );
+    context.moveTo(markerX + from, markerY);
+    context.lineTo(markerX + to, markerY);
+    context.moveTo(markerX - from, markerY);
+    context.lineTo(markerX - to, markerY);
+    context.moveTo(markerX, markerY + from);
+    context.lineTo(markerX, markerY + to);
+    context.moveTo(markerX, markerY - from);
+    context.lineTo(markerX, markerY - to);
     context.stroke();
   });
 

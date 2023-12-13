@@ -15,7 +15,7 @@ import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';
 
 
-export const onchange = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEvent) => {
+export const oninput = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEvent) => {
   const { height, width } = boundingRect;
   const { type } = event;
   let needRedraw = false;

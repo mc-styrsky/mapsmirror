@@ -2,8 +2,8 @@ import type { Marker } from './marker';
 import { StyQueue } from '@mc-styrsky/queue';
 import { updateInfoBox } from '../updateInfoBox';
 import { createHTMLElement } from '../utils/createHTMLElement';
-import { accordionItems } from './navionicsDetails/accordionItems';
 import { getNavionicsDetailsList } from './navionicsDetails/getNavionicsDetailsList';
+import { toAccordion } from './navionicsDetails/toAccordion';
 
 export type NavionicsDetail = {
   category_id: string,
@@ -25,6 +25,7 @@ export class NavionicsDetails {
     this.queue.enqueue(() => new Promise(r => setInterval(r, 1)));
   }
   isFetch = false;
+  fetchProgress = '';
   private _list: Map<string, NavionicsDetail> = new Map();
   get list () {
     return this._list;
@@ -53,44 +54,49 @@ export class NavionicsDetails {
   fetch = ({ x, y, z }) => getNavionicsDetailsList({ parent: this, x, y, z });
 
   toHtml = () => {
-    const items = accordionItems(this);
-    if (this.isFetch) items.push(createHTMLElement({
-      classes: [
-        'accordion-item',
-        'mm-menu-text',
-      ],
-      tag: 'div',
-      zhilds: [createHTMLElement({
+    this.htmlList ??= (() => {
+      const ret = toAccordion({
+        items: [...this.list.values()].sort((a, b) => a.distance - b.distance),
+        parent: this,
+      },
+      );
+      if (this.isFetch) ret.append(createHTMLElement({
         classes: [
-          'accordion-header',
+          'accordion-item',
           'mm-menu-text',
         ],
         tag: 'div',
         zhilds: [createHTMLElement({
           classes: [
-            'd-flex',
+            'accordion-header',
             'mm-menu-text',
           ],
           tag: 'div',
           zhilds: [createHTMLElement({
             classes: [
-              'spinner-border',
-              'spinner-border-sm',
+              'd-flex',
+              'mm-menu-text',
             ],
-            style: {
-              margin: 'auto',
-            },
             tag: 'div',
+            zhilds: [
+              this.fetchProgress,
+              createHTMLElement({
+                classes: [
+                  'spinner-border',
+                  'spinner-border-sm',
+                ],
+                style: {
+                  margin: 'auto',
+                },
+                tag: 'div',
+              }),
+            ],
           })],
         })],
-      })],
-    }));
-    this.htmlList ??= createHTMLElement({
-      classes: ['accordion'],
-      id: 'navionicsDetailsList',
-      tag: 'div',
-      zhilds: items,
-    });
+      }));
+
+      return ret;
+    })();
     return this.htmlList;
   };
 }

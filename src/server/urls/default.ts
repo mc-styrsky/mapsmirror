@@ -36,11 +36,27 @@ export class XYZ2Url {
     if (z <= 10) return max > 1 && min < 132;
     return max > 96 && min < 144 && (max < 132 || max - min > 3);
   };
+  worthItArea = async ({ x, y, z }) => {
+    return (await Promise.all([
+      this.worthIt({ x: x, y: y, z }),
+      this.worthIt({ x: x, y: y - 1, z }),
+      this.worthIt({ x: x, y: y + 1, z }),
+      this.worthIt({ x: x - 1, y: y, z }),
+      this.worthIt({ x: x - 1, y: y - 1, z }),
+      this.worthIt({ x: x - 1, y: y + 1, z }),
+      this.worthIt({ x: x + 1, y: y, z }),
+      this.worthIt({ x: x + 1, y: y - 1, z }),
+      this.worthIt({ x: x + 1, y: y + 1, z }),
+    ])).some(Boolean);
+  };
   readonly x: number;
   readonly y: number;
   readonly z: number;
 
-  fetchFromTileServer = async () => {
+  fetchFromTileServer = async (): Promise<{
+    body: NodeJS.ReadableStream | null
+    status: number;
+  }> => {
     const { url, x, y, z } = this;
     return fetch(await url, await this.params)
     .then(async (response) => {
@@ -125,17 +141,7 @@ export class XYZ2Url {
       return false;
     }
     const worthitStart = performance.now();
-    if (this.verbose || (await Promise.all([
-      this.worthIt({ x: x, y: y, z }),
-      this.worthIt({ x: x, y: y - 1, z }),
-      this.worthIt({ x: x, y: y + 1, z }),
-      this.worthIt({ x: x - 1, y: y, z }),
-      this.worthIt({ x: x - 1, y: y - 1, z }),
-      this.worthIt({ x: x - 1, y: y + 1, z }),
-      this.worthIt({ x: x + 1, y: y, z }),
-      this.worthIt({ x: x + 1, y: y - 1, z }),
-      this.worthIt({ x: x + 1, y: y + 1, z }),
-    ])).some(Boolean)) {
+    if (this.verbose || await this.worthItArea({ x: x, y: y, z })) {
       const imageStream = await queues.fetch.enqueue(async () => {
         const timeoutController = new globalThis.AbortController();
         const timeoutTimeout = setTimeout(() => timeoutController.abort(), 10000);

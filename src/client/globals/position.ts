@@ -2,6 +2,7 @@ import type { Marker } from './marker';
 import type { XYZ } from '../../common/types/xyz';
 import { extractProperties } from '../../common/extractProperties';
 import { modulo } from '../../common/modulo';
+import { mouse } from './mouse';
 import { navionicsDetails } from './navionicsDetails';
 
 
@@ -31,7 +32,7 @@ class Position {
     this._tiles = 1 << z;
     this._x = modulo(x, this._tiles);
     this._y = Math.max(0, Math.min(y, this._tiles));
-    setTimeout(() => navionicsDetails.fetch(this), 100);
+    if (!mouse.down.state) setTimeout(() => navionicsDetails.fetch(this), 100);
   }
   get xyz (): XYZ {
     return {

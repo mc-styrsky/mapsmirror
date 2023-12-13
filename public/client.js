@@ -1285,7 +1285,7 @@ var require_json_stable_stringify = __commonJS({
         };
       };
       var seen = [];
-      return function stringify4(parent, key, node, level) {
+      return function stringify3(parent, key, node, level) {
         var indent = space ? "\n" + strRepeat(level, space) : "";
         var colonSeparator = space ? ": " : ":";
         if (node && node.toJSON && typeof node.toJSON === "function") {
@@ -1301,7 +1301,7 @@ var require_json_stable_stringify = __commonJS({
         if (isArray(node)) {
           var out = "";
           for (var i = 0; i < node.length; i++) {
-            var item = stringify4(node, i, node[i], level + 1) || jsonStringify(null);
+            var item = stringify3(node, i, node[i], level + 1) || jsonStringify(null);
             out += indent + space + item;
             if (i + 1 < node.length) {
               out += ",";
@@ -1322,7 +1322,7 @@ var require_json_stable_stringify = __commonJS({
         var needsComma = false;
         for (var i = 0; i < keys.length; i++) {
           var key = keys[i];
-          var value = stringify4(node, key, node[key], level + 1);
+          var value = stringify3(node, key, node[key], level + 1);
           if (!value) {
             continue;
           }
@@ -1441,7 +1441,7 @@ function createHTMLElement(params) {
   const element = document.createElement(tag);
   Object.entries(data).forEach(([k, v]) => element[k] = v);
   if (classes)
-    classes.forEach((c) => element.classList.add(c));
+    classes.filter(Boolean).forEach((c) => element.classList.add(c ?? ""));
   if (dataset)
     Object.entries(dataset).forEach(([k, v]) => element.dataset[k] = v);
   if (style)
@@ -1526,7 +1526,8 @@ var settings = {
       "googlehybrid",
       "gebco",
       "bingsat",
-      "opentopomap"
+      "opentopomap",
+      "worthit"
     ],
     enabled: Object.fromEntries(order.map((e) => typeof e === "string" ? e : e.source).filter((e) => e !== "openseamap").map((e) => [e, Boolean(localStorageSettings?.tiles?.enabled?.[e] ?? true)])),
     order
@@ -1540,12 +1541,23 @@ settings.tiles.order[0] = settings.tiles.baselayers.includes(baselayer) ? basela
 settings.tiles.enabled[settings.tiles.order[0]] = true;
 
 // src/client/redraw.ts
-var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
+var import_json_stable_stringify = __toESM(require_json_stable_stringify(), 1);
 
 // src/common/modulo.ts
 var modulo = (val, mod) => {
   const ret = val % mod;
   return ret < 0 ? ret + mod : ret;
+};
+
+// src/client/globals/mouse.ts
+var mouse = {
+  down: {
+    state: false,
+    x: 0,
+    y: 0
+  },
+  x: 0,
+  y: 0
 };
 
 // node_modules/@mc-styrsky/queue/lib/index.js
@@ -1584,17 +1596,6 @@ var StyQueue = class {
     this.queue2working();
     return promise;
   };
-};
-
-// src/client/globals/mouse.ts
-var mouse = {
-  down: {
-    state: false,
-    x: 0,
-    y: 0
-  },
-  x: 0,
-  y: 0
 };
 
 // src/client/globals/tileSize.ts
@@ -1716,6 +1717,126 @@ var updateInfoBox = () => {
 // src/client/utils/lon2x.ts
 var lon2x = (lon, tiles = position.tiles) => (lon / Math.PI / 2 + 0.5) * tiles;
 
+// src/client/globals/navionicsDetails/getNavionicsDetailsList.ts
+var abortControllers = /* @__PURE__ */ new Set();
+var getNavionicsDetailsList = async ({ parent, x, y, z }) => {
+  while (parent.queue.shift())
+    /* @__PURE__ */ (() => void 0)();
+  abortControllers.forEach((ac) => ac.abort());
+  if (!settings.navionicsDetails.show)
+    return;
+  const listMap = /* @__PURE__ */ new Map();
+  await parent.queue.enqueue(async () => {
+    parent.isFetch = true;
+    parent.clear();
+    const abortController = new AbortController();
+    abortControllers.add(abortController);
+    const { signal } = abortController;
+    const max = 4;
+    const perTile = 20;
+    const points = [{
+      dx: Math.round(x * tileSize) / tileSize,
+      dy: Math.round(y * tileSize) / tileSize,
+      radius: 0
+    }];
+    for (let iX = -max; iX < max; iX++) {
+      for (let iY = -max; iY < max; iY++) {
+        const dx = Math.ceil(x * perTile + iX) / perTile;
+        const dy = Math.ceil(y * perTile + iY) / perTile;
+        const radius = Math.sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y));
+        points.push({ dx, dy, radius });
+      }
+    }
+    let done = 0;
+    await points.sort((a, b) => a.radius - b.radius).reduce(async (prom, { dx, dy, radius }) => {
+      console.log({ radius });
+      const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`, { signal }).then(
+        async (res) => {
+          if (!res.ok)
+            return;
+          const body = await res.json();
+          await Promise.all((body.items ?? []).map(async (item) => {
+            if (listMap.has(item.id))
+              return;
+            if ([
+              "depth_area",
+              "depth_contour"
+            ].includes(item.category_id))
+              return;
+            listMap.set(item.id, item);
+            const {
+              category_id,
+              details,
+              icon_id,
+              id,
+              name,
+              position: position2
+            } = extractProperties(item, {
+              category_id: String,
+              details: Boolean,
+              icon_id: String,
+              id: String,
+              name: String,
+              position: ({ lat, lon }) => ({
+                lat: Number(lat),
+                lon: Number(lon),
+                x: lon2x(Number(lon) * Math.PI / 180),
+                y: lat2y(Number(lat) * Math.PI / 180)
+              })
+            });
+            const pdx = position2.x - x;
+            const pdy = position2.y - y;
+            const distance = Math.sqrt(pdx * pdx + pdy * pdy);
+            parent.add({
+              category_id,
+              details,
+              distance,
+              icon_id,
+              id,
+              name,
+              position: position2
+            });
+            if (item.details) {
+              const { label: label2, properties } = extractProperties(
+                await fetch(`/navionics/objectinfo/${item.id}`, { signal }).then(
+                  async (res2) => res2.ok ? await res2.json() : {},
+                  () => {
+                  }
+                ),
+                {
+                  label: String,
+                  properties: (val) => val?.map(({ label: label3 }) => label3)?.filter(Boolean)
+                }
+              );
+              parent.add({
+                category_id,
+                details,
+                distance,
+                icon_id,
+                id,
+                label: label2,
+                name,
+                position: position2,
+                properties
+              });
+            }
+          }));
+        },
+        (rej) => console.error(rej)
+      );
+      await ret;
+      done++;
+      parent.fetchProgress = `${done}/${points.length}`;
+      parent.clearHtmlList();
+      updateInfoBox();
+      return prom;
+    }, Promise.resolve());
+    abortControllers.delete(abortController);
+    parent.isFetch = false;
+  });
+  parent.clearHtmlList();
+};
+
 // src/client/globals/marker.ts
 var Marker = class {
   constructor({ id = "", lat, lon, type }) {
@@ -1799,14 +1920,14 @@ var icon = (item) => createHTMLElement({
 });
 
 // src/client/globals/navionicsDetails/itemDetails.ts
-var itemDetails = (item, nodeId) => {
+var itemDetails = (item, itemId, accordionId) => {
   if (item.properties)
     return createHTMLElement({
       classes: ["accordion-collapse", "collapse", "px-2"],
       dataset: {
-        bsParent: "#navionicsDetailsList"
+        bsParent: `#${accordionId}`
       },
-      id: nodeId,
+      id: itemId,
       tag: "div",
       zhilds: item.properties.map((prop) => createHTMLElement({
         tag: "p",
@@ -1817,7 +1938,6 @@ var itemDetails = (item, nodeId) => {
 };
 
 // src/client/globals/navionicsDetails/label.ts
-var import_json_stable_stringify = __toESM(require_json_stable_stringify(), 1);
 var label = (item) => createHTMLElement({
   classes: ["d-flex"],
   tag: "div",
@@ -1827,7 +1947,6 @@ var label = (item) => createHTMLElement({
         margin: "auto"
       },
       tag: "div",
-      title: (0, import_json_stable_stringify.default)(item, { space: 2 }),
       zhilds: [item.name]
     })
   ]
@@ -1853,9 +1972,9 @@ var spinner = (item) => {
   return void 0;
 };
 
-// src/client/globals/navionicsDetails/accordionItems.ts
-var accordionItems = (parent) => [...parent.list.values()].sort((a, b) => a.distance - b.distance).map((item, idx) => {
-  const nodeId = `navionicsDetailsItem${idx}`;
+// src/client/globals/navionicsDetails/accordionItem.ts
+var accordionItem = ({ accordionId, idx, item, parent }) => {
+  const itemId = `navionicsDetailsItem${idx}`;
   return createHTMLElement({
     classes: [
       "accordion-item",
@@ -1889,7 +2008,7 @@ var accordionItems = (parent) => [...parent.list.values()].sort((a, b) => a.dist
               "mm-menu-text"
             ],
             dataset: item.properties ? {
-              bsTarget: `#${nodeId}`,
+              bsTarget: `#${itemId}`,
               bsToggle: "collapse"
             } : {},
             tag: "div",
@@ -1909,115 +2028,87 @@ var accordionItems = (parent) => [...parent.list.values()].sort((a, b) => a.dist
           })
         ]
       }),
-      itemDetails(item, nodeId)
+      itemDetails(item, itemId, accordionId)
     ]
   });
-});
+};
 
-// src/client/globals/navionicsDetails/getNavionicsDetailsList.ts
-var getNavionicsDetailsList = async ({ parent, x, y, z }) => {
-  if (!settings.navionicsDetails.show)
-    return;
-  while (parent.queue.shift())
-    /* @__PURE__ */ (() => void 0)();
-  const listMap = /* @__PURE__ */ new Map();
-  await parent.queue.enqueue(async () => {
-    parent.isFetch = true;
-    parent.clear();
-    const max = 4;
-    const perTile = 20;
-    const points = [];
-    for (let iX = -max; iX <= max; iX++) {
-      for (let iY = -max; iY < max; iY++) {
-        const dx = Math.round(x * perTile + iX) / perTile;
-        const dy = Math.round(y * perTile + iY) / perTile;
-        const radius = Math.sqrt(iX * iX + iY * iY);
-        points.push({ dx, dy, radius });
-      }
-    }
-    await points.sort((a, b) => a.radius - b.radius).reduce(async (prom, { dx, dy, radius }) => {
-      await prom;
-      console.log({ radius });
-      const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`).then(
-        async (res) => {
-          if (!res.ok)
-            return;
-          const body = await res.json();
-          await Promise.all((body.items ?? []).map(async (item) => {
-            if (listMap.has(item.id))
-              return;
-            if ([
-              "depth_area",
-              "depth_contour"
-            ].includes(item.category_id))
-              return;
-            listMap.set(item.id, item);
-            const {
-              category_id,
-              details,
-              icon_id,
-              id,
-              name,
-              position: position2
-            } = extractProperties(item, {
-              category_id: String,
-              details: Boolean,
-              icon_id: String,
-              id: String,
-              name: String,
-              position: ({ lat, lon }) => ({
-                lat: Number(lat),
-                lon: Number(lon),
-                x: lon2x(Number(lon) * Math.PI / 180),
-                y: lat2y(Number(lat) * Math.PI / 180)
-              })
-            });
-            const pdx = position2.x - x;
-            const pdy = position2.y - y;
-            const distance = Math.sqrt(pdx * pdx + pdy * pdy);
-            parent.add({
-              category_id,
-              details,
-              distance,
-              icon_id,
-              id,
-              name,
-              position: position2
-            });
-            if (item.details) {
-              const { label: label2, properties } = extractProperties(
-                await fetch(`/navionics/objectinfo/${item.id}`).then(
-                  async (res2) => res2.ok ? await res2.json() : {},
-                  () => {
-                  }
-                ),
-                {
-                  label: String,
-                  properties: (val) => val?.map(({ label: label3 }) => label3)?.filter(Boolean)
-                }
-              );
-              parent.add({
-                category_id,
-                details,
-                distance,
-                icon_id,
-                id,
-                label: label2,
-                name,
-                position: position2,
-                properties
-              });
-            }
-          }));
-        },
-        (rej) => console.error(rej)
-      );
-      await prom;
-      return ret;
-    }, Promise.resolve());
-    parent.isFetch = false;
+// src/client/globals/navionicsDetails/toAccordion.ts
+var toAccordion = ({ items, offset, parent }) => {
+  const accordionId = `navionicsDetailsList${offset ?? ""}`;
+  const ret = createHTMLElement({
+    classes: ["accordion"],
+    id: accordionId,
+    tag: "div"
   });
-  parent.clearHtmlList();
+  if (items.length <= 10)
+    ret.append(
+      ...items.map((item, idx) => accordionItem({
+        accordionId,
+        idx: idx + (offset ?? 0),
+        item,
+        parent
+      }))
+    );
+  else
+    for (let i = 0; i < items.length; i += 10) {
+      const itemId = `navionicsDetailsItemList${i}`;
+      const itemsSlice = items.slice(i, i + 10);
+      ret.append(createHTMLElement({
+        classes: [
+          "accordion-item",
+          "mm-menu-text"
+        ],
+        tag: "div",
+        zhilds: [
+          createHTMLElement({
+            classes: [
+              "accordion-header",
+              "mm-menu-text"
+            ],
+            tag: "div",
+            zhilds: [
+              createHTMLElement({
+                classes: [
+                  "accordion-button",
+                  "collapsed",
+                  "px-2",
+                  "py-0",
+                  "mm-menu-text"
+                ],
+                dataset: {
+                  bsTarget: `#${itemId}`,
+                  bsToggle: "collapse"
+                },
+                tag: "div",
+                zhilds: [createHTMLElement({
+                  classes: ["d-flex"],
+                  style: {
+                    width: "100%"
+                  },
+                  tag: "div",
+                  zhilds: [
+                    itemsSlice.length === 1 ? `${i + 1}` : `${i + 1}-${i + itemsSlice.length}`
+                  ]
+                })]
+              })
+            ]
+          }),
+          createHTMLElement({
+            classes: ["accordion-collapse", "collapse", "px-2", i === 0 ? "show" : null],
+            dataset: {
+              bsParent: `#${accordionId}`
+            },
+            id: itemId,
+            tag: "div",
+            zhilds: [
+              toAccordion({ items: itemsSlice, offset: i, parent })
+            ]
+          })
+        ]
+      }));
+    }
+  return ret;
 };
 
 // src/client/globals/navionicsDetails.ts
@@ -2026,6 +2117,7 @@ var NavionicsDetails = class {
     this.queue.enqueue(() => new Promise((r) => setInterval(r, 1)));
   }
   isFetch = false;
+  fetchProgress = "";
   _list = /* @__PURE__ */ new Map();
   get list() {
     return this._list;
@@ -2051,45 +2143,50 @@ var NavionicsDetails = class {
   };
   fetch = ({ x, y, z }) => getNavionicsDetailsList({ parent: this, x, y, z });
   toHtml = () => {
-    const items = accordionItems(this);
-    if (this.isFetch)
-      items.push(createHTMLElement({
-        classes: [
-          "accordion-item",
-          "mm-menu-text"
-        ],
-        tag: "div",
-        zhilds: [createHTMLElement({
+    this.htmlList ??= (() => {
+      const ret = toAccordion(
+        {
+          items: [...this.list.values()].sort((a, b) => a.distance - b.distance),
+          parent: this
+        }
+      );
+      if (this.isFetch)
+        ret.append(createHTMLElement({
           classes: [
-            "accordion-header",
+            "accordion-item",
             "mm-menu-text"
           ],
           tag: "div",
           zhilds: [createHTMLElement({
             classes: [
-              "d-flex",
+              "accordion-header",
               "mm-menu-text"
             ],
             tag: "div",
             zhilds: [createHTMLElement({
               classes: [
-                "spinner-border",
-                "spinner-border-sm"
+                "d-flex",
+                "mm-menu-text"
               ],
-              style: {
-                margin: "auto"
-              },
-              tag: "div"
+              tag: "div",
+              zhilds: [
+                this.fetchProgress,
+                createHTMLElement({
+                  classes: [
+                    "spinner-border",
+                    "spinner-border-sm"
+                  ],
+                  style: {
+                    margin: "auto"
+                  },
+                  tag: "div"
+                })
+              ]
             })]
           })]
-        })]
-      }));
-    this.htmlList ??= createHTMLElement({
-      classes: ["accordion"],
-      id: "navionicsDetailsList",
-      tag: "div",
-      zhilds: items
-    });
+        }));
+      return ret;
+    })();
     return this.htmlList;
   };
 };
@@ -2122,7 +2219,8 @@ var Position = class {
     this._tiles = 1 << z;
     this._x = modulo(x, this._tiles);
     this._y = Math.max(0, Math.min(y, this._tiles));
-    setTimeout(() => navionicsDetails.fetch(this), 100);
+    if (!mouse.down.state)
+      setTimeout(() => navionicsDetails.fetch(this), 100);
   }
   get xyz() {
     return {
@@ -2573,17 +2671,13 @@ var createMapCanvas = async ({
   const mindx = -Math.ceil(trans.x / tileSize);
   const mindy = -Math.ceil(trans.y / tileSize);
   const dxArray = [];
-  for (let dx = mindx; dx < maxdx; dx++) {
-    dxArray.push({ dx, marginX: false });
+  for (let dx = mindx - marginTiles; dx < maxdx + marginTiles; dx++) {
+    dxArray.push({ dx, marginX: dx < mindx || dx > maxdx });
   }
-  dxArray.push(
-    { dx: mindx - marginTiles, marginX: true },
-    { dx: maxdx + marginTiles, marginX: true }
-  );
   const dyArray = [];
   for (let dy = mindy - marginTiles; dy < maxdy + marginTiles; dy++) {
     if (dy >= 0 && dy < position.tiles)
-      dyArray.push({ dy, marginY: dy < mindx || dy > maxdy });
+      dyArray.push({ dy, marginY: dy < mindy || dy > maxdy });
   }
   const usedImages = /* @__PURE__ */ new Set();
   const ttl = Math.max(Math.min(17, z + Math.max(0, position.ttl)) - z, 0);
@@ -2595,7 +2689,7 @@ var createMapCanvas = async ({
         settings.tiles.order.reduce(async (prom, entry) => {
           const { alpha, source } = typeof entry === "string" ? { alpha: 1, source: entry } : entry;
           if (source && settings.tiles.enabled[source]) {
-            const draw = drawCachedImage({ alpha, context, source, trans, ttl, usedImages, x: dx, y: dy, z });
+            const draw = drawCachedImage({ alpha, context, source, trans, ttl: marginX || marginY ? 0 : ttl, usedImages, x: dx, y: dy, z });
             await prom;
             await (await draw)();
           }
@@ -2740,6 +2834,8 @@ var createNetCanvas = ({
   position.markers.forEach((marker) => {
     const markerX = (marker.x - x) * tileSize;
     const markerY = (marker.y - y) * tileSize;
+    const from = 40;
+    const to = 10;
     context.beginPath();
     context.strokeStyle = "#000000";
     context.lineWidth = 3;
@@ -2750,6 +2846,14 @@ var createNetCanvas = ({
       2 * Math.PI,
       0
     );
+    context.moveTo(markerX + from, markerY);
+    context.lineTo(markerX + to, markerY);
+    context.moveTo(markerX - from, markerY);
+    context.lineTo(markerX - to, markerY);
+    context.moveTo(markerX, markerY + from);
+    context.lineTo(markerX, markerY + to);
+    context.moveTo(markerX, markerY - from);
+    context.lineTo(markerX, markerY - to);
     context.stroke();
     context.beginPath();
     const colors = {
@@ -2765,6 +2869,14 @@ var createNetCanvas = ({
       2 * Math.PI,
       0
     );
+    context.moveTo(markerX + from, markerY);
+    context.lineTo(markerX + to, markerY);
+    context.moveTo(markerX - from, markerY);
+    context.lineTo(markerX - to, markerY);
+    context.moveTo(markerX, markerY + from);
+    context.lineTo(markerX, markerY + to);
+    context.moveTo(markerX, markerY - from);
+    context.lineTo(markerX, markerY - to);
     context.stroke();
   });
   return canvas;
@@ -2836,7 +2948,7 @@ var redraw = async (type) => {
       const newlocation = `${origin}${pathname}${newsearch}`;
       window.history.pushState({ path: newlocation }, "", newlocation);
     }
-    const newsettings = (0, import_json_stable_stringify2.default)(settings);
+    const newsettings = (0, import_json_stable_stringify.default)(settings);
     if (window.localStorage.getItem("settings") !== newsettings) {
       window.localStorage.setItem("settings", newsettings);
     }
@@ -2845,6 +2957,7 @@ var redraw = async (type) => {
 };
 
 // src/client/containers/menu/baselayerMenu.ts
+var baselayerLabel = (source) => `${source || "- none -"} (${settings.tiles.baselayers.indexOf(source)})`;
 var baselayerMenuButton = createHTMLElement({
   classes: ["btn", "btn-secondary", "dropdown-toggle"],
   dataset: {
@@ -2852,12 +2965,12 @@ var baselayerMenuButton = createHTMLElement({
   },
   role: "button",
   tag: "a",
-  zhilds: [settings.tiles.order[0]]
+  zhilds: [baselayerLabel(settings.tiles.order[0])]
 });
 var setBaseLayer = (source) => {
   settings.tiles.baselayers.forEach((key) => settings.tiles.enabled[key] = key === source);
   settings.tiles.order[0] = source;
-  baselayerMenuButton.innerText = source;
+  baselayerMenuButton.innerText = baselayerLabel(source);
   redraw("changed baselayer");
 };
 var baselayerMenu = createHTMLElement({
@@ -2876,7 +2989,7 @@ var baselayerMenu = createHTMLElement({
               classes: ["dropdown-item"],
               onclick: () => setBaseLayer(source),
               tag: "a",
-              zhilds: [source || "- none -"]
+              zhilds: [baselayerLabel(source)]
             });
           })
         })
@@ -3041,15 +3154,15 @@ var savedPositionsFromLocalStoreage = () => {
 };
 
 // src/client/containers/menu/goto/savedPositions/editSavedPosition.ts
-var import_json_stable_stringify3 = __toESM(require_json_stable_stringify(), 1);
+var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
 var editSavedPosition = ({ func, x, y, z }) => {
-  const list = new Set(savedPositionsFromLocalStoreage().map((e) => (0, import_json_stable_stringify3.default)(e)));
-  list[func]((0, import_json_stable_stringify3.default)({
+  const list = new Set(savedPositionsFromLocalStoreage().map((e) => (0, import_json_stable_stringify2.default)(e)));
+  list[func]((0, import_json_stable_stringify2.default)({
     x: Math.round(x * tileSize),
     y: Math.round(y * tileSize),
     z
   }));
-  window.localStorage.setItem("savedPositions", (0, import_json_stable_stringify3.default)([...list].map((e) => JSON.parse(e))));
+  window.localStorage.setItem("savedPositions", (0, import_json_stable_stringify2.default)([...list].map((e) => JSON.parse(e))));
   updateSavedPositionsList();
 };
 
@@ -3268,7 +3381,7 @@ var updateGeoLocation = async () => {
 };
 
 // src/client/events/oninput.ts
-var onchange = (event) => {
+var oninput = (event) => {
   const { height, width } = boundingRect;
   const { type } = event;
   let needRedraw = false;
@@ -3371,7 +3484,7 @@ var onmouse = (event) => {
   const { clientX, clientY } = event;
   if (mouse.down.state) {
     if (mouse.x !== clientX || mouse.y !== clientY)
-      onchange(event);
+      oninput(event);
   }
   const isDown = Boolean(event.buttons & 1);
   if (isDown && !mouse.down.state) {
@@ -3387,7 +3500,8 @@ var onmouse = (event) => {
         y: y + (mouse.y - height / 2) / tileSize,
         z
       });
-    }
+    } else
+      navionicsDetails.fetch(position);
   }
   mouse.down.state = isDown;
   mouse.x = clientX;
@@ -3405,8 +3519,8 @@ var container = document.getElementById(containerId) ?? createHTMLElement({ tag:
 var boundingRect = new Size(container);
 container.innerHTML = "";
 container.append(mapContainer, overlayContainer, infoBox, menuContainer);
-window.addEventListener("keydown", onchange);
-window.addEventListener("wheel", onchange);
+window.addEventListener("keydown", oninput);
+window.addEventListener("wheel", oninput);
 window.addEventListener("mousemove", onmouse);
 window.addEventListener("mousedown", onmouse);
 window.addEventListener("mouseup", onmouse);

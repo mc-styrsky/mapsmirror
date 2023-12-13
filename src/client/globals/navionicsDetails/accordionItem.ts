@@ -1,4 +1,4 @@
-import type { NavionicsDetails } from '../navionicsDetails';
+import type { NavionicsDetail, NavionicsDetails } from '../navionicsDetails';
 import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 import { Marker } from '../marker';
@@ -8,10 +8,13 @@ import { itemDetails } from './itemDetails';
 import { label } from './label';
 import { spinner } from './spinner';
 
-export const accordionItems = (parent: NavionicsDetails) => [...parent.list.values()]
-.sort((a, b) => a.distance - b.distance)
-.map((item, idx) => {
-  const nodeId = `navionicsDetailsItem${idx}`;
+export const accordionItem = ({ accordionId, idx, item, parent }: {
+  accordionId: string;
+  idx: number;
+  item: NavionicsDetail;
+  parent: NavionicsDetails;
+}) => {
+  const itemId = `navionicsDetailsItem${idx}`;
   return createHTMLElement({
     classes: [
       'accordion-item',
@@ -48,7 +51,7 @@ export const accordionItems = (parent: NavionicsDetails) => [...parent.list.valu
             ],
             dataset: item.properties ?
               {
-                bsTarget: `#${nodeId}`,
+                bsTarget: `#${itemId}`,
                 bsToggle: 'collapse',
               } :
               {},
@@ -69,7 +72,7 @@ export const accordionItems = (parent: NavionicsDetails) => [...parent.list.valu
           }),
         ],
       }),
-      itemDetails(item, nodeId),
+      itemDetails(item, itemId, accordionId),
     ],
   });
-});
+};

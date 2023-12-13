@@ -41,16 +41,12 @@ export const createMapCanvas = async ({
   const mindy = - Math.ceil(trans.y / tileSize);
 
   const dxArray: {dx: number, marginX: boolean}[] = [];
-  for (let dx = mindx; dx < maxdx; dx++) {
-    dxArray.push({ dx, marginX: false });
+  for (let dx = mindx - marginTiles; dx < maxdx + marginTiles; dx++) {
+    dxArray.push({ dx, marginX: dx < mindx || dx > maxdx });
   }
-  dxArray.push(
-    { dx: mindx - marginTiles, marginX: true },
-    { dx: maxdx + marginTiles, marginX: true },
-  );
   const dyArray: {dy: number, marginY: boolean}[] = [];
   for (let dy = mindy - marginTiles; dy < maxdy + marginTiles; dy++) {
-    if (dy >= 0 && dy < position.tiles) dyArray.push({ dy, marginY: dy < mindx || dy > maxdy });
+    if (dy >= 0 && dy < position.tiles) dyArray.push({ dy, marginY: dy < mindy || dy > maxdy });
   }
 
   const usedImages: Set<string> = new Set();
@@ -64,7 +60,7 @@ export const createMapCanvas = async ({
         settings.tiles.order.reduce(async (prom, entry) => {
           const { alpha, source } = typeof entry === 'string' ? { alpha: 1, source: entry } : entry;
           if (source && settings.tiles.enabled[source]) {
-            const draw = drawCachedImage({ alpha, context, source, trans, ttl, usedImages, x: dx, y: dy, z });
+            const draw = drawCachedImage({ alpha, context, source, trans, ttl: marginX || marginY ? 0 : ttl, usedImages, x: dx, y: dy, z });
             await prom;
             await (await draw)();
           }

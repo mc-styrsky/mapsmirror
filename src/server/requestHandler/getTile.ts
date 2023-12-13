@@ -15,6 +15,7 @@ import { XYZ2UrlOpenseamap } from '../urls/openseamap';
 import { XYZ2UrlOpentopomap } from '../urls/opentopomap';
 import { XYZ2UrlOsm } from '../urls/osm';
 import { XYZ2UrlVfdensity } from '../urls/vfdensity';
+import { XYZ2UrlWorthit } from '../urls/worthit';
 import { getMaxzoom, setMaxzoom } from '../utils/printStats';
 
 export const getTile = async (
@@ -59,6 +60,7 @@ export const getTile = async (
           opentopomap: XYZ2UrlOpentopomap,
           osm: XYZ2UrlOsm,
           vfdensity: XYZ2UrlVfdensity,
+          worthit: XYZ2UrlWorthit,
         }[provider] ?? XYZ2Url)({ provider, quiet, x, y, z: zoom });
         return xyz2url.sendTile(res);
       }

@@ -1,5 +1,5 @@
 export function createHTMLElement<T extends keyof HTMLElementTagNameMap> (params: Partial<Omit<HTMLElementTagNameMap[T], 'dataset' | 'style'>> & {
-  classes?: string[];
+  classes?: (string | null | undefined)[];
   dataset?: Partial<HTMLElementTagNameMap[T]['dataset']>,
   style?: Partial<HTMLElementTagNameMap[T]['style']>;
   tag: T;
@@ -11,7 +11,7 @@ export function createHTMLElement<T extends keyof HTMLElementTagNameMap> (params
 
   Object.entries(data).forEach(([k, v]) => element[k] = v);
 
-  if (classes) classes.forEach(c => element.classList.add(c));
+  if (classes) classes.filter(Boolean).forEach(c => element.classList.add(c ?? ''));
   if (dataset) Object.entries(dataset).forEach(([k, v]) => element.dataset[k] = v);
   if (style) Object.entries(style).forEach(([k, v]) => element.style[k] = v);
   if (zhilds) zhilds.forEach(child => {

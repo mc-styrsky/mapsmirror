@@ -98,7 +98,7 @@ var getNavionicsQuickinfo = async (req, res) => {
       res?.json(fromCache);
     } else {
       console.log("[fetch] ", xyz);
-      await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${Math.max(2, Math.min(Number(z), 17))}&sd=20&lang=en`).then(
+      await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${Math.max(2, Math.min(Number(z), 17))}&ugc=true&lang=en`).then(
         async (r) => {
           if (r.ok) {
             const toCache = await r.json();
@@ -242,6 +242,19 @@ var XYZ2Url = class {
       return max > 1 && min < 132;
     return max > 96 && min < 144 && (max < 132 || max - min > 3);
   };
+  worthItArea = async ({ x, y, z }) => {
+    return (await Promise.all([
+      this.worthIt({ x, y, z }),
+      this.worthIt({ x, y: y - 1, z }),
+      this.worthIt({ x, y: y + 1, z }),
+      this.worthIt({ x: x - 1, y, z }),
+      this.worthIt({ x: x - 1, y: y - 1, z }),
+      this.worthIt({ x: x - 1, y: y + 1, z }),
+      this.worthIt({ x: x + 1, y, z }),
+      this.worthIt({ x: x + 1, y: y - 1, z }),
+      this.worthIt({ x: x + 1, y: y + 1, z })
+    ])).some(Boolean);
+  };
   x;
   y;
   z;
@@ -321,17 +334,7 @@ var XYZ2Url = class {
       return false;
     }
     const worthitStart = performance.now();
-    if (this.verbose || (await Promise.all([
-      this.worthIt({ x, y, z }),
-      this.worthIt({ x, y: y - 1, z }),
-      this.worthIt({ x, y: y + 1, z }),
-      this.worthIt({ x: x - 1, y, z }),
-      this.worthIt({ x: x - 1, y: y - 1, z }),
-      this.worthIt({ x: x - 1, y: y + 1, z }),
-      this.worthIt({ x: x + 1, y, z }),
-      this.worthIt({ x: x + 1, y: y - 1, z }),
-      this.worthIt({ x: x + 1, y: y + 1, z })
-    ])).some(Boolean)) {
+    if (this.verbose || await this.worthItArea({ x, y, z })) {
       const imageStream = await queues.fetch.enqueue(async () => {
         const timeoutController = new globalThis.AbortController();
         const timeoutTimeout = setTimeout(() => timeoutController.abort(), 1e4);
@@ -524,6 +527,61 @@ var XYZ2UrlVfdensity = class extends XYZ2Url {
   }
 };
 
+// src/server/urls/worthit.ts
+import sharp2 from "../node_modules/sharp/lib/index.js";
+import { Readable } from "stream";
+
+// src/client/globals/tileSize.ts
+var tileSize = 256;
+
+// src/server/urls/worthit.ts
+var XYZ2UrlWorthit = class extends XYZ2Url {
+  constructor(params) {
+    super(params);
+    const { x, y, z } = this;
+    this.url = `./worthit/tiles/${z}/${x}/${y}.png`;
+  }
+  fetchFromTileServer = async () => {
+    const { x, y, z } = this;
+    const tile = new Uint8Array(3 * tileSize * tileSize);
+    for (let zi = 0; zi <= 8; zi++) {
+      const color = zi > 4 ? [0, Math.min(32 << zi - 4, 255), 0] : zi > 0 ? [0, 0, Math.min(32 << zi - 1, 255)] : [Math.min(64 << zi, 255), 0, 0];
+      for (let yi = 0; yi < 1 << zi; yi++) {
+        const yiOffset = yi << 8 - zi;
+        for (let xi = 0; xi < 1 << zi; xi++) {
+          const xiOffset = xi << 8 - zi;
+          const [cr, cg, cb] = await this.worthItArea({
+            x: (x << zi) + xi,
+            y: (y << zi) + yi,
+            z: z + zi
+          }) ? color : [0, 0];
+          if (cr || cg || cb) {
+            for (let row = 0; row < 1 << 8 - zi; row++) {
+              for (let col = 0; col < 1 << 8 - zi; col++) {
+                const pos = ((yiOffset + row) * 256 + (xiOffset + col)) * 3;
+                tile[pos] = cr;
+                tile[pos + 1] = cg;
+                tile[pos + 2] = cb;
+              }
+            }
+          }
+        }
+      }
+    }
+    const body = await sharp2(tile, {
+      raw: {
+        channels: 3,
+        height: 256,
+        width: 256
+      }
+    }).png().toBuffer();
+    return {
+      body: Readable.from(body),
+      status: 200
+    };
+  };
+};
+
 // src/server/utils/printStats.ts
 var todoLast = 0;
 var fetchedLast = 0;
@@ -606,7 +664,8 @@ var getTile = async (req, res) => {
           openseamap: XYZ2UrlOpenseamap,
           opentopomap: XYZ2UrlOpentopomap,
           osm: XYZ2UrlOsm,
-          vfdensity: XYZ2UrlVfdensity
+          vfdensity: XYZ2UrlVfdensity,
+          worthit: XYZ2UrlWorthit
         }[provider] ?? XYZ2Url)({ provider, quiet, x, y, z: zoom });
         return xyz2url.sendTile(res);
       } catch (e) {

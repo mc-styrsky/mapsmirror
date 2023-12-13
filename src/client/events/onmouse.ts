@@ -5,13 +5,13 @@ import { tileSize } from '../globals/tileSize';
 import { boundingRect } from '../index';
 import { redraw } from '../redraw';
 import { updateInfoBox } from '../updateInfoBox';
-import { onchange } from './oninput';
+import { oninput } from './oninput';
 
 export const onmouse = (event: MouseEvent) => {
   if (!(event.target instanceof HTMLBodyElement)) return;
   const { clientX, clientY } = event;
   if (mouse.down.state) {
-    if (mouse.x !== clientX || mouse.y !== clientY) onchange(event);
+    if (mouse.x !== clientX || mouse.y !== clientY) oninput(event);
   }
   const isDown = Boolean(event.buttons & 1);
   // mousedown
@@ -31,6 +31,7 @@ export const onmouse = (event: MouseEvent) => {
         z,
       });
     }
+    else navionicsDetails.fetch(position);
   }
 
   mouse.down.state = isDown;

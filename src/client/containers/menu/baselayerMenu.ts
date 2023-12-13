@@ -3,6 +3,8 @@ import { settings } from '../../globals/settings';
 import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 
+const baselayerLabel = (source: Baselayers) => `${source || '- none -'} (${settings.tiles.baselayers.indexOf(source)})`;
+
 const baselayerMenuButton = createHTMLElement({
   classes: ['btn', 'btn-secondary', 'dropdown-toggle'],
   dataset: {
@@ -10,13 +12,13 @@ const baselayerMenuButton = createHTMLElement({
   },
   role: 'button',
   tag: 'a',
-  zhilds: [settings.tiles.order[0]],
+  zhilds: [baselayerLabel(settings.tiles.order[0])],
 });
 
 export const setBaseLayer = (source: Baselayers) => {
   settings.tiles.baselayers.forEach(key => settings.tiles.enabled[key] = key === source);
   settings.tiles.order[0] = source;
-  baselayerMenuButton.innerText = source;
+  baselayerMenuButton.innerText = baselayerLabel(source);
   redraw('changed baselayer');
 };
 
@@ -36,7 +38,7 @@ export const baselayerMenu = createHTMLElement({
               classes: ['dropdown-item'],
               onclick: () => setBaseLayer(source),
               tag: 'a',
-              zhilds: [source || '- none -'],
+              zhilds: [baselayerLabel(source)],
             });
           }),
         }),
