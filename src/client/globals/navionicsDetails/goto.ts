@@ -1,8 +1,8 @@
 import type { NavionicsDetail } from '../navionicsDetails';
-import { lat2y } from '../../utils/lat2y';
-import { lon2x } from '../../utils/lon2x';
 import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
+import { lat2y } from '../../utils/lat2y';
+import { lon2x } from '../../utils/lon2x';
 import { position } from '../position';
 
 export const goto = (item: NavionicsDetail) => {
@@ -10,8 +10,8 @@ export const goto = (item: NavionicsDetail) => {
     onclick: (event) => {
       const { lat, lon } = item.position;
       position.xyz = {
-        x: lon2x(lon * Math.PI / 180),
-        y: lat2y(lat * Math.PI / 180),
+        x: lon2x(lon),
+        y: lat2y(lat),
       };
       redraw('goto');
       event.stopPropagation();

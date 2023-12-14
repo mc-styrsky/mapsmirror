@@ -1,5 +1,5 @@
-import { position } from './globals/position';
 import { Marker } from './globals/marker';
+import { position } from './globals/position';
 import { updateInfoBox } from './updateInfoBox';
 
 let geolocationBlocked = false;

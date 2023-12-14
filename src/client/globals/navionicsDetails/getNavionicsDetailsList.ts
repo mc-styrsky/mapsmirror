@@ -4,6 +4,7 @@ import { extractProperties } from '../../../common/extractProperties';
 import { updateInfoBox } from '../../updateInfoBox';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
+import { px2nm } from '../../utils/px2nm';
 import { settings } from '../settings';
 import { tileSize } from '../tileSize';
 
@@ -40,8 +41,7 @@ export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
     let done = 0;
     await points
     .sort((a, b) => a.radius - b.radius)
-    .reduce(async (prom, { dx, dy, radius }) => {
-      console.log({ radius });
+    .reduce(async (prom, { dx, dy }) => {
       const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`, { signal })
       .then(
         async (res) => {
@@ -63,15 +63,15 @@ export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
               id: String,
               name: String,
               position: ({ lat, lon }) => ({
-                lat: Number(lat),
-                lon: Number(lon),
+                lat: Number(lat) * Math.PI / 180,
+                lon: Number(lon) * Math.PI / 180,
                 x: lon2x(Number(lon) * Math.PI / 180),
                 y: lat2y(Number(lat) * Math.PI / 180),
               }),
             });
             const pdx = position.x - x;
             const pdy = position.y - y;
-            const distance = Math.sqrt(pdx * pdx + pdy * pdy);
+            const distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(position.lat);
             parent.add({
               category_id,
               details,

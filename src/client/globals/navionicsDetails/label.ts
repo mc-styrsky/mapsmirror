@@ -10,7 +10,17 @@ export const label = (item: NavionicsDetail) => createHTMLElement({
         margin: 'auto',
       },
       tag: 'div',
-      zhilds: [item.name],
+      zhilds: [
+        item.name,
+        createHTMLElement({
+          style: {
+            fontSize: '70%',
+            marginLeft: '0.5rem',
+          },
+          tag: 'span',
+          zhilds: [item.distance.toFixed(3), 'nm'],
+        }),
+      ],
     }),
   ],
 });

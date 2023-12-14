@@ -5,8 +5,8 @@ import { position } from './position';
 
 export class Marker {
   constructor ({ id = '', lat, lon, type }: { id?: string; lat: number; lon: number; type: Marker['type']; }) {
-    this.lat = lat * Math.PI / 180;
-    this.lon = lon * Math.PI / 180;
+    this.lat = lat;
+    this.lon = lon;
     this.type = type;
     this.id = id;
     position.markers.set(type, this);

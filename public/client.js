@@ -1641,6 +1641,7 @@ var imagesToFetch = new ImagesToFetch();
 // src/client/utils/px2nm.ts
 var px2nm = (lat) => {
   const stretch = 1 / Math.cos(lat);
+  console.log({ stretch });
   return 360 * 60 / position.tiles / tileSize / stretch;
 };
 
@@ -1748,8 +1749,7 @@ var getNavionicsDetailsList = async ({ parent, x, y, z }) => {
       }
     }
     let done = 0;
-    await points.sort((a, b) => a.radius - b.radius).reduce(async (prom, { dx, dy, radius }) => {
-      console.log({ radius });
+    await points.sort((a, b) => a.radius - b.radius).reduce(async (prom, { dx, dy }) => {
       const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`, { signal }).then(
         async (res) => {
           if (!res.ok)
@@ -1778,15 +1778,15 @@ var getNavionicsDetailsList = async ({ parent, x, y, z }) => {
               id: String,
               name: String,
               position: ({ lat, lon }) => ({
-                lat: Number(lat),
-                lon: Number(lon),
+                lat: Number(lat) * Math.PI / 180,
+                lon: Number(lon) * Math.PI / 180,
                 x: lon2x(Number(lon) * Math.PI / 180),
                 y: lat2y(Number(lat) * Math.PI / 180)
               })
             });
             const pdx = position2.x - x;
             const pdy = position2.y - y;
-            const distance = Math.sqrt(pdx * pdx + pdy * pdy);
+            const distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(position2.lat);
             parent.add({
               category_id,
               details,
@@ -1840,8 +1840,8 @@ var getNavionicsDetailsList = async ({ parent, x, y, z }) => {
 // src/client/globals/marker.ts
 var Marker = class {
   constructor({ id = "", lat, lon, type }) {
-    this.lat = lat * Math.PI / 180;
-    this.lon = lon * Math.PI / 180;
+    this.lat = lat;
+    this.lon = lon;
     this.type = type;
     this.id = id;
     position.markers.set(type, this);
@@ -1868,8 +1868,8 @@ var goto = (item) => {
       onclick: (event) => {
         const { lat, lon } = item.position;
         position.xyz = {
-          x: lon2x(lon * Math.PI / 180),
-          y: lat2y(lat * Math.PI / 180)
+          x: lon2x(lon),
+          y: lat2y(lat)
         };
         redraw("goto");
         event.stopPropagation();
@@ -1947,7 +1947,17 @@ var label = (item) => createHTMLElement({
         margin: "auto"
       },
       tag: "div",
-      zhilds: [item.name]
+      zhilds: [
+        item.name,
+        createHTMLElement({
+          style: {
+            fontSize: "70%",
+            marginLeft: "0.5rem"
+          },
+          tag: "span",
+          zhilds: [item.distance.toFixed(3), "nm"]
+        })
+      ]
     })
   ]
 });
