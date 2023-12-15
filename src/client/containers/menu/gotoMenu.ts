@@ -1,5 +1,7 @@
 import { createHTMLElement } from '../../utils/createHTMLElement';
-import { form } from './goto/form';
+import { addressContainer } from './goto/address/container';
+import { coordForm } from './goto/coord/form';
+import { savedPositions } from './goto/savedPositions';
 
 
 export const gotoMenu = createHTMLElement({
@@ -15,6 +17,15 @@ export const gotoMenu = createHTMLElement({
       tag: 'a',
       zhilds: ['Goto'],
     }),
-    form,
+    createHTMLElement({
+      classes: ['dropdown-menu', 'p-2'],
+      tag: 'div',
+      zhilds: [
+        coordForm,
+        addressContainer,
+        savedPositions,
+
+      ],
+    }),
   ],
 });

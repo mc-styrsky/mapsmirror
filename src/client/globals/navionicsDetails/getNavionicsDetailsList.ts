@@ -2,6 +2,7 @@ import type { XYZ } from '../../../common/types/xyz';
 import type { NavionicsDetails } from '../navionicsDetails';
 import { extractProperties } from '../../../common/extractProperties';
 import { updateInfoBox } from '../../updateInfoBox';
+import { deg2rad } from '../../utils/deg2rad';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
 import { px2nm } from '../../utils/px2nm';
@@ -43,73 +44,68 @@ export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
     .sort((a, b) => a.radius - b.radius)
     .reduce(async (prom, { dx, dy }) => {
       const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`, { signal })
-      .then(
-        async (res) => {
-          if (!res.ok) return;
-          const body = await res.json();
-          await Promise.all((body.items ?? []).map(async (item: Record<string, any>) => {
-            if (listMap.has(item.id)) return;
-            if ([
-              'depth_area',
-              'depth_contour',
-            ].includes(item.category_id)) return;
-            listMap.set(item.id, item);
-            const {
-              category_id, details, icon_id, id, name, position,
-            } = extractProperties(item, {
-              category_id: String,
-              details: Boolean,
-              icon_id: String,
-              id: String,
-              name: String,
-              position: ({ lat, lon }) => ({
-                lat: Number(lat) * Math.PI / 180,
-                lon: Number(lon) * Math.PI / 180,
-                x: lon2x(Number(lon) * Math.PI / 180),
-                y: lat2y(Number(lat) * Math.PI / 180),
-              }),
-            });
-            const pdx = position.x - x;
-            const pdy = position.y - y;
-            const distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(position.lat);
+      .then(async (res) => {
+        if (!res.ok) return;
+        const body = await res.json();
+        await Promise.all((body.items ?? []).map(async (item: Record<string, any>) => {
+          if (listMap.has(item.id)) return;
+          if ([
+            'depth_area',
+            'depth_contour',
+          ].includes(item.category_id)) return;
+          listMap.set(item.id, item);
+          const {
+            category_id, details, icon_id, id, name, position,
+          } = extractProperties(item, {
+            category_id: String,
+            details: Boolean,
+            icon_id: String,
+            id: String,
+            name: String,
+            position: ({ lat, lon }) => ({
+              lat: deg2rad(lat),
+              lon: deg2rad(lon),
+              x: lon2x(deg2rad(lon)),
+              y: lat2y(deg2rad(lat)),
+            }),
+          });
+          const pdx = position.x - x;
+          const pdy = position.y - y;
+          const distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(position.lat);
+          parent.add({
+            category_id,
+            details,
+            distance,
+            icon_id,
+            id,
+            name,
+            position,
+          });
+          if (item.details) {
+            const { label, properties } = extractProperties(
+              await fetch(`/navionics/objectinfo/${item.id}`, { signal })
+              .then(async (res) => res.ok ? await res.json() : {})
+              .catch(() => {}),
+              {
+                label: String,
+                properties: (val) => val?.map(({ label }) => label)?.filter(Boolean),
+              },
+            );
             parent.add({
               category_id,
               details,
               distance,
               icon_id,
               id,
+              label,
               name,
               position,
+              properties,
             });
-            if (item.details) {
-              const { label, properties } = extractProperties(
-                await fetch(`/navionics/objectinfo/${item.id}`, { signal })
-                .then(
-                  async (res) => res.ok ? await res.json() : {},
-                  () => { },
-                ),
-                {
-                  label: String,
-                  properties: (val) => val?.map(({ label }) => label)?.filter(Boolean),
-                },
-              );
-              parent.add({
-                category_id,
-                details,
-                distance,
-                icon_id,
-                id,
-                label,
-                name,
-                position,
-                properties,
-              });
-            }
-          }));
-        },
-        rej => console.error(rej),
-
-      );
+          }
+        }));
+      })
+      .catch(rej => console.error(rej));
       await ret;
       done++;
       parent.fetchProgress = `${done}/${points.length}`;

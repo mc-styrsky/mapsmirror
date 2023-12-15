@@ -1,6 +1,7 @@
 import { Marker } from './globals/marker';
 import { position } from './globals/position';
 import { updateInfoBox } from './updateInfoBox';
+import { deg2rad } from './utils/deg2rad';
 
 let geolocationBlocked = false;
 export const updateGeoLocation = async () => {
@@ -20,8 +21,8 @@ export const updateGeoLocation = async () => {
     const { accuracy, latitude, longitude } = pos.coords;
     position.user = {
       accuracy,
-      latitude: latitude * Math.PI / 180,
-      longitude: longitude * Math.PI / 180,
+      latitude: deg2rad(latitude),
+      longitude: deg2rad(longitude),
       timestamp: pos.timestamp,
     };
     new Marker({

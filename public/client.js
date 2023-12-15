@@ -41,7 +41,7 @@ var require_parse = __commonJS({
       t: "	"
     };
     var text;
-    function error2(m) {
+    function error(m) {
       throw {
         name: "SyntaxError",
         message: m,
@@ -51,7 +51,7 @@ var require_parse = __commonJS({
     }
     function next(c) {
       if (c && c !== ch) {
-        error2("Expected '" + c + "' instead of '" + ch + "'");
+        error("Expected '" + c + "' instead of '" + ch + "'");
       }
       ch = text.charAt(at);
       at += 1;
@@ -88,7 +88,7 @@ var require_parse = __commonJS({
       }
       num = Number(str);
       if (!isFinite(num)) {
-        error2("Bad number");
+        error("Bad number");
       }
       return num;
     }
@@ -124,7 +124,7 @@ var require_parse = __commonJS({
           }
         }
       }
-      error2("Bad string");
+      error("Bad string");
     }
     function white() {
       while (ch && ch <= " ") {
@@ -153,7 +153,7 @@ var require_parse = __commonJS({
           next("l");
           return null;
         default:
-          error2("Unexpected '" + ch + "'");
+          error("Unexpected '" + ch + "'");
       }
     }
     function array() {
@@ -176,7 +176,7 @@ var require_parse = __commonJS({
           white();
         }
       }
-      error2("Bad array");
+      error("Bad array");
     }
     function object() {
       var key;
@@ -193,7 +193,7 @@ var require_parse = __commonJS({
           white();
           next(":");
           if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            error2('Duplicate key "' + key + '"');
+            error('Duplicate key "' + key + '"');
           }
           obj[key] = value();
           white();
@@ -205,7 +205,7 @@ var require_parse = __commonJS({
           white();
         }
       }
-      error2("Bad object");
+      error("Bad object");
     }
     function value() {
       white();
@@ -230,7 +230,7 @@ var require_parse = __commonJS({
       result = value();
       white();
       if (ch) {
-        error2("Syntax error");
+        error("Syntax error");
       }
       return typeof reviver === "function" ? function walk(holder, key) {
         var k;
@@ -1641,7 +1641,6 @@ var imagesToFetch = new ImagesToFetch();
 // src/client/utils/px2nm.ts
 var px2nm = (lat) => {
   const stretch = 1 / Math.cos(lat);
-  console.log({ stretch });
   return 360 * 60 / position.tiles / tileSize / stretch;
 };
 
@@ -1715,6 +1714,9 @@ var updateInfoBox = () => {
   infoBox.append(...imagesToFetch.stateHtml());
 };
 
+// src/client/utils/deg2rad.ts
+var deg2rad = (val) => Number(val) * Math.PI / 180;
+
 // src/client/utils/lon2x.ts
 var lon2x = (lon, tiles = position.tiles) => (lon / Math.PI / 2 + 0.5) * tiles;
 
@@ -1750,80 +1752,74 @@ var getNavionicsDetailsList = async ({ parent, x, y, z }) => {
     }
     let done = 0;
     await points.sort((a, b) => a.radius - b.radius).reduce(async (prom, { dx, dy }) => {
-      const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`, { signal }).then(
-        async (res) => {
-          if (!res.ok)
+      const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`, { signal }).then(async (res) => {
+        if (!res.ok)
+          return;
+        const body = await res.json();
+        await Promise.all((body.items ?? []).map(async (item) => {
+          if (listMap.has(item.id))
             return;
-          const body = await res.json();
-          await Promise.all((body.items ?? []).map(async (item) => {
-            if (listMap.has(item.id))
-              return;
-            if ([
-              "depth_area",
-              "depth_contour"
-            ].includes(item.category_id))
-              return;
-            listMap.set(item.id, item);
-            const {
-              category_id,
-              details,
-              icon_id,
-              id,
-              name,
-              position: position2
-            } = extractProperties(item, {
-              category_id: String,
-              details: Boolean,
-              icon_id: String,
-              id: String,
-              name: String,
-              position: ({ lat, lon }) => ({
-                lat: Number(lat) * Math.PI / 180,
-                lon: Number(lon) * Math.PI / 180,
-                x: lon2x(Number(lon) * Math.PI / 180),
-                y: lat2y(Number(lat) * Math.PI / 180)
-              })
-            });
-            const pdx = position2.x - x;
-            const pdy = position2.y - y;
-            const distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(position2.lat);
+          if ([
+            "depth_area",
+            "depth_contour"
+          ].includes(item.category_id))
+            return;
+          listMap.set(item.id, item);
+          const {
+            category_id,
+            details,
+            icon_id,
+            id,
+            name,
+            position: position2
+          } = extractProperties(item, {
+            category_id: String,
+            details: Boolean,
+            icon_id: String,
+            id: String,
+            name: String,
+            position: ({ lat, lon }) => ({
+              lat: deg2rad(lat),
+              lon: deg2rad(lon),
+              x: lon2x(deg2rad(lon)),
+              y: lat2y(deg2rad(lat))
+            })
+          });
+          const pdx = position2.x - x;
+          const pdy = position2.y - y;
+          const distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(position2.lat);
+          parent.add({
+            category_id,
+            details,
+            distance,
+            icon_id,
+            id,
+            name,
+            position: position2
+          });
+          if (item.details) {
+            const { label: label2, properties } = extractProperties(
+              await fetch(`/navionics/objectinfo/${item.id}`, { signal }).then(async (res2) => res2.ok ? await res2.json() : {}).catch(() => {
+              }),
+              {
+                label: String,
+                properties: (val) => val?.map(({ label: label3 }) => label3)?.filter(Boolean)
+              }
+            );
             parent.add({
               category_id,
               details,
               distance,
               icon_id,
               id,
+              label: label2,
               name,
-              position: position2
+              position: position2,
+              properties
             });
-            if (item.details) {
-              const { label: label2, properties } = extractProperties(
-                await fetch(`/navionics/objectinfo/${item.id}`, { signal }).then(
-                  async (res2) => res2.ok ? await res2.json() : {},
-                  () => {
-                  }
-                ),
-                {
-                  label: String,
-                  properties: (val) => val?.map(({ label: label3 }) => label3)?.filter(Boolean)
-                }
-              );
-              parent.add({
-                category_id,
-                details,
-                distance,
-                icon_id,
-                id,
-                label: label2,
-                name,
-                position: position2,
-                properties
-              });
-            }
-          }));
-        },
-        (rej) => console.error(rej)
-      );
+          }
+        }));
+      }).catch((rej) => console.error(rej));
       await ret;
       done++;
       parent.fetchProgress = `${done}/${points.length}`;
@@ -3080,28 +3076,131 @@ var crosshairToggle = iconButton({
   src: "bootstrap-icons-1.11.2/crosshair.svg"
 });
 
-// src/client/containers/menu/goto/form.ts
-var import_parse_dms2 = __toESM(require_parse_dms(), 1);
-
-// src/client/containers/menu/goto/error.ts
-var error = createHTMLElement({
-  classes: ["form-text"],
+// src/client/containers/menu/goto/address/searchContainer.ts
+var addressSearchContainer = createHTMLElement({
+  classes: ["dropdown-menu"],
   tag: "div"
 });
 
-// src/client/containers/menu/goto/gotoInput.ts
-var import_parse_dms = __toESM(require_parse_dms(), 1);
+// src/client/containers/menu/goto/address/input.ts
+var addressQueue = new StyQueue(1);
+var addressInput = createHTMLElement({
+  autocomplete: "off",
+  classes: ["form-control"],
+  oninput: async () => {
+    const { value } = addressInput;
+    while (addressQueue.shift())
+      ;
+    const valid = Boolean(value) && await addressQueue.enqueue(() => {
+      return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${addressInput.value}`).then(async (res) => {
+        if (!res.ok)
+          return false;
+        const items = await res.json();
+        if (!Array.isArray(items))
+          return false;
+        if (items.length === 0)
+          return false;
+        if (value !== addressInput.value)
+          return false;
+        const zhilds = items.sort((a, b) => b.importance - a.importance).map((item, idx) => {
+          const { boundingbox, display_name: displayName, lat, lon } = extractProperties(item, {
+            boundingbox: (val) => Array.isArray(val) ? val.map(deg2rad) : [],
+            display_name: String,
+            lat: deg2rad,
+            lon: deg2rad
+          });
+          const [lat1 = lat, lat2 = lat, lon1 = lon, lon2 = lon] = boundingbox;
+          const z = (() => {
+            if (Math.abs(lat2 - lat1) > 0 && Math.abs(lon2 - lon1) > 0) {
+              const diffX = Math.abs(lon2x(lon2, 1) - lon2x(lon1, 1));
+              const diffY = Math.abs(lat2y(lon2, 1) - lat2y(lon1, 1));
+              const zoom = 1 / Math.max(diffX, diffY);
+              return Math.max(2, Math.min(Math.ceil(Math.log2(zoom)), 17));
+            }
+            return position.z;
+          })();
+          const onclick = () => {
+            addressInput.placeholder = value;
+            addressInput.value = "";
+            addressSearchContainer.classList.remove("show");
+            position.xyz = {
+              x: lon2x(lon, 1 << z),
+              y: lat2y(lat, 1 << z),
+              z
+            };
+            redraw("goto address");
+          };
+          if (idx === 0)
+            addressForm.onsubmit = onclick;
+          return createHTMLElement({
+            classes: ["list-group-item"],
+            onclick,
+            role: "button",
+            tag: "a",
+            zhilds: [displayName, ` (${z})`]
+          });
+        });
+        addressSearchContainer.innerHTML = "";
+        addressSearchContainer.append(createHTMLElement({
+          classes: ["list-group", "list-group-flush"],
+          tag: "div",
+          zhilds
+        }));
+        return true;
+      }).catch(() => false);
+    });
+    if (valid) {
+      addressSearchContainer.classList.add("show");
+    } else {
+      addressSearchContainer.classList.remove("show");
+      addressSearchContainer.innerHTML = "";
+    }
+  },
+  placeholder: "Address",
+  tag: "input",
+  type: "text"
+});
 
-// src/client/globals/coordUnits.ts
-var coordUnits = ["d", "dm", "dms"];
+// src/client/containers/menu/goto/address/form.ts
+var addressForm = createHTMLElement({
+  action: "javascript:void(0)",
+  classes: ["m-0"],
+  style: {
+    minWidth: "20em"
+  },
+  tag: "form",
+  zhilds: [addressInput]
+});
+
+// src/client/containers/menu/goto/address/container.ts
+var addressContainer = createHTMLElement({
+  classes: ["dropdown"],
+  tag: "div",
+  zhilds: [
+    addressForm,
+    addressSearchContainer
+  ]
+});
+
+// src/client/containers/menu/goto/coord/form.ts
+var import_parse_dms2 = __toESM(require_parse_dms(), 1);
+
+// src/client/containers/menu/goto/coord/error.ts
+var coordError = createHTMLElement({
+  classes: ["form-text"],
+  tag: "div"
+});
 
 // src/common/fromEntriesTyped.ts
 function fromEntriesTyped(entries) {
   return Object.fromEntries(entries);
 }
 
-// src/client/containers/menu/goto/info.ts
-var info = fromEntriesTyped(
+// src/client/globals/coordUnits.ts
+var coordUnits = ["d", "dm", "dms"];
+
+// src/client/containers/menu/goto/coord/info.ts
+var coordInfo = fromEntriesTyped(
   coordUnits.map((c) => [
     c,
     createHTMLElement({
@@ -3114,36 +3213,89 @@ var info = fromEntriesTyped(
   ])
 );
 
-// src/client/containers/menu/goto/gotoInput.ts
-var gotoInput = createHTMLElement({
+// src/client/containers/menu/goto/coord/input.ts
+var import_parse_dms = __toESM(require_parse_dms(), 1);
+
+// src/client/containers/menu/goto/coord/submit.ts
+var coordSubmit = iconButton({
+  onclick: () => coordForm.submit(),
+  src: "/bootstrap-icons-1.11.2/arrow-right-circle.svg"
+});
+
+// src/client/containers/menu/goto/coord/input.ts
+var coordInput = createHTMLElement({
   autocomplete: "off",
   classes: ["form-control"],
   oninput: () => {
     console.log("oninput");
     coordUnits.forEach((u) => {
-      info[u].style.display = "none";
+      coordInfo[u].style.display = "none";
     });
     try {
-      const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms.default)(gotoInput.value);
+      if (!coordInput.value)
+        coordSubmit.classList.add("disabled");
+      const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms.default)(coordInput.value);
       const { lat, lon } = {
-        lat: latDeg * Math.PI / 180,
-        lon: lonDeg * Math.PI / 180
+        lat: deg2rad(latDeg),
+        lon: deg2rad(lonDeg)
       };
-      if (typeof latDeg === "number" && typeof lonDeg === "number")
+      if (typeof latDeg === "number" && typeof lonDeg === "number") {
         coordUnits.forEach((u) => {
           console.log("update lat/lon");
           const func = rad2degFunctions[u];
-          info[u].innerText = `${func({ axis: "NS", pad: 2, phi: lat })} ${func({ axis: "EW", pad: 3, phi: lon })}`;
-          info[u].style.display = "block";
-          error.style.display = "none";
+          coordInfo[u].innerText = `${func({ axis: "NS", pad: 2, phi: lat })} ${func({ axis: "EW", pad: 3, phi: lon })}`;
+          coordInfo[u].style.display = "block";
+          coordError.style.display = "none";
+          coordSubmit.classList.remove("disabled");
         });
+      }
     } catch (e) {
-      error.innerText = e.toString();
-      error.style.display = "block";
+      coordError.innerText = e.toString();
+      coordError.style.display = "block";
+      coordSubmit.classList.add("disabled");
     }
   },
+  placeholder: "Coordinates",
   tag: "input",
   type: "text"
+});
+
+// src/client/containers/menu/goto/coord/form.ts
+var coordForm = createHTMLElement({
+  action: "javascript:void(0)",
+  classes: ["m-0"],
+  onsubmit: () => {
+    const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms2.default)(coordInput.value);
+    const { lat, lon } = {
+      lat: deg2rad(latDeg),
+      lon: deg2rad(lonDeg)
+    };
+    if (typeof latDeg === "number" && typeof lonDeg === "number") {
+      position.xyz = {
+        x: lon2x(lon),
+        y: lat2y(lat)
+      };
+    }
+    redraw("goto");
+  },
+  style: {
+    minWidth: "20em"
+  },
+  tag: "form",
+  zhilds: [
+    createHTMLElement({
+      classes: ["input-group"],
+      tag: "div",
+      zhilds: [
+        coordInput,
+        coordSubmit
+      ]
+    }),
+    coordError,
+    coordInfo.d,
+    coordInfo.dm,
+    coordInfo.dms
+  ]
 });
 
 // src/client/utils/savedPositionsFromLocalStoreage.ts
@@ -3226,53 +3378,6 @@ var savedPositions = createHTMLElement({
 });
 updateSavedPositionsList();
 
-// src/client/containers/menu/goto/submit.ts
-var submit = createHTMLElement({
-  classes: ["btn", "btn-primary"],
-  tag: "button",
-  type: "submit",
-  zhilds: ["Goto"]
-});
-
-// src/client/containers/menu/goto/form.ts
-var form = createHTMLElement({
-  action: "javascript:void(0)",
-  classes: ["dropdown-menu", "p-2"],
-  onsubmit: () => {
-    const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms2.default)(gotoInput.value);
-    const { lat, lon } = {
-      lat: latDeg * Math.PI / 180,
-      lon: lonDeg * Math.PI / 180
-    };
-    if (latDeg && lonDeg) {
-      position.xyz = {
-        x: lon2x(lon),
-        y: lat2y(lat)
-      };
-    }
-    redraw("goto");
-  },
-  style: {
-    minWidth: "20em"
-  },
-  tag: "form",
-  zhilds: [
-    createHTMLElement({
-      classes: ["input-group"],
-      tag: "div",
-      zhilds: [
-        gotoInput,
-        submit
-      ]
-    }),
-    error,
-    info.d,
-    info.dm,
-    info.dms,
-    savedPositions
-  ]
-});
-
 // src/client/containers/menu/gotoMenu.ts
 var gotoMenu = createHTMLElement({
   classes: ["dropdown"],
@@ -3287,7 +3392,15 @@ var gotoMenu = createHTMLElement({
       tag: "a",
       zhilds: ["Goto"]
     }),
-    form
+    createHTMLElement({
+      classes: ["dropdown-menu", "p-2"],
+      tag: "div",
+      zhilds: [
+        coordForm,
+        addressContainer,
+        savedPositions
+      ]
+    })
   ]
 });
 
@@ -3372,8 +3485,8 @@ var updateGeoLocation = async () => {
     const { accuracy, latitude, longitude } = pos.coords;
     position.user = {
       accuracy,
-      latitude: latitude * Math.PI / 180,
-      longitude: longitude * Math.PI / 180,
+      latitude: deg2rad(latitude),
+      longitude: deg2rad(longitude),
       timestamp: pos.timestamp
     };
     new Marker({
