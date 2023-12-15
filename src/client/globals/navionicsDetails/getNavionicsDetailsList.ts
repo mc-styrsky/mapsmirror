@@ -1,7 +1,7 @@
 import type { XYZ } from '../../../common/types/xyz';
 import type { NavionicsDetails } from '../navionicsDetails';
 import { extractProperties } from '../../../common/extractProperties';
-import { updateInfoBox } from '../../updateInfoBox';
+import { updateInfoBox } from '../../containers/infoBox/updateInfoBox';
 import { deg2rad } from '../../utils/deg2rad';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';

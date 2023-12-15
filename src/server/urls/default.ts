@@ -1,9 +1,7 @@
 import type { XYZ } from '../../common/types/xyz';
 import type express from 'express';
-import type { RequestInit } from 'node-fetch';
 import { createWriteStream } from 'fs';
 import { mkdir, stat, unlink } from 'fs/promises';
-import fetch from 'node-fetch';
 import { pwd, queues } from '../index';
 import { getTileParams } from '../utils/getTileParams';
 import { worthItMinMax } from '../utils/worthit';
@@ -62,7 +60,7 @@ export class XYZ2Url {
     .then(async (response) => {
       queues.fetched++;
       if (response.status === 200) return {
-        body: response.body,
+        body: response.body as unknown as NodeJS.ReadableStream,
         status: response.status,
       };
       if (response.status === 404) {
@@ -152,7 +150,7 @@ export class XYZ2Url {
       });
 
       if (imageStream.body) {
-        const writeImageStream = createWriteStream(filename);
+        const writeImageStream = createWriteStream(filename, { autoClose: true });
         writeImageStream.addListener('finish', () => {
           if (this.quiet) res?.sendStatus(200);
           else res?.sendFile(filename);

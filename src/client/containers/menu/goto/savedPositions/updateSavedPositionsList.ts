@@ -4,7 +4,7 @@ import { position } from '../../../../globals/position';
 import { tileSize } from '../../../../globals/tileSize';
 import { redraw } from '../../../../redraw';
 import { createHTMLElement } from '../../../../utils/createHTMLElement';
-import { rad2deg } from '../../../../utils/rad2deg';
+import { rad2string } from '../../../../utils/rad2string';
 import { savedPositionsFromLocalStoreage } from '../../../../utils/savedPositionsFromLocalStoreage';
 import { x2lon } from '../../../../utils/x2lon';
 import { y2lat } from '../../../../utils/y2lat';
@@ -37,8 +37,8 @@ export const updateSavedPositionsList = () => {
           role: 'button',
           tag: 'a',
           zhilds: [[
-            rad2deg({ axis: 'NS', pad: 2, phi: y2lat(y, 1 << z) }),
-            rad2deg({ axis: 'EW', pad: 3, phi: x2lon(x, 1 << z) }),
+            rad2string({ axis: 'NS', pad: 2, phi: y2lat(y, 1 << z) }),
+            rad2string({ axis: 'EW', pad: 3, phi: x2lon(x, 1 << z) }),
             `(${z})`,
           ].join(' ')],
         }),

@@ -1,10 +1,10 @@
+import { updateInfoBox } from './containers/infoBox/updateInfoBox';
 import { Marker } from './globals/marker';
 import { position } from './globals/position';
-import { updateInfoBox } from './updateInfoBox';
 import { deg2rad } from './utils/deg2rad';
 
 let geolocationBlocked = false;
-export const updateGeoLocation = async () => {
+export const updateUserLocation = async () => {
   if (geolocationBlocked) return position.user;
   await new Promise((resolve: PositionCallback, reject: PositionErrorCallback) => {
     return navigator.geolocation.getCurrentPosition(

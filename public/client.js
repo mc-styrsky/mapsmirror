@@ -1167,7 +1167,7 @@ var require_set_function_length = __commonJS({
   "node_modules/set-function-length/index.js"(exports, module) {
     "use strict";
     var GetIntrinsic = require_get_intrinsic();
-    var define = require_define_data_property();
+    var define2 = require_define_data_property();
     var hasDescriptors = require_has_property_descriptors()();
     var gOPD = require_gopd();
     var $TypeError = GetIntrinsic("%TypeError%");
@@ -1193,9 +1193,9 @@ var require_set_function_length = __commonJS({
       }
       if (functionLengthIsConfigurable || functionLengthIsWritable || !loose) {
         if (hasDescriptors) {
-          define(fn, "length", length, true, true);
+          define2(fn, "length", length, true, true);
         } else {
-          define(fn, "length", length);
+          define2(fn, "length", length);
         }
       }
       return fn;
@@ -1337,6 +1337,201 @@ var require_json_stable_stringify = __commonJS({
   }
 });
 
+// node_modules/suncalc/suncalc.js
+var require_suncalc = __commonJS({
+  "node_modules/suncalc/suncalc.js"(exports, module) {
+    (function() {
+      "use strict";
+      var PI = Math.PI, sin = Math.sin, cos = Math.cos, tan = Math.tan, asin = Math.asin, atan = Math.atan2, acos = Math.acos, rad = PI / 180;
+      var dayMs = 1e3 * 60 * 60 * 24, J1970 = 2440588, J2000 = 2451545;
+      function toJulian(date) {
+        return date.valueOf() / dayMs - 0.5 + J1970;
+      }
+      function fromJulian(j) {
+        return new Date((j + 0.5 - J1970) * dayMs);
+      }
+      function toDays(date) {
+        return toJulian(date) - J2000;
+      }
+      var e = rad * 23.4397;
+      function rightAscension(l, b) {
+        return atan(sin(l) * cos(e) - tan(b) * sin(e), cos(l));
+      }
+      function declination(l, b) {
+        return asin(sin(b) * cos(e) + cos(b) * sin(e) * sin(l));
+      }
+      function azimuth(H, phi, dec) {
+        return atan(sin(H), cos(H) * sin(phi) - tan(dec) * cos(phi));
+      }
+      function altitude(H, phi, dec) {
+        return asin(sin(phi) * sin(dec) + cos(phi) * cos(dec) * cos(H));
+      }
+      function siderealTime(d, lw) {
+        return rad * (280.16 + 360.9856235 * d) - lw;
+      }
+      function astroRefraction(h) {
+        if (h < 0)
+          h = 0;
+        return 2967e-7 / Math.tan(h + 312536e-8 / (h + 0.08901179));
+      }
+      function solarMeanAnomaly(d) {
+        return rad * (357.5291 + 0.98560028 * d);
+      }
+      function eclipticLongitude(M) {
+        var C = rad * (1.9148 * sin(M) + 0.02 * sin(2 * M) + 3e-4 * sin(3 * M)), P = rad * 102.9372;
+        return M + C + P + PI;
+      }
+      function sunCoords(d) {
+        var M = solarMeanAnomaly(d), L = eclipticLongitude(M);
+        return {
+          dec: declination(L, 0),
+          ra: rightAscension(L, 0)
+        };
+      }
+      var SunCalc = {};
+      SunCalc.getPosition = function(date, lat, lng) {
+        var lw = rad * -lng, phi = rad * lat, d = toDays(date), c = sunCoords(d), H = siderealTime(d, lw) - c.ra;
+        return {
+          azimuth: azimuth(H, phi, c.dec),
+          altitude: altitude(H, phi, c.dec)
+        };
+      };
+      var times = SunCalc.times = [
+        [-0.833, "sunrise", "sunset"],
+        [-0.3, "sunriseEnd", "sunsetStart"],
+        [-6, "dawn", "dusk"],
+        [-12, "nauticalDawn", "nauticalDusk"],
+        [-18, "nightEnd", "night"],
+        [6, "goldenHourEnd", "goldenHour"]
+      ];
+      SunCalc.addTime = function(angle, riseName, setName) {
+        times.push([angle, riseName, setName]);
+      };
+      var J0 = 9e-4;
+      function julianCycle(d, lw) {
+        return Math.round(d - J0 - lw / (2 * PI));
+      }
+      function approxTransit(Ht, lw, n) {
+        return J0 + (Ht + lw) / (2 * PI) + n;
+      }
+      function solarTransitJ(ds, M, L) {
+        return J2000 + ds + 53e-4 * sin(M) - 69e-4 * sin(2 * L);
+      }
+      function hourAngle(h, phi, d) {
+        return acos((sin(h) - sin(phi) * sin(d)) / (cos(phi) * cos(d)));
+      }
+      function observerAngle(height) {
+        return -2.076 * Math.sqrt(height) / 60;
+      }
+      function getSetJ(h, lw, phi, dec, n, M, L) {
+        var w = hourAngle(h, phi, dec), a = approxTransit(w, lw, n);
+        return solarTransitJ(a, M, L);
+      }
+      SunCalc.getTimes = function(date, lat, lng, height) {
+        height = height || 0;
+        var lw = rad * -lng, phi = rad * lat, dh = observerAngle(height), d = toDays(date), n = julianCycle(d, lw), ds = approxTransit(0, lw, n), M = solarMeanAnomaly(ds), L = eclipticLongitude(M), dec = declination(L, 0), Jnoon = solarTransitJ(ds, M, L), i, len, time, h0, Jset, Jrise;
+        var result = {
+          solarNoon: fromJulian(Jnoon),
+          nadir: fromJulian(Jnoon - 0.5)
+        };
+        for (i = 0, len = times.length; i < len; i += 1) {
+          time = times[i];
+          h0 = (time[0] + dh) * rad;
+          Jset = getSetJ(h0, lw, phi, dec, n, M, L);
+          Jrise = Jnoon - (Jset - Jnoon);
+          result[time[1]] = fromJulian(Jrise);
+          result[time[2]] = fromJulian(Jset);
+        }
+        return result;
+      };
+      function moonCoords(d) {
+        var L = rad * (218.316 + 13.176396 * d), M = rad * (134.963 + 13.064993 * d), F = rad * (93.272 + 13.22935 * d), l = L + rad * 6.289 * sin(M), b = rad * 5.128 * sin(F), dt = 385001 - 20905 * cos(M);
+        return {
+          ra: rightAscension(l, b),
+          dec: declination(l, b),
+          dist: dt
+        };
+      }
+      SunCalc.getMoonPosition = function(date, lat, lng) {
+        var lw = rad * -lng, phi = rad * lat, d = toDays(date), c = moonCoords(d), H = siderealTime(d, lw) - c.ra, h = altitude(H, phi, c.dec), pa = atan(sin(H), tan(phi) * cos(c.dec) - sin(c.dec) * cos(H));
+        h = h + astroRefraction(h);
+        return {
+          azimuth: azimuth(H, phi, c.dec),
+          altitude: h,
+          distance: c.dist,
+          parallacticAngle: pa
+        };
+      };
+      SunCalc.getMoonIllumination = function(date) {
+        var d = toDays(date || /* @__PURE__ */ new Date()), s = sunCoords(d), m = moonCoords(d), sdist = 149598e3, phi = acos(sin(s.dec) * sin(m.dec) + cos(s.dec) * cos(m.dec) * cos(s.ra - m.ra)), inc = atan(sdist * sin(phi), m.dist - sdist * cos(phi)), angle = atan(cos(s.dec) * sin(s.ra - m.ra), sin(s.dec) * cos(m.dec) - cos(s.dec) * sin(m.dec) * cos(s.ra - m.ra));
+        return {
+          fraction: (1 + cos(inc)) / 2,
+          phase: 0.5 + 0.5 * inc * (angle < 0 ? -1 : 1) / Math.PI,
+          angle
+        };
+      };
+      function hoursLater(date, h) {
+        return new Date(date.valueOf() + h * dayMs / 24);
+      }
+      SunCalc.getMoonTimes = function(date, lat, lng, inUTC) {
+        var t = new Date(date);
+        if (inUTC)
+          t.setUTCHours(0, 0, 0, 0);
+        else
+          t.setHours(0, 0, 0, 0);
+        var hc = 0.133 * rad, h0 = SunCalc.getMoonPosition(t, lat, lng).altitude - hc, h1, h2, rise, set, a, b, xe, ye, d, roots, x1, x2, dx;
+        for (var i = 1; i <= 24; i += 2) {
+          h1 = SunCalc.getMoonPosition(hoursLater(t, i), lat, lng).altitude - hc;
+          h2 = SunCalc.getMoonPosition(hoursLater(t, i + 1), lat, lng).altitude - hc;
+          a = (h0 + h2) / 2 - h1;
+          b = (h2 - h0) / 2;
+          xe = -b / (2 * a);
+          ye = (a * xe + b) * xe + h1;
+          d = b * b - 4 * a * h1;
+          roots = 0;
+          if (d >= 0) {
+            dx = Math.sqrt(d) / (Math.abs(a) * 2);
+            x1 = xe - dx;
+            x2 = xe + dx;
+            if (Math.abs(x1) <= 1)
+              roots++;
+            if (Math.abs(x2) <= 1)
+              roots++;
+            if (x1 < -1)
+              x1 = x2;
+          }
+          if (roots === 1) {
+            if (h0 < 0)
+              rise = i + x1;
+            else
+              set = i + x1;
+          } else if (roots === 2) {
+            rise = i + (ye < 0 ? x2 : x1);
+            set = i + (ye < 0 ? x1 : x2);
+          }
+          if (rise && set)
+            break;
+          h0 = h2;
+        }
+        var result = {};
+        if (rise)
+          result.rise = hoursLater(t, rise);
+        if (set)
+          result.set = hoursLater(t, set);
+        if (!rise && !set)
+          result[ye > 0 ? "alwaysUp" : "alwaysDown"] = true;
+        return result;
+      };
+      if (typeof exports === "object" && typeof module !== "undefined")
+        module.exports = SunCalc;
+      else if (typeof define === "function" && define.amd)
+        define(SunCalc);
+      else
+        window.SunCalc = SunCalc;
+    })();
+  }
+});
+
 // node_modules/parse-dms/index.js
 var require_parse_dms = __commonJS({
   "node_modules/parse-dms/index.js"(exports, module) {
@@ -1457,6 +1652,7 @@ function createHTMLElement(params) {
     });
   return element;
 }
+var createBr = () => createHTMLElement({ tag: "br" });
 
 // src/client/containers/infoBox.ts
 var infoBox = createHTMLElement({
@@ -1549,6 +1745,51 @@ var modulo = (val, mod) => {
   return ret < 0 ? ret + mod : ret;
 };
 
+// src/client/globals/tileSize.ts
+var tileSize = 256;
+
+// src/client/sphericCircle.ts
+var sphericCircle = (lat, lon, radius, steps = 256) => {
+  const sinRadius = Math.sin(radius);
+  const cosRadius = Math.cos(radius);
+  const sinLat = Math.sin(lat);
+  const cosLat = Math.cos(lat);
+  const pi2 = Math.PI * 2;
+  const points = [];
+  for (let step = 0; step <= steps; step++) {
+    const omega = step / steps * pi2;
+    const { lat2, lon2 } = sphericLatLon({ cosLat, cosRadius, lat, omega, radius, sinLat, sinRadius });
+    if (step === 0)
+      points.push([lat2, lon + Math.abs(lon2), false]);
+    else if (step === steps / 2) {
+      points.push([lat2, lon + Math.abs(lon2), true]);
+      points.push([lat2, lon - Math.abs(lon2), false]);
+    } else if (step === steps)
+      points.push([lat2, lon - Math.abs(lon2), true]);
+    else
+      points.push([lat2, lon + lon2, true]);
+  }
+  return points;
+};
+var sphericLatLon = ({ cosLat, cosRadius, lat, omega, radius, sinLat, sinRadius }) => {
+  sinRadius ??= Math.sin(radius);
+  cosRadius ??= Math.cos(radius);
+  sinLat ??= Math.sin(lat);
+  cosLat ??= Math.cos(lat);
+  const pi2 = 2 * Math.PI;
+  const lonSign = omega - pi2 * Math.floor(omega / pi2) > Math.PI ? -1 : 1;
+  const sinLat2 = Math.max(-1, Math.min(Math.cos(omega) * cosLat * sinRadius + sinLat * cosRadius, 1));
+  const lat2 = Math.asin(sinLat2);
+  const cosLat2 = Math.sqrt(1 - sinLat2 * sinLat2);
+  const cosLon2 = Math.max(-1, Math.min((cosRadius - sinLat * sinLat2) / cosLat / cosLat2, 1));
+  const lon2 = Math.acos(cosLon2) * lonSign;
+  const cosOmega2 = (sinLat - sinLat2 * cosRadius) / (cosLat2 * sinRadius);
+  return { cosOmega2, lat2, lon2 };
+};
+
+// src/client/utils/frac.ts
+var frac = (x) => x - Math.floor(x);
+
 // src/client/globals/mouse.ts
 var mouse = {
   down: {
@@ -1598,10 +1839,49 @@ var StyQueue = class {
   };
 };
 
-// src/client/globals/tileSize.ts
-var tileSize = 256;
+// src/client/utils/px2nm.ts
+var px2nm = (lat) => {
+  const stretch = 1 / Math.cos(lat);
+  return 360 * 60 / position.tiles / tileSize / stretch;
+};
 
-// src/client/utils/imagesToFetch.ts
+// src/client/utils/rad2string.ts
+var rad2ModuloDeg = (phi) => modulo(phi * 180 / Math.PI + 180, 360) - 180;
+var rad2stringFuncs = {
+  d: ({ axis = " -", pad = 0, phi }) => {
+    const deg = Math.round(rad2ModuloDeg(phi) * 1e5) / 1e5;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad + 6, "0")}\xB0`;
+  },
+  dm: ({ axis = " -", pad = 0, phi }) => {
+    const deg = Math.round(rad2ModuloDeg(phi) * 6e4) / 6e4;
+    const degrees = deg | 0;
+    const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}'`;
+  },
+  dms: ({ axis = " -", pad = 0, phi }) => {
+    const deg = Math.round(rad2ModuloDeg(phi) * 36e4) / 36e4;
+    const degrees = deg | 0;
+    const min = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
+    const minutes = min | 0;
+    const seconds = (min - minutes) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}"`;
+  }
+};
+var rad2string = ({ axis = " -", pad = 0, phi }) => rad2stringFuncs[settings.units.coords]({ axis, pad, phi });
+
+// src/common/x2lon.ts
+var x2lonCommon = (x, tiles) => (x / tiles - 0.5) * Math.PI * 2;
+
+// src/client/utils/x2lon.ts
+var x2lon = (x, tiles = position.tiles) => x2lonCommon(x, tiles);
+
+// src/common/y2lat.ts
+var y2latCommon = (y, tiles) => Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
+
+// src/client/utils/y2lat.ts
+var y2lat = (y, tiles = position.tiles) => y2latCommon(y, tiles);
+
+// src/client/containers/infoBox/imagesToFetch.ts
 var ImagesToFetch = class {
   constructor() {
   }
@@ -1638,49 +1918,325 @@ var ImagesToFetch = class {
 };
 var imagesToFetch = new ImagesToFetch();
 
-// src/client/utils/px2nm.ts
-var px2nm = (lat) => {
-  const stretch = 1 / Math.cos(lat);
-  return 360 * 60 / position.tiles / tileSize / stretch;
-};
+// node_modules/@babel/runtime/helpers/esm/typeof.js
+function _typeof(o) {
+  "@babel/helpers - typeof";
+  return _typeof = "function" == typeof Symbol && "symbol" == typeof Symbol.iterator ? function(o2) {
+    return typeof o2;
+  } : function(o2) {
+    return o2 && "function" == typeof Symbol && o2.constructor === Symbol && o2 !== Symbol.prototype ? "symbol" : typeof o2;
+  }, _typeof(o);
+}
+
+// node_modules/date-fns/esm/_lib/toInteger/index.js
+function toInteger(dirtyNumber) {
+  if (dirtyNumber === null || dirtyNumber === true || dirtyNumber === false) {
+    return NaN;
+  }
+  var number = Number(dirtyNumber);
+  if (isNaN(number)) {
+    return number;
+  }
+  return number < 0 ? Math.ceil(number) : Math.floor(number);
+}
+
+// node_modules/date-fns/esm/_lib/requiredArgs/index.js
+function requiredArgs(required, args) {
+  if (args.length < required) {
+    throw new TypeError(required + " argument" + (required > 1 ? "s" : "") + " required, but only " + args.length + " present");
+  }
+}
+
+// node_modules/date-fns/esm/toDate/index.js
+function toDate(argument) {
+  requiredArgs(1, arguments);
+  var argStr = Object.prototype.toString.call(argument);
+  if (argument instanceof Date || _typeof(argument) === "object" && argStr === "[object Date]") {
+    return new Date(argument.getTime());
+  } else if (typeof argument === "number" || argStr === "[object Number]") {
+    return new Date(argument);
+  } else {
+    if ((typeof argument === "string" || argStr === "[object String]") && typeof console !== "undefined") {
+      console.warn("Starting with v2.0.0-beta.1 date-fns doesn't accept strings as date arguments. Please use `parseISO` to parse strings. See: https://github.com/date-fns/date-fns/blob/master/docs/upgradeGuide.md#string-arguments");
+      console.warn(new Error().stack);
+    }
+    return /* @__PURE__ */ new Date(NaN);
+  }
+}
+
+// node_modules/date-fns/esm/addDays/index.js
+function addDays(dirtyDate, dirtyAmount) {
+  requiredArgs(2, arguments);
+  var date = toDate(dirtyDate);
+  var amount = toInteger(dirtyAmount);
+  if (isNaN(amount)) {
+    return /* @__PURE__ */ new Date(NaN);
+  }
+  if (!amount) {
+    return date;
+  }
+  date.setDate(date.getDate() + amount);
+  return date;
+}
+
+// node_modules/date-fns/esm/addMonths/index.js
+function addMonths(dirtyDate, dirtyAmount) {
+  requiredArgs(2, arguments);
+  var date = toDate(dirtyDate);
+  var amount = toInteger(dirtyAmount);
+  if (isNaN(amount)) {
+    return /* @__PURE__ */ new Date(NaN);
+  }
+  if (!amount) {
+    return date;
+  }
+  var dayOfMonth = date.getDate();
+  var endOfDesiredMonth = new Date(date.getTime());
+  endOfDesiredMonth.setMonth(date.getMonth() + amount + 1, 0);
+  var daysInMonth = endOfDesiredMonth.getDate();
+  if (dayOfMonth >= daysInMonth) {
+    return endOfDesiredMonth;
+  } else {
+    date.setFullYear(endOfDesiredMonth.getFullYear(), endOfDesiredMonth.getMonth(), dayOfMonth);
+    return date;
+  }
+}
+
+// node_modules/date-fns/esm/add/index.js
+function add(dirtyDate, duration) {
+  requiredArgs(2, arguments);
+  if (!duration || _typeof(duration) !== "object")
+    return /* @__PURE__ */ new Date(NaN);
+  var years = duration.years ? toInteger(duration.years) : 0;
+  var months = duration.months ? toInteger(duration.months) : 0;
+  var weeks = duration.weeks ? toInteger(duration.weeks) : 0;
+  var days = duration.days ? toInteger(duration.days) : 0;
+  var hours = duration.hours ? toInteger(duration.hours) : 0;
+  var minutes = duration.minutes ? toInteger(duration.minutes) : 0;
+  var seconds = duration.seconds ? toInteger(duration.seconds) : 0;
+  var date = toDate(dirtyDate);
+  var dateWithMonths = months || years ? addMonths(date, months + years * 12) : date;
+  var dateWithDays = days || weeks ? addDays(dateWithMonths, days + weeks * 7) : dateWithMonths;
+  var minutesToAdd = minutes + hours * 60;
+  var secondsToAdd = seconds + minutesToAdd * 60;
+  var msToAdd = secondsToAdd * 1e3;
+  var finalDate = new Date(dateWithDays.getTime() + msToAdd);
+  return finalDate;
+}
+
+// src/client/containers/infoBox/solarTimes.ts
+var import_suncalc = __toESM(require_suncalc(), 1);
+
+// src/client/utils/halfDay.ts
+var halfDay = 12 * 3600 * 1e3;
 
 // src/client/utils/rad2deg.ts
-var rad2ModuloDeg = (phi) => modulo(phi * 180 / Math.PI + 180, 360) - 180;
-var rad2degFunctions = {
-  d: ({ axis = " -", pad = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 1e5) / 1e5;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad + 6, "0")}\xB0`;
-  },
-  dm: ({ axis = " -", pad = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 6e4) / 6e4;
-    const degrees = deg | 0;
-    const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}'`;
-  },
-  dms: ({ axis = " -", pad = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 36e4) / 36e4;
-    const degrees = deg | 0;
-    const min = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
-    const minutes = min | 0;
-    const seconds = (min - minutes) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}"`;
+var rad2deg = (val) => Number(val) * 180 / Math.PI;
+
+// src/client/containers/infoBox/intervalValueOf.ts
+var intervalValueOf = ({ end: endDate, solarNoon: noonDate, start: startDate }) => {
+  const end = endDate.valueOf();
+  const start = startDate.valueOf();
+  const startNaN = Number.isNaN(start);
+  const endNaN = Number.isNaN(end);
+  const noon = noonDate.valueOf();
+  if (startNaN && endNaN)
+    return 0;
+  if (startNaN)
+    return end <= noon ? end - (noon - halfDay) : end - noon;
+  if (endNaN)
+    return start >= noon ? noon + halfDay - start : noon - start;
+  return end - start;
+};
+
+// src/client/utils/formatDateValue.ts
+var formatDateValue = (val) => {
+  const secs = Math.round(val / 1e3);
+  const {
+    hours,
+    minutes,
+    seconds
+  } = {
+    hours: Math.floor(secs / 3600),
+    minutes: Math.floor(secs / 60) % 60,
+    seconds: secs % 60
+  };
+  return [hours, minutes, seconds].map((v) => v?.toFixed(0).padStart(2, "0")).join(":");
+};
+
+// src/client/containers/infoBox/valueRow.ts
+var ValueRow = class {
+  lines = [];
+  total = {
+    stats: 0,
+    today: 0
+  };
+  fill = (label2, sum) => this.add({
+    increment: {
+      stats: sum - this.total.stats,
+      today: sum - this.total.today
+    },
+    label: label2
+  });
+  add({ durations, increment, keys, label: label2 }) {
+    increment ??= {
+      stats: SolarTimes.increment({
+        durations: durations.stats.durations,
+        keys
+      }),
+      today: SolarTimes.increment({
+        durations: durations.today,
+        keys
+      })
+    };
+    this.total.stats += increment.stats;
+    this.total.today += increment.today;
+    return this.addRow({
+      col1: [label2],
+      col2: [
+        increment.today ? `+${formatDateValue(increment.today)}` : "",
+        createBr(),
+        createHTMLElement({
+          style: { fontSize: "70%" },
+          tag: "span",
+          zhilds: [
+            increment.stats ? `+${formatDateValue(increment.stats)}` : ""
+          ]
+        })
+      ],
+      col3: [
+        formatDateValue(this.total.today),
+        createBr(),
+        createHTMLElement({
+          style: { fontSize: "70%" },
+          tag: "span",
+          zhilds: [formatDateValue(this.total.stats)]
+        })
+      ]
+    });
+  }
+  addRow({ col1, col2, col3 }) {
+    this.lines.push(createHTMLElement({
+      classes: ["d-flex"],
+      tag: "div",
+      zhilds: [
+        createHTMLElement({
+          style: { marginRight: "auto" },
+          tag: "div",
+          zhilds: col1
+        }),
+        createHTMLElement({
+          classes: ["text-end"],
+          style: { width: "5em" },
+          tag: "div",
+          zhilds: col2
+        }),
+        createHTMLElement({
+          classes: ["text-end"],
+          style: { width: "5em" },
+          tag: "div",
+          zhilds: col3
+        })
+      ]
+    }));
+    return this;
   }
 };
-var rad2deg = ({ axis = " -", pad = 0, phi }) => rad2degFunctions[settings.units.coords]({ axis, pad, phi });
 
-// src/common/x2lon.ts
-var x2lonCommon = (x, tiles) => (x / tiles - 0.5) * Math.PI * 2;
+// src/client/containers/infoBox/solarTimes.ts
+var SolarTimes = class _SolarTimes {
+  x = -1;
+  y = -1;
+  lat = 0;
+  lon = 0;
+  getDurations = ({ date }) => {
+    const { dawn, dusk, nauticalDawn, nauticalDusk, night, nightEnd, solarNoon, sunrise, sunriseEnd, sunset, sunsetStart } = (0, import_suncalc.getTimes)(date, this.lat, this.lon);
+    return {
+      astronomicalDawn: intervalValueOf({ end: nauticalDawn, solarNoon, start: nightEnd }),
+      astronomicalDusk: intervalValueOf({ end: night, solarNoon, start: nauticalDusk }),
+      civilDawn: intervalValueOf({ end: sunrise, solarNoon, start: dawn }),
+      civilDusk: intervalValueOf({ end: dusk, solarNoon, start: sunset }),
+      day: intervalValueOf({ end: sunsetStart, solarNoon, start: sunriseEnd }),
+      nauticalDawn: intervalValueOf({ end: dawn, solarNoon, start: nauticalDawn }),
+      nauticalDusk: intervalValueOf({ end: nauticalDusk, solarNoon, start: dusk }),
+      sunrise: intervalValueOf({ end: sunriseEnd, solarNoon, start: sunrise }),
+      sunset: intervalValueOf({ end: sunset, solarNoon, start: sunsetStart })
+    };
+  };
+  getDurationsStat = ({ func, keys, year }) => {
+    let date = new Date(Date.UTC(year));
+    const ret = {
+      date,
+      durations: this.getDurations({ date }),
+      increment: 0
+    };
+    while (date.getUTCFullYear() === year) {
+      date = add(date, { hours: 24 });
+      const durations = this.getDurations({ date });
+      const increment = _SolarTimes.increment({ durations, keys });
+      if (Math[func](increment, ret.increment) === increment) {
+        Object.assign(ret, {
+          date,
+          durations,
+          increment
+        });
+        console.log({ ret });
+      }
+    }
+    return ret;
+  };
+  static increment = ({ durations, keys }) => keys.reduce((sum, key) => sum + durations[key], 0);
+  html = null;
+  toHtml = () => {
+    if (this.x !== position.x || this.y !== position.y) {
+      this.x = position.x;
+      this.y = position.y;
+      this.lat = rad2deg(y2lat(this.y));
+      this.lon = rad2deg(x2lon(this.x));
+      this.html = null;
+    }
+    if (!this.html) {
+      const durations = {
+        stats: this.getDurationsStat({
+          func: "min",
+          keys: ["day", "sunrise", "sunset"],
+          year: (/* @__PURE__ */ new Date()).getFullYear()
+        }),
+        today: this.getDurations({ date: /* @__PURE__ */ new Date() })
+      };
+      console.log(durations);
+      const zhilds = new ValueRow().add({
+        durations,
+        keys: ["day"],
+        label: "Day"
+      }).add({
+        durations,
+        keys: ["sunrise", "sunset"],
+        label: "Sunrise/set"
+      }).add({
+        durations,
+        keys: ["civilDawn", "civilDusk"],
+        label: "Twilight"
+      }).add({
+        durations,
+        keys: ["nauticalDawn", "nauticalDusk"],
+        label: "Naut. Twilight"
+      }).add({
+        durations,
+        keys: ["astronomicalDawn", "astronomicalDusk"],
+        label: "Astro. Twilight"
+      }).fill("Night", halfDay * 2).lines;
+      this.html = createHTMLElement({
+        tag: "div",
+        zhilds
+      });
+    }
+    return this.html;
+  };
+};
+var solarTimes = new SolarTimes();
 
-// src/client/utils/x2lon.ts
-var x2lon = (x, tiles = position.tiles) => x2lonCommon(x, tiles);
-
-// src/common/y2lat.ts
-var y2latCommon = (y, tiles) => Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
-
-// src/client/utils/y2lat.ts
-var y2lat = (y, tiles = position.tiles) => y2latCommon(y, tiles);
-
-// src/client/updateInfoBox.ts
+// src/client/containers/infoBox/updateInfoBox.ts
 var updateInfoBox = () => {
   const { height, width } = boundingRect;
   const { x, y } = position;
@@ -1703,14 +2259,15 @@ var updateInfoBox = () => {
   infoBox.append(
     `Scale: ${scale} (Zoom ${position.z})`,
     createHTMLElement({ tag: "br" }),
-    `Lat/Lon: ${rad2deg({ axis: "NS", pad: 2, phi: lat })} ${rad2deg({ axis: "EW", pad: 3, phi: lon })}`,
+    `Lat/Lon: ${rad2string({ axis: "NS", pad: 2, phi: lat })} ${rad2string({ axis: "EW", pad: 3, phi: lon })}`,
     createHTMLElement({ tag: "br" }),
-    `Mouse: ${rad2deg({ axis: "NS", pad: 2, phi: latMouse })} ${rad2deg({ axis: "EW", pad: 3, phi: lonMouse })}`,
+    `Mouse: ${rad2string({ axis: "NS", pad: 2, phi: latMouse })} ${rad2string({ axis: "EW", pad: 3, phi: lonMouse })}`,
     createHTMLElement({ tag: "br" }),
-    `User: ${rad2deg({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2deg({ axis: "EW", pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`
+    `User: ${rad2string({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2string({ axis: "EW", pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`
   );
   if (settings.navionicsDetails.show)
     infoBox.append(navionicsDetails.toHtml());
+  infoBox.append(solarTimes.toHtml());
   infoBox.append(...imagesToFetch.stateHtml());
 };
 
@@ -2286,48 +2843,6 @@ var lat2y = (lat, tiles = position.tiles) => {
   return (0.5 - Math.asinh(Math.tan(lat)) / Math.PI / 2) * tiles;
 };
 
-// src/client/sphericCircle.ts
-var sphericCircle = (lat, lon, radius, steps = 256) => {
-  const sinRadius = Math.sin(radius);
-  const cosRadius = Math.cos(radius);
-  const sinLat = Math.sin(lat);
-  const cosLat = Math.cos(lat);
-  const pi2 = Math.PI * 2;
-  const points = [];
-  for (let step = 0; step <= steps; step++) {
-    const omega = step / steps * pi2;
-    const { lat2, lon2 } = sphericLatLon({ cosLat, cosRadius, lat, omega, radius, sinLat, sinRadius });
-    if (step === 0)
-      points.push([lat2, lon + Math.abs(lon2), false]);
-    else if (step === steps / 2) {
-      points.push([lat2, lon + Math.abs(lon2), true]);
-      points.push([lat2, lon - Math.abs(lon2), false]);
-    } else if (step === steps)
-      points.push([lat2, lon - Math.abs(lon2), true]);
-    else
-      points.push([lat2, lon + lon2, true]);
-  }
-  return points;
-};
-var sphericLatLon = ({ cosLat, cosRadius, lat, omega, radius, sinLat, sinRadius }) => {
-  sinRadius ??= Math.sin(radius);
-  cosRadius ??= Math.cos(radius);
-  sinLat ??= Math.sin(lat);
-  cosLat ??= Math.cos(lat);
-  const pi2 = 2 * Math.PI;
-  const lonSign = omega - pi2 * Math.floor(omega / pi2) > Math.PI ? -1 : 1;
-  const sinLat2 = Math.max(-1, Math.min(Math.cos(omega) * cosLat * sinRadius + sinLat * cosRadius, 1));
-  const lat2 = Math.asin(sinLat2);
-  const cosLat2 = Math.sqrt(1 - sinLat2 * sinLat2);
-  const cosLon2 = Math.max(-1, Math.min((cosRadius - sinLat * sinLat2) / cosLat / cosLat2, 1));
-  const lon2 = Math.acos(cosLon2) * lonSign;
-  const cosOmega2 = (sinLat - sinLat2 * cosRadius) / (cosLat2 * sinRadius);
-  return { cosOmega2, lat2, lon2 };
-};
-
-// src/client/utils/frac.ts
-var frac = (x) => x - Math.floor(x);
-
 // src/client/utils/min2rad.ts
 var min2rad = (min) => min / 60 / 180 * Math.PI;
 
@@ -2337,7 +2852,7 @@ var nm2px = (lat) => {
   return position.tiles * tileSize / 360 / 60 * stretch;
 };
 
-// src/client/canvases/crosshairs.ts
+// src/client/containers/canvases/crosshairs.ts
 var createCrosshairsCanvas = ({
   height,
   width,
@@ -2435,7 +2950,7 @@ var createCrosshairsCanvas = ({
   return canvas;
 };
 
-// src/client/canvases/map/drawImage.ts
+// src/client/containers/canvases/map/drawImage.ts
 var drawImage = ({
   context,
   scale = 1,
@@ -2490,7 +3005,7 @@ var drawImage = ({
   return prom;
 };
 
-// src/client/canvases/map/navionicsWatermark.ts
+// src/client/containers/canvases/map/navionicsWatermark.ts
 var navionicsWatermark = (async () => {
   const img = new Image();
   img.src = "/navionicsWatermark.png";
@@ -2523,7 +3038,7 @@ var navionicsWatermark = (async () => {
   return ret;
 });
 
-// src/client/canvases/map/drawNavionics.ts
+// src/client/containers/canvases/map/drawNavionics.ts
 var backgroundColors = [
   2142456,
   // 0x38b8f8,
@@ -2591,7 +3106,7 @@ var drawNavionics = async ({ context, source, ttl, x, y, z }) => {
   return true;
 };
 
-// src/client/canvases/map/drawCachedImage.ts
+// src/client/containers/canvases/map/drawCachedImage.ts
 var drawCachedImage = async ({
   alpha,
   context,
@@ -2639,7 +3154,7 @@ var drawCachedImage = async ({
   };
 };
 
-// src/client/canvases/mapCanvas.ts
+// src/client/containers/canvases/mapCanvas.ts
 var imagesLastUsed = /* @__PURE__ */ new Set();
 var imagesMap = {};
 var createMapCanvas = async ({
@@ -2718,7 +3233,7 @@ var createMapCanvas = async ({
   return canvas;
 };
 
-// src/client/canvases/net.ts
+// src/client/containers/canvases/net.ts
 var scales = [
   0.025,
   0.05,
@@ -2768,7 +3283,7 @@ var createNetCanvas = ({
     return canvas;
   context.translate(width / 2, height / 2);
   const lat = y2lat(y);
-  const scaleX = getScale(0, context.measureText(rad2deg({ axis: "EW", pad: 3, phi: 0 })).width);
+  const scaleX = getScale(0, context.measureText(rad2string({ axis: "EW", pad: 3, phi: 0 })).width);
   const scaleY = getScale(lat);
   const left = x - width / 2 / tileSize;
   const right = x + width / 2 / tileSize;
@@ -2823,14 +3338,14 @@ var createNetCanvas = ({
   context.lineWidth = 3;
   pointsY.forEach(({ latGrid, x1, y1 }) => {
     strokeText(
-      rad2deg({ axis: "NS", pad: 2, phi: latGrid }),
+      rad2string({ axis: "NS", pad: 2, phi: latGrid }),
       x1 + 3,
       y1 - 3
     );
   });
   pointsX.forEach(({ lonGrid, x1, y2 }) => {
     strokeText(
-      rad2deg({ axis: "EW", pad: 3, phi: lonGrid }),
+      rad2string({ axis: "EW", pad: 3, phi: lonGrid }),
       x1 + 3,
       y2 - 3
     );
@@ -3242,7 +3757,7 @@ var coordInput = createHTMLElement({
       if (typeof latDeg === "number" && typeof lonDeg === "number") {
         coordUnits.forEach((u) => {
           console.log("update lat/lon");
-          const func = rad2degFunctions[u];
+          const func = rad2stringFuncs[u];
           coordInfo[u].innerText = `${func({ axis: "NS", pad: 2, phi: lat })} ${func({ axis: "EW", pad: 3, phi: lon })}`;
           coordInfo[u].style.display = "block";
           coordError.style.display = "none";
@@ -3353,8 +3868,8 @@ var updateSavedPositionsList = () => {
           role: "button",
           tag: "a",
           zhilds: [[
-            rad2deg({ axis: "NS", pad: 2, phi: y2lat(y, 1 << z) }),
-            rad2deg({ axis: "EW", pad: 3, phi: x2lon(x, 1 << z) }),
+            rad2string({ axis: "NS", pad: 2, phi: y2lat(y, 1 << z) }),
+            rad2string({ axis: "EW", pad: 3, phi: x2lon(x, 1 << z) }),
             `(${z})`
           ].join(" ")]
         }),
@@ -3468,7 +3983,7 @@ var menuContainer = createHTMLElement({
 
 // src/client/getUserLocation.ts
 var geolocationBlocked = false;
-var updateGeoLocation = async () => {
+var updateUserLocation = async () => {
   if (geolocationBlocked)
     return position.user;
   await new Promise((resolve, reject) => {
@@ -3546,7 +4061,7 @@ var oninput = (event) => {
     else if (key === "d")
       coordsToggle.click();
     else if (key === "l")
-      updateGeoLocation();
+      updateUserLocation();
     else if (key === "n") {
       if (settings.navionicsDetails.show && settings.tiles.enabled.navionics) {
         navionicsDetailsToggle.click();

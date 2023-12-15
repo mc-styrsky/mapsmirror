@@ -1,6 +1,6 @@
 import type { Marker } from './marker';
 import { StyQueue } from '@mc-styrsky/queue';
-import { updateInfoBox } from '../updateInfoBox';
+import { updateInfoBox } from '../containers/infoBox/updateInfoBox';
 import { createHTMLElement } from '../utils/createHTMLElement';
 import { getNavionicsDetailsList } from './navionicsDetails/getNavionicsDetailsList';
 import { toAccordion } from './navionicsDetails/toAccordion';

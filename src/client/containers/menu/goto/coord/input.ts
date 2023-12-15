@@ -2,7 +2,7 @@ import parseDMS from 'parse-dms';
 import { coordUnits } from '../../../../globals/coordUnits';
 import { createHTMLElement } from '../../../../utils/createHTMLElement';
 import { deg2rad } from '../../../../utils/deg2rad';
-import { rad2degFunctions } from '../../../../utils/rad2deg';
+import { rad2stringFuncs } from '../../../../utils/rad2string';
 import { coordError } from './error';
 import { coordInfo } from './info';
 import { coordSubmit } from './submit';
@@ -27,7 +27,7 @@ export const coordInput = createHTMLElement({
       if (typeof latDeg === 'number' && typeof lonDeg === 'number') {
         coordUnits.forEach(u => {
           console.log('update lat/lon');
-          const func = rad2degFunctions[u];
+          const func = rad2stringFuncs[u];
           coordInfo[u].innerText = `${func({ axis: 'NS', pad: 2, phi: lat })} ${func({ axis: 'EW', pad: 3, phi: lon })}`;
           coordInfo[u].style.display = 'block';
           coordError.style.display = 'none';

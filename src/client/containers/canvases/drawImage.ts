@@ -1,7 +1,7 @@
 import type { DrawImage } from '../../../common/types/drawImage';
 import { tileSize } from '../../globals/tileSize';
 import { frac } from '../../utils/frac';
-import { imagesToFetch } from '../../utils/imagesToFetch';
+import { imagesToFetch } from '../infoBox/imagesToFetch';
 
 export const drawImage = ({
   context, scale = 1, source, ttl, x, y, z,

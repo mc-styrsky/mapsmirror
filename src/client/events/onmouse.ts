@@ -1,10 +1,10 @@
+import { updateInfoBox } from '../containers/infoBox/updateInfoBox';
 import { mouse } from '../globals/mouse';
 import { navionicsDetails } from '../globals/navionicsDetails';
 import { position } from '../globals/position';
 import { tileSize } from '../globals/tileSize';
 import { boundingRect } from '../index';
 import { redraw } from '../redraw';
-import { updateInfoBox } from '../updateInfoBox';
 import { oninput } from './oninput';
 
 export const onmouse = (event: MouseEvent) => {

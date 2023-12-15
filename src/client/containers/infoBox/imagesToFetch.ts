@@ -1,7 +1,7 @@
-import type { VirtLayers } from '../../common/types/layers';
-import type { XYZ } from '../../common/types/xyz';
-import { updateInfoBox } from '../updateInfoBox';
-import { createHTMLElement } from './createHTMLElement';
+import type { VirtLayers } from '../../../common/types/layers';
+import type { XYZ } from '../../../common/types/xyz';
+import { createHTMLElement } from '../../utils/createHTMLElement';
+import { updateInfoBox } from './updateInfoBox';
 
 class ImagesToFetch {
   constructor () {

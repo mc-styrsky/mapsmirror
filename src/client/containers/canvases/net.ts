@@ -1,16 +1,16 @@
-import type { Size } from '../../common/types/size';
-import type { XYZ } from '../../common/types/xyz';
-import type { Marker } from '../globals/marker';
-import { position } from '../globals/position';
-import { tileSize } from '../globals/tileSize';
-import { createHTMLElement } from '../utils/createHTMLElement';
-import { lat2y } from '../utils/lat2y';
-import { lon2x } from '../utils/lon2x';
-import { min2rad } from '../utils/min2rad';
-import { px2nm } from '../utils/px2nm';
-import { rad2deg } from '../utils/rad2deg';
-import { x2lon } from '../utils/x2lon';
-import { y2lat } from '../utils/y2lat';
+import type { Size } from '../../../common/types/size';
+import type { XYZ } from '../../../common/types/xyz';
+import type { Marker } from '../../globals/marker';
+import { position } from '../../globals/position';
+import { tileSize } from '../../globals/tileSize';
+import { createHTMLElement } from '../../utils/createHTMLElement';
+import { lat2y } from '../../utils/lat2y';
+import { lon2x } from '../../utils/lon2x';
+import { min2rad } from '../../utils/min2rad';
+import { px2nm } from '../../utils/px2nm';
+import { rad2string } from '../../utils/rad2string';
+import { x2lon } from '../../utils/x2lon';
+import { y2lat } from '../../utils/y2lat';
 
 const scales = [
   0.025,
@@ -63,7 +63,7 @@ export const createNetCanvas = ({
   if (!context) return canvas;
   context.translate(width / 2, height / 2);
   const lat = y2lat(y);
-  const scaleX = getScale(0, context.measureText(rad2deg({ axis: 'EW', pad: 3, phi: 0 })).width);
+  const scaleX = getScale(0, context.measureText(rad2string({ axis: 'EW', pad: 3, phi: 0 })).width);
   const scaleY = getScale(lat);
 
   const left = x - width / 2 / tileSize;
@@ -121,14 +121,14 @@ export const createNetCanvas = ({
   context.lineWidth = 3;
   pointsY.forEach(({ latGrid, x1, y1 }) => {
     strokeText(
-      rad2deg({ axis: 'NS', pad: 2, phi: latGrid }),
+      rad2string({ axis: 'NS', pad: 2, phi: latGrid }),
       x1 + 3,
       y1 - 3,
     );
   });
   pointsX.forEach(({ lonGrid, x1, y2 }) => {
     strokeText(
-      rad2deg({ axis: 'EW', pad: 3, phi: lonGrid }),
+      rad2string({ axis: 'EW', pad: 3, phi: lonGrid }),
       x1 + 3,
       y2 - 3,
     );

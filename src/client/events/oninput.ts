@@ -4,7 +4,7 @@ import { crosshairToggle } from '../containers/menu/crosshairToggle';
 import { navionicsDetailsToggle } from '../containers/menu/navionicsDetailsToggle';
 import { navionicsToggle } from '../containers/menu/navionicsToggle';
 import { vfdensityToggle } from '../containers/menu/vfdensityToggle';
-import { updateGeoLocation } from '../getUserLocation';
+import { updateUserLocation } from '../getUserLocation';
 import { mouse } from '../globals/mouse';
 import { position } from '../globals/position';
 import { settings } from '../globals/settings';
@@ -58,7 +58,7 @@ export const oninput = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEvent
     }
     else if (key === 'c') crosshairToggle.click();
     else if (key === 'd') coordsToggle.click();
-    else if (key === 'l') updateGeoLocation();
+    else if (key === 'l') updateUserLocation();
     else if (key === 'n') {
       if (settings.navionicsDetails.show && settings.tiles.enabled.navionics) {
         navionicsDetailsToggle.click();

@@ -21,3 +21,5 @@ export function createHTMLElement<T extends keyof HTMLElementTagNameMap> (params
   });
   return element;
 }
+
+export const createBr = () => createHTMLElement({ tag: 'br' });
