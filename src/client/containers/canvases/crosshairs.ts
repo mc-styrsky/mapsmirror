@@ -29,7 +29,7 @@ export const createCrosshairsCanvas = ({
     width,
   });
   const context = canvas.getContext('2d');
-  if (!settings.crosshair.show || !context) return canvas;
+  if (!settings.show.crosshair || !context) return canvas;
   const lat = y2lat(y);
   const lon = x2lon(x);
 
@@ -67,7 +67,7 @@ export const createCrosshairsCanvas = ({
     .forEach(({ draw, tx, ty }, idx) => {
       if (draw) context.lineTo(tx, ty);
       else context.moveTo(tx, ty);
-      if (idx === 32) context.strokeText(`${minArc.toFixed(Math.max(0, -scaleFloor))}nm`, tx, ty);
+      if (idx === 96) context.strokeText(`${minArc.toFixed(Math.max(0, -scaleFloor))}nm`, tx, ty);
     });
     context.stroke();
 

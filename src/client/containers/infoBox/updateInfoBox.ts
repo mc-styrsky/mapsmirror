@@ -11,7 +11,7 @@ import { x2lon } from '../../utils/x2lon';
 import { y2lat } from '../../utils/y2lat';
 import { infoBox } from '../infoBox';
 import { imagesToFetch } from './imagesToFetch';
-import { solarTimes } from './solarTimes';
+import { solarTimes } from './suncalc/solarTimes';
 
 export const updateInfoBox = () => {
   const { height, width } = boundingRect;
@@ -46,7 +46,7 @@ export const updateInfoBox = () => {
     `User: ${rad2string({ axis: 'NS', pad: 2, phi: position.user.latitude })} ${rad2string({ axis: 'EW', pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`,
 
   );
-  if (settings.navionicsDetails.show) infoBox.append(navionicsDetails.toHtml());
-  infoBox.append(solarTimes.toHtml());
+  if (settings.show.navionicsDetails) infoBox.append(navionicsDetails.toHtml());
+  if (settings.show.suncalc) infoBox.append(solarTimes.toHtml());
   infoBox.append(...imagesToFetch.stateHtml());
 };

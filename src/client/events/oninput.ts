@@ -60,7 +60,7 @@ export const oninput = (event: KeyboardEvent | WheelEvent | MouseEvent | UIEvent
     else if (key === 'd') coordsToggle.click();
     else if (key === 'l') updateUserLocation();
     else if (key === 'n') {
-      if (settings.navionicsDetails.show && settings.tiles.enabled.navionics) {
+      if (settings.show.navionicsDetails && settings.tiles.enabled.navionics) {
         navionicsDetailsToggle.click();
         navionicsToggle.click();
       }

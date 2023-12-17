@@ -7,6 +7,7 @@ import { navionicsDetailsToggle } from './menu/navionicsDetailsToggle';
 import { navionicsToggle } from './menu/navionicsToggle';
 import { overlayToggle } from './menu/overlayToggle';
 import { savePosition } from './menu/savePosition';
+import { suncalcToggle } from './menu/suncalcToggle';
 import { vfdensityToggle } from './menu/vfdensityToggle';
 
 
@@ -28,6 +29,7 @@ export const menuContainer = createHTMLElement({
         navionicsToggle,
         navionicsDetailsToggle,
         crosshairToggle,
+        suncalcToggle,
         coordsToggle,
       ],
     }),

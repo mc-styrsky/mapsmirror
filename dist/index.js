@@ -134,9 +134,7 @@ var xyz2quadkey = ({ x, y, z }) => {
 };
 
 // src/server/urls/default.ts
-import { createWriteStream } from "fs";
-import { mkdir, stat, unlink } from "fs/promises";
-import fetch2 from "../node_modules/node-fetch/src/index.js";
+import { mkdir, stat, unlink, writeFile } from "fs/promises";
 
 // src/server/utils/getTileParams.ts
 var getTileParams = ({ x, y, z }) => {
@@ -260,11 +258,11 @@ var XYZ2Url = class {
   z;
   fetchFromTileServer = async () => {
     const { url, x, y, z } = this;
-    return fetch2(await url, await this.params).then(async (response) => {
+    return fetch(await url, await this.params).then(async (response) => {
       queues.fetched++;
       if (response.status === 200)
         return {
-          body: response.body,
+          body: await response.arrayBuffer(),
           status: response.status
         };
       if (response.status === 404) {
@@ -344,14 +342,8 @@ var XYZ2Url = class {
         return ret;
       });
       if (imageStream.body) {
-        const writeImageStream = createWriteStream(filename);
-        writeImageStream.addListener("finish", () => {
-          if (this.quiet)
-            res?.sendStatus(200);
-          else
-            res?.sendFile(filename);
-        });
-        imageStream.body.pipe(writeImageStream);
+        res?.send(Buffer.from(imageStream.body));
+        await writeFile(filename, Buffer.from(imageStream.body));
         return true;
       }
       console.log("no imagestream", imageStream.status, { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z }, url);

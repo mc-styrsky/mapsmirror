@@ -4,8 +4,11 @@ import { extractProperties } from '../../common/extractProperties';
 export type CoordUnits = 'd' | 'dm' | 'dms';
 type Order= Layers | {source: Layers, alpha: number}
 type Settings = {
-  crosshair: { show: boolean }
-  navionicsDetails: { show: boolean }
+  readonly show: {
+    crosshair: boolean
+    navionicsDetails: boolean
+    suncalc: boolean
+  }
   tiles:{
     baselayers: Baselayers[]
     enabled: Partial<Record<Layers, boolean>>
@@ -32,11 +35,10 @@ const order: [Baselayers, ...Order[]] = [
   { alpha: 0.5, source: 'vfdensity' },
 ];
 export const settings: Settings = {
-  crosshair: extractProperties(localStorageSettings?.crosshair, {
-    show: val => Boolean(val ?? true),
-  }),
-  navionicsDetails: extractProperties(localStorageSettings?.navionicsDetails, {
-    show: val => Boolean(val ?? true),
+  show: extractProperties(localStorageSettings?.show, {
+    crosshair: val => Boolean(val ?? true),
+    navionicsDetails: Boolean,
+    suncalc: Boolean,
   }),
   tiles: {
     baselayers: [

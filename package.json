@@ -26,7 +26,10 @@
     "bundle:client": "npx esbuild src/client/index.ts --bundle --format=esm --outfile=public/client.js --platform=browser --sourcemap",
     "bundle:server": "npx esbuild src/server/index.ts --bundle --external:./node_modules/* --format=esm --outfile=dist/index.js --platform=node --sourcemap",
     "bundle:watch": "npx esbuild src/client/index.ts --bundle --format=esm --outfile=public/client.js --platform=browser --sourcemap --watch",
-    "start": "node --enable-source-maps dist/index.js"
+    "fix": "npm run lint -- --fix",
+    "lint": "eslint --ext ts src",
+    "start": "node --enable-source-maps dist/index.js",
+    "tsc": "tsc && npm run lint"
   },
   "type": "module"
 }

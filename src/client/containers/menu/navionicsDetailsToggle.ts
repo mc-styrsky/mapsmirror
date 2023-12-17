@@ -4,10 +4,10 @@ import { settings } from '../../globals/settings';
 import { iconButton } from './iconButton';
 
 export const navionicsDetailsToggle = iconButton({
-  active: () => settings.navionicsDetails.show,
+  active: () => settings.show.navionicsDetails,
   onclick: () => {
-    const newActive = !settings.navionicsDetails.show;
-    settings.navionicsDetails.show = newActive;
+    const newActive = !settings.show.navionicsDetails;
+    settings.show.navionicsDetails = newActive;
     navionicsDetails.fetch(position);
   },
   src: 'bootstrap-icons-1.11.2/question-circle.svg',

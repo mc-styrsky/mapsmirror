@@ -1,7 +1,6 @@
 import type { XYZ } from '../../common/types/xyz';
 import type express from 'express';
-import { createWriteStream } from 'fs';
-import { mkdir, stat, unlink } from 'fs/promises';
+import { mkdir, stat, unlink, writeFile } from 'fs/promises';
 import { pwd, queues } from '../index';
 import { getTileParams } from '../utils/getTileParams';
 import { worthItMinMax } from '../utils/worthit';
@@ -52,7 +51,7 @@ export class XYZ2Url {
   readonly z: number;
 
   fetchFromTileServer = async (): Promise<{
-    body: NodeJS.ReadableStream | null
+    body: ArrayBuffer | null
     status: number;
   }> => {
     const { url, x, y, z } = this;
@@ -60,7 +59,7 @@ export class XYZ2Url {
     .then(async (response) => {
       queues.fetched++;
       if (response.status === 200) return {
-        body: response.body as unknown as NodeJS.ReadableStream,
+        body: await response.arrayBuffer(),
         status: response.status,
       };
       if (response.status === 404) {
@@ -150,12 +149,8 @@ export class XYZ2Url {
       });
 
       if (imageStream.body) {
-        const writeImageStream = createWriteStream(filename, { autoClose: true });
-        writeImageStream.addListener('finish', () => {
-          if (this.quiet) res?.sendStatus(200);
-          else res?.sendFile(filename);
-        });
-        imageStream.body.pipe(writeImageStream);
+        res?.send(Buffer.from(imageStream.body));
+        await writeFile(filename, Buffer.from(imageStream.body));
         return true;
       }
 

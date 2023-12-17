@@ -16,7 +16,7 @@ export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
 }) => {
   while (parent.queue.shift()) (() => void 0)();
   abortControllers.forEach(ac => ac.abort());
-  if (!settings.navionicsDetails.show) return;
+  if (!settings.show.navionicsDetails) return;
   const listMap: Map<string, any> = new Map();
   await parent.queue.enqueue(async () => {
     parent.isFetch = true;

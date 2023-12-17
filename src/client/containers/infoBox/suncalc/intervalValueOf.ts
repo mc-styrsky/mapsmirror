@@ -1,4 +1,4 @@
-import { halfDay } from '../../utils/halfDay';
+import { halfDay } from '../../../utils/halfDay';
 
 export const intervalValueOf = ({ end: endDate, solarNoon: noonDate, start: startDate }: { end: Date; start: Date; solarNoon: Date; }) => {
   const end = endDate.valueOf();
