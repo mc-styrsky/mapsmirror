@@ -7,7 +7,7 @@ import { boundingRect } from '../index';
 import { redraw } from '../redraw';
 import { oninput } from './oninput';
 
-export const onmouse = (event: MouseEvent) => {
+export function onmouse (event: MouseEvent) {
   if (!(event.target instanceof HTMLBodyElement)) return;
   const { clientX, clientY } = event;
   if (mouse.down.state) {
@@ -39,4 +39,4 @@ export const onmouse = (event: MouseEvent) => {
   mouse.y = clientY;
   if (position.markers.delete('navionics')) redraw('delete navionics marker');
   updateInfoBox();
-};
+}

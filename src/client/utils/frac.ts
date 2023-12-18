@@ -1,1 +1,3 @@
-export const frac = (x: number) => x - Math.floor(x);
+export function frac (x: number) {
+  return x - Math.floor(x);
+}

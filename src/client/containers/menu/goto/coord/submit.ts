@@ -2,6 +2,6 @@ import { iconButton } from '../../iconButton';
 import { coordForm } from './form';
 
 export const coordSubmit = iconButton({
+  icon: 'arrow-right-circle',
   onclick: () => coordForm.submit(),
-  src: '/bootstrap-icons-1.11.2/arrow-right-circle.svg',
 });

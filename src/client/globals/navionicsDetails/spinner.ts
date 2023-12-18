@@ -1,7 +1,7 @@
 import type { NavionicsDetail } from '../navionicsDetails';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 
-export const spinner = (item: NavionicsDetail) => {
+export function spinner (item: NavionicsDetail) {
   if (item.details && !item.properties) return createHTMLElement({
     classes: ['d-flex'],
     tag: 'div',
@@ -17,4 +17,4 @@ export const spinner = (item: NavionicsDetail) => {
     })],
   });
   return void 0;
-};
+}

@@ -525,7 +525,6 @@ var XYZ2UrlVfdensity = class extends XYZ2Url {
 
 // src/server/urls/worthit.ts
 import sharp2 from "../node_modules/sharp/lib/index.js";
-import { Readable } from "stream";
 
 // src/client/globals/tileSize.ts
 var tileSize = 256;
@@ -572,7 +571,7 @@ var XYZ2UrlWorthit = class extends XYZ2Url {
       }
     }).png().toBuffer();
     return {
-      body: Readable.from(body),
+      body,
       status: 200
     };
   };

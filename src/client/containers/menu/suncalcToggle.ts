@@ -3,6 +3,6 @@ import { iconButton } from './iconButton';
 
 export const suncalcToggle = iconButton({
   active: () => settings.show.suncalc,
+  icon: 'sunrise',
   onclick: () => settings.show.suncalc = !settings.show.suncalc,
-  src: 'bootstrap-icons-1.11.2/sunrise.svg',
 });

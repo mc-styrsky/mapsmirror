@@ -1,7 +1,7 @@
 import type { NavionicsDetail } from '../navionicsDetails';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 
-export const itemDetails = (item: NavionicsDetail, itemId: string, accordionId: string) => {
+export function itemDetails (item: NavionicsDetail, itemId: string, accordionId: string) {
   if (item.properties) return createHTMLElement({
     classes: ['accordion-collapse', 'collapse', 'px-2'],
     dataset: {
@@ -15,4 +15,4 @@ export const itemDetails = (item: NavionicsDetail, itemId: string, accordionId: 
     })),
   });
   return void 0;
-};
+}

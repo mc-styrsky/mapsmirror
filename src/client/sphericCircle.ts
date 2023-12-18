@@ -1,6 +1,6 @@
 export type LatLon = [number, number, boolean];
 
-export const sphericCircle = (lat: number, lon: number, radius: number, steps = 256): LatLon[] => {
+export function sphericCircle (lat: number, lon: number, radius: number, steps = 256): LatLon[] {
   const sinRadius = Math.sin(radius);
   const cosRadius = Math.cos(radius);
   const sinLat = Math.sin(lat);
@@ -21,9 +21,9 @@ export const sphericCircle = (lat: number, lon: number, radius: number, steps = 
     else points.push([lat2, lon + lon2, true]);
   }
   return points;
-};
+}
 
-export const sphericLatLon = ({ cosLat, cosRadius, lat, omega, radius, sinLat, sinRadius }: { lat: number; omega: number; radius: number; sinRadius?: number; cosRadius?: number; sinLat?: number; cosLat?: number; }) => {
+export function sphericLatLon ({ cosLat, cosRadius, lat, omega, radius, sinLat, sinRadius }: { lat: number; omega: number; radius: number; sinRadius?: number; cosRadius?: number; sinLat?: number; cosLat?: number; }) {
   sinRadius ??= Math.sin(radius);
   cosRadius ??= Math.cos(radius);
   sinLat ??= Math.sin(lat);
@@ -41,4 +41,4 @@ export const sphericLatLon = ({ cosLat, cosRadius, lat, omega, radius, sinLat, s
 
   const cosOmega2 = (sinLat - sinLat2 * cosRadius) / (cosLat2 * sinRadius);
   return { cosOmega2, lat2, lon2 };
-};
+}

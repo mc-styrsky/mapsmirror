@@ -1,8 +1,8 @@
-import type { DurationKeys } from '../types/DurationKeys';
-import type { SolarDuration } from '../types/SolarDuration';
+import type { DurationKeys } from '../types/durationKeys';
+import type { SolarDuration } from '../types/solarDuration';
 import { format } from 'date-fns';
+import { halfDay } from '../../../../globals/halfDay';
 import { createBr } from '../../../../utils/createHTMLElement';
-import { halfDay } from '../../../../utils/halfDay';
 
 export class SolarTimesStatics {
   lat = 0;

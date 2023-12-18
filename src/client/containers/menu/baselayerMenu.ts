@@ -15,12 +15,12 @@ const baselayerMenuButton = createHTMLElement({
   zhilds: [baselayerLabel(settings.tiles.order[0])],
 });
 
-export const setBaseLayer = (source: Baselayers) => {
+export function setBaseLayer (source: Baselayers) {
   settings.tiles.baselayers.forEach(key => settings.tiles.enabled[key] = key === source);
   settings.tiles.order[0] = source;
   baselayerMenuButton.innerText = baselayerLabel(source);
   redraw('changed baselayer');
-};
+}
 
 export const baselayerMenu = createHTMLElement({
   classes: ['dropdown'],

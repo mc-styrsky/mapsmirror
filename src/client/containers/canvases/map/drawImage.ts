@@ -3,9 +3,11 @@ import { tileSize } from '../../../globals/tileSize';
 import { frac } from '../../../utils/frac';
 import { imagesToFetch } from '../../infoBox/imagesToFetch';
 
-export const drawImage = ({
+export function drawImage ({
   context, scale = 1, source, ttl, x, y, z,
-}: DrawImage): PromiseLike<boolean> => {
+}: DrawImage): PromiseLike<boolean> {
+  if (z < 2) return Promise.resolve(false);
+  if (source === 'vfdensity' && z < 3) return Promise.resolve(false);
   const src = `/tile/${source}/${[
     z,
     Math.floor(x / scale).toString(16),
@@ -45,4 +47,4 @@ export const drawImage = ({
     };
   });
   return prom;
-};
+}

@@ -9,9 +9,9 @@ import { drawCachedImage } from './map/drawCachedImage';
 const imagesLastUsed: Set<string> = new Set();
 
 export const imagesMap: Record<string, PromiseLike<OffscreenCanvas | null>> = {};
-export const createMapCanvas = async ({
+export async function createMapCanvas ({
   height, width, x, y, z,
-}: XYZ & Size) => {
+}: XYZ & Size) {
   const canvasWidth = width + 2 * tileSize;
   const canvasHeight = height + 2 * tileSize;
   const canvas = createHTMLElement({
@@ -37,14 +37,14 @@ export const createMapCanvas = async ({
   const marginTiles = 1;
   const maxdx = Math.ceil((width - trans.x) / tileSize);
   const maxdy = Math.ceil((height - trans.y) / tileSize);
-  const mindx = - Math.ceil(trans.x / tileSize);
-  const mindy = - Math.ceil(trans.y / tileSize);
+  const mindx = -Math.ceil(trans.x / tileSize);
+  const mindy = -Math.ceil(trans.y / tileSize);
 
-  const dxArray: {dx: number, marginX: boolean}[] = [];
+  const dxArray: { dx: number; marginX: boolean; }[] = [];
   for (let dx = mindx - marginTiles; dx < maxdx + marginTiles; dx++) {
     dxArray.push({ dx, marginX: dx < mindx || dx > maxdx });
   }
-  const dyArray: {dy: number, marginY: boolean}[] = [];
+  const dyArray: { dy: number; marginY: boolean; }[] = [];
   for (let dy = mindy - marginTiles; dy < maxdy + marginTiles; dy++) {
     if (dy >= 0 && dy < position.tiles) dyArray.push({ dy, marginY: dy < mindy || dy > maxdy });
   }
@@ -84,4 +84,4 @@ export const createMapCanvas = async ({
     });
   });
   return canvas;
-};
+}

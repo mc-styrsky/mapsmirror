@@ -13,7 +13,7 @@ import { savedPositions } from '../savedPositions';
 import { editSavedPosition } from './editSavedPosition';
 
 
-export const updateSavedPositionsList = () => {
+export function updateSavedPositionsList () {
   savedPositions.innerHTML = '';
   const list: XYZ[] = savedPositionsFromLocalStoreage();
   list.forEach(item => {
@@ -43,10 +43,10 @@ export const updateSavedPositionsList = () => {
           ].join(' ')],
         }),
         iconButton({
+          icon: 'x',
           onclick: () => {
             editSavedPosition({ func: 'delete', x, y, z });
           },
-          src: 'bootstrap-icons-1.11.2/x.svg',
           style: {
             flexGrow: '0',
           },
@@ -54,4 +54,4 @@ export const updateSavedPositionsList = () => {
       ],
     }));
   });
-};
+}

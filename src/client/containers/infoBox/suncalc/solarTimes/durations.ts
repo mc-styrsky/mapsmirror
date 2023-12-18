@@ -1,7 +1,7 @@
-import type { SolarDuration } from '../types/SolarDuration';
+import type { SolarDuration } from '../types/solarDuration';
 import { add } from 'date-fns';
 import { getPosition, getTimes } from 'suncalc';
-import { halfDay } from '../../../../utils/halfDay';
+import { halfDay } from '../../../../globals/halfDay';
 import { intervalValueOf } from '../intervalValueOf';
 import { SolarTimesStatics } from './statics';
 

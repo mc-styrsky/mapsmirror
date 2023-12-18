@@ -8,13 +8,13 @@ import { drawImage } from './drawImage';
 import { drawNavionics } from './drawNavionics';
 
 
-export const drawCachedImage = async ({
+export async function drawCachedImage ({
   alpha, context, source, trans, ttl, usedImages, x, y, z,
 }: DrawImage & {
   alpha: number;
   trans: Pick<XYZ, 'x' | 'y'>;
   usedImages: Set<string>;
-}): Promise<() => Promise<boolean>> => {
+}): Promise<() => Promise<boolean>> {
   const isNavionics = source === 'navionics';
   const src = `/${source}/${[
     z,
@@ -55,4 +55,4 @@ export const drawCachedImage = async ({
 
     return success;
   };
-};
+}

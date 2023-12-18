@@ -13,7 +13,7 @@ import { infoBox } from '../infoBox';
 import { imagesToFetch } from './imagesToFetch';
 import { solarTimes } from './suncalc/solarTimes';
 
-export const updateInfoBox = () => {
+export function updateInfoBox () {
   const { height, width } = boundingRect;
 
   const { x, y } = position;
@@ -49,4 +49,4 @@ export const updateInfoBox = () => {
   if (settings.show.navionicsDetails) infoBox.append(navionicsDetails.toHtml());
   if (settings.show.suncalc) infoBox.append(solarTimes.toHtml());
   infoBox.append(...imagesToFetch.stateHtml());
-};
+}

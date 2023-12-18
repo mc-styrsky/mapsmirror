@@ -47,4 +47,6 @@ export const rad2stringFuncs: Record<typeof settings.units.coords, (params: Coor
   },
 };
 
-export const rad2string = ({ axis = ' -', pad = 0, phi }: CoordsParams) => rad2stringFuncs[settings.units.coords]({ axis, pad, phi });
+export function rad2string ({ axis = ' -', pad = 0, phi }: CoordsParams) {
+  return rad2stringFuncs[settings.units.coords]({ axis, pad, phi });
+}

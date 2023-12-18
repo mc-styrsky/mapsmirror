@@ -1,11 +1,12 @@
 import type { NavionicsDetail } from '../navionicsDetails';
+import { bootstrapIcon } from '../../containers/menu/iconButton';
 import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
 import { position } from '../position';
 
-export const goto = (item: NavionicsDetail) => {
+export function goto (item: NavionicsDetail) {
   if (item.position) return createHTMLElement({
     onclick: (event) => {
       const { lat, lon } = item.position;
@@ -21,16 +22,7 @@ export const goto = (item: NavionicsDetail) => {
       padding: '0.25rem',
     },
     tag: 'a',
-    zhilds: [
-      createHTMLElement({
-        src: '/bootstrap-icons-1.11.2/arrow-right-circle.svg',
-        style: {
-          color: '#ff0000',
-          height: '1.75rem',
-        },
-        tag: 'img',
-      }),
-    ],
+    zhilds: [bootstrapIcon({ icon: 'arrow-right-circle' })],
   });
   return void 0;
-};
+}

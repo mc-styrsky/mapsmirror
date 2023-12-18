@@ -1,6 +1,5 @@
 import type { ConstructorProps } from '../../common/types/constructorProps';
 import sharp from 'sharp';
-import { Readable } from 'stream';
 import { tileSize } from '../../client/globals/tileSize';
 import { XYZ2Url } from './default';
 
@@ -51,7 +50,7 @@ export class XYZ2UrlWorthit extends XYZ2Url {
     .png()
     .toBuffer();
     return {
-      body: Readable.from(body),
+      body,
       status: 200,
     };
   };

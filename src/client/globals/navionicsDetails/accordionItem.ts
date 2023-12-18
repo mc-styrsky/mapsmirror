@@ -8,12 +8,12 @@ import { itemDetails } from './itemDetails';
 import { label } from './label';
 import { spinner } from './spinner';
 
-export const accordionItem = ({ accordionId, idx, item, parent }: {
+export function accordionItem ({ accordionId, idx, item, parent }: {
   accordionId: string;
   idx: number;
   item: NavionicsDetail;
   parent: NavionicsDetails;
-}) => {
+}) {
   const itemId = `navionicsDetailsItem${idx}`;
   return createHTMLElement({
     classes: [
@@ -75,4 +75,4 @@ export const accordionItem = ({ accordionId, idx, item, parent }: {
       itemDetails(item, itemId, accordionId),
     ],
   });
-};
+}

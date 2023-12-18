@@ -2,11 +2,11 @@ import type { NavionicsDetail, NavionicsDetails } from '../navionicsDetails';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 import { accordionItem } from './accordionItem';
 
-export const toAccordion = ({ items, offset, parent }: {
+export function toAccordion ({ items, offset, parent }: {
   items: NavionicsDetail[];
   parent: NavionicsDetails;
   offset?: number;
-}) => {
+}) {
   const accordionId = `navionicsDetailsList${offset ?? ''}`;
   const ret = createHTMLElement({
     classes: ['accordion'],
@@ -79,4 +79,4 @@ export const toAccordion = ({ items, offset, parent }: {
     }));
   }
   return ret;
-};
+}

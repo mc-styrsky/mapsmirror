@@ -19,7 +19,8 @@
     "strict": true,
     "target": "esnext"
   },
-  "include": [
-    "src"
+  "files": [
+    "src/server/index.ts",
+    "src/client/index.ts"
   ]
 }

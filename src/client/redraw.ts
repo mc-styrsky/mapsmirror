@@ -12,6 +12,9 @@ import { position } from './globals/position';
 import { settings } from './globals/settings';
 import { tileSize } from './globals/tileSize';
 import { boundingRect } from './index';
+import { rad2deg } from './utils/rad2deg';
+import { x2lon } from './utils/x2lon';
+import { y2lat } from './utils/y2lat';
 
 let working = false;
 let newWorker: boolean = false;
@@ -33,7 +36,7 @@ function moveCanvas ({ canvas, height, width, x, y, z }: XYZ & Size & { canvas: 
 
 let map: HTMLCanvasElement | null = null;
 
-export const redraw = async (type: string) => {
+export async function redraw (type: string) {
   const { height, width } = boundingRect;
 
   const { tiles, ttl, x, y, z } = position;
@@ -75,11 +78,14 @@ export const redraw = async (type: string) => {
 
   (() => {
     const { origin, pathname, search } = window.location;
-    const newsearch = `?z=${z}&${
-      Object.entries({ ttl, x, y })
-      .map(([k, v]) => `${k}=${v}`)
-      .join('&')
-    }`;
+    const newsearch = `?${[
+      ['z', z],
+      ['ttl', ttl],
+      ['x', rad2deg(x2lon(x)).toFixed(5)],
+      ['y', rad2deg(y2lat(y)).toFixed(5)],
+    ]
+    .map(([k, v]) => `${k}=${v}`)
+    .join('&')}`;
     if (newsearch !== search) {
       const newlocation = `${origin}${pathname}${newsearch}`;
       window.history.pushState({ path: newlocation }, '', newlocation);
@@ -90,4 +96,4 @@ export const redraw = async (type: string) => {
     }
   })();
   setTimeout(() => working = false, 100);
-};
+}

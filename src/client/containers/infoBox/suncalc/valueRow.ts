@@ -1,6 +1,6 @@
-import type { AddDuration } from './types/AddDuration';
-import type { AddIncrement } from './types/AddIncrement';
-import type { DurationKeys } from './types/DurationKeys';
+import type { AddDuration } from './types/addDuration';
+import type { AddIncrement } from './types/addIncrement';
+import type { DurationKeys } from './types/durationKeys';
 import { createHTMLElement } from '../../../utils/createHTMLElement';
 import { formatDateValue } from '../../../utils/formatDateValue';
 import { SolarTimesStatics } from './solarTimes/statics';

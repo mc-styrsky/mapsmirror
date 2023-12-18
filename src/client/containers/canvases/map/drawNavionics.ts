@@ -43,7 +43,7 @@ const backgroundColors = [
   return arr;
 }, new Map<number, number>());
 
-export const drawNavionics: typeof drawImage = async ({ context, source, ttl, x, y, z }) => {
+export async function drawNavionics ({ context, source, ttl, x, y, z }) {
   const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
   const workerContext = workerCanvas.getContext('2d');
   const watermark = await navionicsWatermark;
@@ -72,4 +72,4 @@ export const drawNavionics: typeof drawImage = async ({ context, source, ttl, x,
 
   context.drawImage(workerCanvas, 0, 0);
   return true;
-};
+}

@@ -1,6 +1,6 @@
 import type { XYZ } from '../../common/types/xyz';
 
-export const savedPositionsFromLocalStoreage = () => {
+export function savedPositionsFromLocalStoreage () {
   const list: XYZ[] = JSON.parse(window.localStorage.getItem('savedPositions') ?? '[]');
   console.log(list);
   if (Array.isArray(list)) {
@@ -13,4 +13,4 @@ export const savedPositionsFromLocalStoreage = () => {
   else console.log('savedPositions not an array');
   window.localStorage.setItem('savedPositions', '[]');
   return [];
-};
+}

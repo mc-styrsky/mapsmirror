@@ -1,5 +1,5 @@
-import type { DurationKeys } from './DurationKeys';
-import type { SolarDuration } from './SolarDuration';
+import type { DurationKeys } from './durationKeys';
+import type { SolarDuration } from './solarDuration';
 
 export interface AddDuration {
   label: string

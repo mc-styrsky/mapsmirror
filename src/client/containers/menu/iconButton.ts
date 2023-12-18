@@ -1,17 +1,35 @@
+import type BootstrapIcons from 'bootstrap-icons/font/bootstrap-icons.json';
 import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 
-export const iconButton = ({
-  active = () => false,
-  onclick = () => void 0,
-  src,
-  style,
-}: {
+interface BootstrapIcon {
+  fontSize?: string;
+  icon: keyof(typeof BootstrapIcons);
+  src?: undefined;
+}
+interface SvgIcon {
+  fontSize?: undefined;
+  icon?: undefined;
+  src: string;
+}
+
+export function bootstrapIcon ({ fontSize = '175%', icon }: BootstrapIcon) {
+  return createHTMLElement({
+    classes: [`bi-${icon}`],
+    style: { fontSize },
+    tag: 'i',
+  });
+}
+
+type IconButton = {
   active?: () => boolean,
   onclick?: () => void;
-  src: string;
   style?: Partial<HTMLAnchorElement['style']>;
-}) => {
+} & (BootstrapIcon | SvgIcon)
+
+export function iconButton ({
+  active = () => false, fontSize, icon, onclick = () => void 0, src, style,
+}: IconButton) {
   const ret = createHTMLElement({
     classes: ['btn', active() ? 'btn-success' : 'btn-secondary'],
     role: 'button',
@@ -21,14 +39,15 @@ export const iconButton = ({
     },
     tag: 'a',
     zhilds: [
-      createHTMLElement({
-        src,
-        style: {
-          color: '#ff0000',
-          height: '1.75rem',
-        },
-        tag: 'img',
-      }),
+      icon ?
+        bootstrapIcon({ fontSize, icon }) :
+        createHTMLElement({
+          src,
+          style: {
+            height: '1.75rem',
+          },
+          tag: 'img',
+        }),
     ],
   });
 
@@ -46,4 +65,4 @@ export const iconButton = ({
   };
 
   return ret;
-};
+}

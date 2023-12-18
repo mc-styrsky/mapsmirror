@@ -11,9 +11,9 @@ import { tileSize } from '../tileSize';
 
 const abortControllers: Set<AbortController> = new Set();
 
-export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
-  parent: NavionicsDetails;
-}) => {
+export async function getNavionicsDetailsList (
+  { parent, x, y, z }: XYZ & { parent: NavionicsDetails },
+) {
   while (parent.queue.shift()) (() => void 0)();
   abortControllers.forEach(ac => ac.abort());
   if (!settings.show.navionicsDetails) return;
@@ -31,8 +31,8 @@ export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
       dy: Math.round(y * tileSize) / tileSize,
       radius: 0,
     }];
-    for (let iX = - max; iX < max; iX++) {
-      for (let iY = - max; iY < max; iY++) {
+    for (let iX = -max; iX < max; iX++) {
+      for (let iY = -max; iY < max; iY++) {
         const dx = Math.ceil(x * perTile + iX) / perTile;
         const dy = Math.ceil(y * perTile + iY) / perTile;
         const radius = Math.sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y));
@@ -85,7 +85,7 @@ export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
             const { label, properties } = extractProperties(
               await fetch(`/navionics/objectinfo/${item.id}`, { signal })
               .then(async (res) => res.ok ? await res.json() : {})
-              .catch(() => {}),
+              .catch(() => { }),
               {
                 label: String,
                 properties: (val) => val?.map(({ label }) => label)?.filter(Boolean),
@@ -117,4 +117,4 @@ export const getNavionicsDetailsList = async ({ parent, x, y, z }: XYZ & {
     parent.isFetch = false;
   });
   parent.clearHtmlList();
-};
+}

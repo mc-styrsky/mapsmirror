@@ -5,7 +5,7 @@ import { savedPositionsFromLocalStoreage } from '../../../../utils/savedPosition
 import { updateSavedPositionsList } from './updateSavedPositionsList';
 
 
-export const editSavedPosition = ({ func, x, y, z }: XYZ & { func: 'add' | 'delete' }) => {
+export function editSavedPosition ({ func, x, y, z }: XYZ & { func: 'add' | 'delete'; }) {
   const list = new Set(savedPositionsFromLocalStoreage().map(e => stringify(e)));
   list[func](stringify({
     x: Math.round(x * tileSize),
@@ -14,4 +14,4 @@ export const editSavedPosition = ({ func, x, y, z }: XYZ & { func: 'add' | 'dele
   }));
   window.localStorage.setItem('savedPositions', stringify([...list].map(e => JSON.parse(e))));
   updateSavedPositionsList();
-};
+}

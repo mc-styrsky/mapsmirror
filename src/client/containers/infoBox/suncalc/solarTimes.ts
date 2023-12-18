@@ -1,6 +1,6 @@
+import { halfDay } from '../../../globals/halfDay';
 import { position } from '../../../globals/position';
 import { createHTMLElement } from '../../../utils/createHTMLElement';
-import { halfDay } from '../../../utils/halfDay';
 import { rad2deg } from '../../../utils/rad2deg';
 import { x2lon } from '../../../utils/x2lon';
 import { y2lat } from '../../../utils/y2lat';

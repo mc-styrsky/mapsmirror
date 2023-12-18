@@ -1,6 +1,6 @@
-import { halfDay } from '../../../utils/halfDay';
+import { halfDay } from '../../../globals/halfDay';
 
-export const intervalValueOf = ({ end: endDate, solarNoon: noonDate, start: startDate }: { end: Date; start: Date; solarNoon: Date; }) => {
+export function intervalValueOf ({ end: endDate, solarNoon: noonDate, start: startDate }: { end: Date; start: Date; solarNoon: Date; }) {
   const end = endDate.valueOf();
   const start = startDate.valueOf();
   const startNaN = Number.isNaN(start);
@@ -15,4 +15,4 @@ export const intervalValueOf = ({ end: endDate, solarNoon: noonDate, start: star
     noon - start;
 
   return end - start;
-};
+}

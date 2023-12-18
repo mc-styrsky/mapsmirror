@@ -2,6 +2,9 @@ import type { Marker } from './marker';
 import type { XYZ } from '../../common/types/xyz';
 import { extractProperties } from '../../common/extractProperties';
 import { modulo } from '../../common/modulo';
+import { deg2rad } from '../utils/deg2rad';
+import { lat2y } from '../utils/lat2y';
+import { lon2x } from '../utils/lon2x';
 import { mouse } from './mouse';
 import { navionicsDetails } from './navionicsDetails';
 
@@ -84,9 +87,13 @@ class Position {
   private _tiles: number = 0;
 }
 
-export const position = new Position(extractProperties(Object.fromEntries(new URL(window.location.href).searchParams.entries()), {
-  ttl: val => parseInt(val ?? 0),
-  x: val => parseFloat(val ?? 2),
-  y: val => parseFloat(val ?? 2),
-  z: val => parseInt(val ?? 2),
+const searchParams = Object.fromEntries(new URL(window.location.href).searchParams.entries());
+const { z } = extractProperties(searchParams, {
+  z: val => Number(val) ? parseInt(val) : 2,
+});
+export const position = new Position(extractProperties(searchParams, {
+  ttl: val => Number(val) ? parseInt(val) : 0,
+  x: val => Number(val) ? lon2x(deg2rad(parseFloat(val)), 1 << z) : 0,
+  y: val => Number(val) ? lat2y(deg2rad(parseFloat(val)), 1 << z) : 0,
+  z: () => z,
 }));

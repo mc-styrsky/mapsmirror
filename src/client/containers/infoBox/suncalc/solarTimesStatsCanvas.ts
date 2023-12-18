@@ -1,5 +1,5 @@
-import type { DurationKeys } from './types/DurationKeys';
-import type { SolarDuration } from './types/SolarDuration';
+import type { DurationKeys } from './types/durationKeys';
+import type { SolarDuration } from './types/solarDuration';
 import { createHTMLElement } from '../../../utils/createHTMLElement';
 import { SolarTimesStatics } from './solarTimes/statics';
 

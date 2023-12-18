@@ -12,12 +12,9 @@ import { nm2px } from '../../utils/nm2px';
 import { x2lon } from '../../utils/x2lon';
 import { y2lat } from '../../utils/y2lat';
 
-export const createCrosshairsCanvas = ({
-  height,
-  width,
-  x,
-  y,
-}: Pick<XYZ, 'x' | 'y'> & Size) => {
+export function createCrosshairsCanvas ({
+  height, width, x, y,
+}: Pick<XYZ, 'x' | 'y'> & Size) {
   const canvas = createHTMLElement({
     height,
     style: {
@@ -45,10 +42,10 @@ export const createCrosshairsCanvas = ({
   let minLast = 0;
   context.beginPath();
   context.strokeStyle = '#ff0000';
-  context.moveTo(- 5, 5);
-  context.lineTo(5, - 5);
+  context.moveTo(-5, 5);
+  context.lineTo(5, -5);
   context.moveTo(5, 5);
-  context.lineTo(- 5, - 5);
+  context.lineTo(-5, -5);
   context.stroke();
   for (let minArc = milesPerArc; minArc < 10800; minArc += milesPerArc) {
     const radiusX = nm2px(lat) * minArc;
@@ -79,12 +76,12 @@ export const createCrosshairsCanvas = ({
       const radDiv = min2rad(minDiv);
       if (lat + radDiv < piHalf) {
         const top = (lat2y(lat + radDiv) - y) * tileSize;
-        context.moveTo(- 5, top);
+        context.moveTo(-5, top);
         context.lineTo(5, top);
       }
-      if (lat - radDiv > - piHalf) {
+      if (lat - radDiv > -piHalf) {
         const bottom = (lat2y(lat - radDiv) - y) * tileSize;
-        context.moveTo(- 5, bottom);
+        context.moveTo(-5, bottom);
         context.lineTo(5, bottom);
       }
       const { cosOmega2, lat2, lon2 } = sphericLatLon({ lat, omega: piHalf, radius: radDiv });
@@ -114,4 +111,4 @@ export const createCrosshairsCanvas = ({
     minLast = minArc;
   }
   return canvas;
-};
+}

@@ -1,1 +1,3 @@
-export const deg2rad = (val: number) => Number(val) * Math.PI / 180;
+export function deg2rad (val: number) {
+  return Number(val) * Math.PI / 180;
+}
