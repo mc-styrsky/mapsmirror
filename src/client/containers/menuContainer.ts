@@ -18,7 +18,7 @@ export const menuContainer = createHTMLElement({
   },
   tag: 'div',
   zhilds: [
-    baselayerMenu,
+    baselayerMenu.toHtml(),
     createHTMLElement({
       classes: ['btn-group'],
       role: 'group',

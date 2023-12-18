@@ -1,3 +1,3 @@
-import type { CoordUnits } from './settings';
+import type { CoordUnit } from './settings';
 
-export const coordUnits: CoordUnits[] = ['d', 'dm', 'dms'];
+export const coordUnits: CoordUnit[] = ['d', 'dm', 'dms'];

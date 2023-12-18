@@ -1,10 +1,11 @@
-import { setBaseLayer } from '../containers/menu/baselayerMenu';
+import { baselayerMenu } from '../containers/menu/baselayerMenu';
 import { coordsToggle } from '../containers/menu/coordsToggle';
 import { crosshairToggle } from '../containers/menu/crosshairToggle';
 import { navionicsDetailsToggle } from '../containers/menu/navionicsDetailsToggle';
 import { navionicsToggle } from '../containers/menu/navionicsToggle';
 import { vfdensityToggle } from '../containers/menu/vfdensityToggle';
 import { updateUserLocation } from '../getUserLocation';
+import { baselayers } from '../globals/baselayers';
 import { mouse } from '../globals/mouse';
 import { position } from '../globals/position';
 import { settings } from '../globals/settings';
@@ -53,18 +54,18 @@ export function oninput (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
     if (event.isComposing) return;
     const { key } = event;
     if (key >= '0' && key <= '9') {
-      const baselayer = settings.tiles.baselayers[parseInt(key)];
-      if (typeof baselayer !== 'undefined') setBaseLayer(baselayer);
+      const baselayer = baselayers[parseInt(key)];
+      if (typeof baselayer !== 'undefined') baselayerMenu.baselayer = baselayer;
     }
     else if (key === 'c') crosshairToggle.click();
     else if (key === 'd') coordsToggle.click();
     else if (key === 'l') updateUserLocation();
     else if (key === 'n') {
-      if (settings.show.navionicsDetails && settings.tiles.enabled.navionics) {
+      if (settings.show.navionicsDetails && settings.show.navionics) {
         navionicsDetailsToggle.click();
         navionicsToggle.click();
       }
-      else if (settings.tiles.enabled.navionics) navionicsDetailsToggle.click();
+      else if (settings.show.navionics) navionicsDetailsToggle.click();
       else navionicsToggle.click();
     }
     else if (key === 'v') vfdensityToggle.click();

@@ -1,9 +1,9 @@
-import type { Layers } from '../../../common/types/layers';
+import type { Layer } from '../../../common/types/layers';
 import { settings } from '../../globals/settings';
 import { iconButton } from './iconButton';
 
-export const overlayToggle = (source: Layers) => iconButton({
-  active: () => Boolean(settings.tiles.enabled[source]),
-  onclick: () => settings.tiles.enabled[source] = !settings.tiles.enabled[source],
+export const overlayToggle = (source: Layer) => iconButton({
+  active: () => Boolean(settings.show[source]),
+  onclick: () => settings.show[source] = !settings.show[source],
   src: `icons/${source}.svg`,
 });

@@ -57,13 +57,11 @@ export async function createMapCanvas ({
   dxArray.map(({ dx, marginX }) => {
     dyArray.map(({ dy, marginY }) => {
       (marginX || marginY ? optionalTileProms : neededTileProms).push(
-        settings.tiles.order.reduce(async (prom, entry) => {
-          const { alpha, source } = typeof entry === 'string' ? { alpha: 1, source: entry } : entry;
-          if (source && settings.tiles.enabled[source]) {
-            const draw = drawCachedImage({ alpha, context, source, trans, ttl: marginX || marginY ? 0 : ttl, usedImages, x: dx, y: dy, z });
-            await prom;
-            await (await draw)();
-          }
+        settings.tiles.reduce(async (prom, entry) => {
+          const { alpha, source } = entry;
+          const draw = drawCachedImage({ alpha, context, source, trans, ttl: marginX || marginY ? 0 : ttl, usedImages, x: dx, y: dy, z });
+          await prom;
+          await (await draw)();
           return prom;
         }, Promise.resolve()),
       );

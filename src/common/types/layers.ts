@@ -1,4 +1,4 @@
-export type Baselayers =
+export type Baselayer =
 | ''
 | 'bingsat'
 | 'gebco'
@@ -9,12 +9,14 @@ export type Baselayers =
 | 'osm'
 | 'worthit'
 
-export type Overlays =
+export type Overlay =
 | 'navionics'
 | 'openseamap'
 | 'vfdensity'
 
-export type Layers = Baselayers | Overlays;
+export type Layer = Baselayer | Overlay;
 
-export type VirtLayers = Layers
+export type VirtLayer = Layer
 | 'transparent'
+
+export type LayerSettings = {alpha: number, source: Layer}

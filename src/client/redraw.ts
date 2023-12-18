@@ -1,6 +1,5 @@
 import type { Size } from '../common/types/size';
 import type { XYZ } from '../common/types/xyz';
-import stringify from 'json-stable-stringify';
 import { modulo } from '../common/modulo';
 import { createCrosshairsCanvas } from './containers/canvases/crosshairs';
 import { createMapCanvas } from './containers/canvases/mapCanvas';
@@ -12,6 +11,7 @@ import { position } from './globals/position';
 import { settings } from './globals/settings';
 import { tileSize } from './globals/tileSize';
 import { boundingRect } from './index';
+import { LocalStorageItem } from './utils/localStorageItem';
 import { rad2deg } from './utils/rad2deg';
 import { x2lon } from './utils/x2lon';
 import { y2lat } from './utils/y2lat';
@@ -90,10 +90,7 @@ export async function redraw (type: string) {
       const newlocation = `${origin}${pathname}${newsearch}`;
       window.history.pushState({ path: newlocation }, '', newlocation);
     }
-    const newsettings = stringify(settings);
-    if (window.localStorage.getItem('settings') !== newsettings) {
-      window.localStorage.setItem('settings', newsettings);
-    }
+    new LocalStorageItem<typeof settings>('settings').set(settings);
   })();
   setTimeout(() => working = false, 100);
 }

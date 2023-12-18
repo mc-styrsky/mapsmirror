@@ -1,48 +1,53 @@
-import type { Baselayers } from '../../../common/types/layers';
+import type { Baselayer } from '../../../common/types/layers';
+import { baselayers } from '../../globals/baselayers';
 import { settings } from '../../globals/settings';
 import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 
-const baselayerLabel = (source: Baselayers) => `${source || '- none -'} (${settings.tiles.baselayers.indexOf(source)})`;
+export class BaselayerMenu {
+  toHtml = () => this.html;
 
-const baselayerMenuButton = createHTMLElement({
-  classes: ['btn', 'btn-secondary', 'dropdown-toggle'],
-  dataset: {
-    bsToggle: 'dropdown',
-  },
-  role: 'button',
-  tag: 'a',
-  zhilds: [baselayerLabel(settings.tiles.order[0])],
-});
+  private baselayerLabel = (source: Baselayer) => `${source || '- none -'} (${baselayers.indexOf(source)})`;
 
-export function setBaseLayer (source: Baselayers) {
-  settings.tiles.baselayers.forEach(key => settings.tiles.enabled[key] = key === source);
-  settings.tiles.order[0] = source;
-  baselayerMenuButton.innerText = baselayerLabel(source);
-  redraw('changed baselayer');
+  private baselayerMenuButton = createHTMLElement({
+    classes: ['btn', 'btn-secondary', 'dropdown-toggle'],
+    dataset: {
+      bsToggle: 'dropdown',
+    },
+    role: 'button',
+    tag: 'a',
+    zhilds: [this.baselayerLabel(settings.baselayer)],
+  });
+  private html = createHTMLElement({
+    classes: ['dropdown'],
+    tag: 'div',
+    zhilds: [
+      this.baselayerMenuButton,
+      createHTMLElement({
+        classes: ['dropdown-menu'],
+        tag: 'ul',
+        zhilds: [
+          createHTMLElement({
+            tag: 'li',
+            zhilds: baselayers.map(source => {
+              return createHTMLElement({
+                classes: ['dropdown-item'],
+                onclick: () => this.baselayer = source,
+                tag: 'a',
+                zhilds: [this.baselayerLabel(source)],
+              });
+            }),
+          }),
+        ],
+      }),
+    ],
+  });
+
+  set baselayer (baselayer: Baselayer) {
+    settings.baselayer = baselayer;
+    this.baselayerMenuButton.innerText = this.baselayerLabel(baselayer);
+    redraw('changed baselayer');
+  }
 }
 
-export const baselayerMenu = createHTMLElement({
-  classes: ['dropdown'],
-  tag: 'div',
-  zhilds: [
-    baselayerMenuButton,
-    createHTMLElement({
-      classes: ['dropdown-menu'],
-      tag: 'ul',
-      zhilds: [
-        createHTMLElement({
-          tag: 'li',
-          zhilds: settings.tiles.baselayers.map(source => {
-            return createHTMLElement({
-              classes: ['dropdown-item'],
-              onclick: () => setBaseLayer(source),
-              tag: 'a',
-              zhilds: [baselayerLabel(source)],
-            });
-          }),
-        }),
-      ],
-    }),
-  ],
-});
+export const baselayerMenu = new BaselayerMenu();

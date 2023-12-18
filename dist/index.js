@@ -73,10 +73,14 @@ var getNavionicsObjectinfo = async (req, res) => {
 };
 
 // src/common/x2lon.ts
-var x2lonCommon = (x, tiles) => (x / tiles - 0.5) * Math.PI * 2;
+function x2lonCommon(x, tiles) {
+  return (x / tiles - 0.5) * Math.PI * 2;
+}
 
 // src/common/y2lat.ts
-var y2latCommon = (y, tiles) => Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
+function y2latCommon(y, tiles) {
+  return Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
+}
 
 // src/server/requestHandler/getNavionicsQuickinfo.ts
 var quickinfoCache = /* @__PURE__ */ new Map();
@@ -123,10 +127,10 @@ var getNavionicsQuickinfo = async (req, res) => {
 import { StyQueue } from "../node_modules/@mc-styrsky/queue/lib/index.js";
 
 // src/common/modulo.ts
-var modulo = (val, mod) => {
+function modulo(val, mod) {
   const ret = val % mod;
   return ret < 0 ? ret + mod : ret;
-};
+}
 
 // src/server/utils/xyz2quadkey.ts
 var xyz2quadkey = ({ x, y, z }) => {

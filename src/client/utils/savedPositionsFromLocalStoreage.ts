@@ -1,7 +1,9 @@
 import type { XYZ } from '../../common/types/xyz';
+import { LocalStorageItem } from './localStorageItem';
 
 export function savedPositionsFromLocalStoreage () {
-  const list: XYZ[] = JSON.parse(window.localStorage.getItem('savedPositions') ?? '[]');
+  const storageItem = new LocalStorageItem<XYZ[]>('savedPositions');
+  const list = storageItem.get();
   console.log(list);
   if (Array.isArray(list)) {
     if (list.every(item => {
@@ -11,6 +13,6 @@ export function savedPositionsFromLocalStoreage () {
     console.log('x, y, or z is NaN', list);
   }
   else console.log('savedPositions not an array');
-  window.localStorage.setItem('savedPositions', '[]');
+  storageItem.set([]);
   return [];
 }

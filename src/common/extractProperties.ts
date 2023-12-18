@@ -1,5 +1,5 @@
 export function extractProperties<T extends object> (
-  obj: Record<string, any>,
+  obj: Record<string, any> | null | undefined,
   builder: { [P in keyof T]: (val?: any) => T[P] },
 ): T {
   return Object.entries(builder).reduce((ret, entry) => {

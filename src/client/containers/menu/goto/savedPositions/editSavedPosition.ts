@@ -1,6 +1,7 @@
 import type { XYZ } from '../../../../../common/types/xyz';
 import stringify from 'json-stable-stringify';
 import { tileSize } from '../../../../globals/tileSize';
+import { LocalStorageItem } from '../../../../utils/localStorageItem';
 import { savedPositionsFromLocalStoreage } from '../../../../utils/savedPositionsFromLocalStoreage';
 import { updateSavedPositionsList } from './updateSavedPositionsList';
 
@@ -12,6 +13,6 @@ export function editSavedPosition ({ func, x, y, z }: XYZ & { func: 'add' | 'del
     y: Math.round(y * tileSize),
     z,
   }));
-  window.localStorage.setItem('savedPositions', stringify([...list].map(e => JSON.parse(e))));
+  new LocalStorageItem<XYZ[]>('savedPositions').set([...list].map(e => JSON.parse(e)));
   updateSavedPositionsList();
 }

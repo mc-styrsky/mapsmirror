@@ -1,4 +1,4 @@
-import type { CoordUnits } from '../../../../globals/settings';
+import type { CoordUnit } from '../../../../globals/settings';
 import { fromEntriesTyped } from '../../../../../common/fromEntriesTyped';
 import { coordUnits } from '../../../../globals/coordUnits';
 import { createHTMLElement } from '../../../../utils/createHTMLElement';
@@ -13,5 +13,5 @@ export const coordInfo = fromEntriesTyped(
       },
       tag: 'div',
     }),
-  ] as [CoordUnits, HTMLDivElement]),
+  ] as [CoordUnit, HTMLDivElement]),
 );
