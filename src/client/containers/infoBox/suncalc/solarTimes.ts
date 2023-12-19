@@ -55,10 +55,7 @@ class SolarTimes extends SolarTimesDurations {
       .fill('Night', halfDay * 2)
       .fillStats(durations, halfDay * 2)
       .lines;
-      this.html = createHTMLElement({
-        tag: 'div',
-        zhilds,
-      });
+      this.html = createHTMLElement('div', { zhilds });
     }
     return this.html;
   };

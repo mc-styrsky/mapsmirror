@@ -15,14 +15,13 @@ export function accordionItem ({ accordionId, idx, item, parent }: {
   parent: NavionicsDetails;
 }) {
   const itemId = `navionicsDetailsItem${idx}`;
-  return createHTMLElement({
+  return createHTMLElement('div', {
     classes: [
       'accordion-item',
       'mm-menu-text',
     ],
-    tag: 'div',
     zhilds: [
-      createHTMLElement({
+      createHTMLElement('div', {
         classes: [
           'accordion-header',
           'mm-menu-text',
@@ -38,9 +37,8 @@ export function accordionItem ({ accordionId, idx, item, parent }: {
             redraw('set navionics marker');
           }
         },
-        tag: 'div',
         zhilds: [
-          createHTMLElement({
+          createHTMLElement('div', {
             classes: [
               ...item.properties ?
                 ['accordion-button', 'collapsed'] :
@@ -55,13 +53,11 @@ export function accordionItem ({ accordionId, idx, item, parent }: {
                 bsToggle: 'collapse',
               } :
               {},
-            tag: 'div',
-            zhilds: [createHTMLElement({
+            zhilds: [createHTMLElement('div', {
               classes: ['d-flex'],
               style: {
                 width: '100%',
               },
-              tag: 'div',
               zhilds: [
                 icon(item),
                 label(item),

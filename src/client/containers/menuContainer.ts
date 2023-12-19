@@ -11,18 +11,16 @@ import { suncalcToggle } from './menu/suncalcToggle';
 import { vfdensityToggle } from './menu/vfdensityToggle';
 
 
-export const menuContainer = createHTMLElement({
+export const menuContainer = createHTMLElement('div', {
   classes: ['d-flex', 'gap-2', 'm-2'],
   dataset: {
     bsTheme: 'dark',
   },
-  tag: 'div',
   zhilds: [
     baselayerMenu.toHtml(),
-    createHTMLElement({
+    createHTMLElement('div', {
       classes: ['btn-group'],
       role: 'group',
-      tag: 'div',
       zhilds: [
         overlayToggle('openseamap'),
         vfdensityToggle,

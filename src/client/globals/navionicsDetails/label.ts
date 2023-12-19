@@ -2,23 +2,20 @@ import type { NavionicsDetail } from '../navionicsDetails';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 
 export function label (item: NavionicsDetail) {
-  return createHTMLElement({
+  return createHTMLElement('div', {
     classes: ['d-flex'],
-    tag: 'div',
     zhilds: [
-      createHTMLElement({
+      createHTMLElement('div', {
         style: {
           margin: 'auto',
         },
-        tag: 'div',
         zhilds: [
           item.name,
-          createHTMLElement({
+          createHTMLElement('div', {
             style: {
               fontSize: '70%',
               marginLeft: '0.5rem',
             },
-            tag: 'span',
             zhilds: [item.distance.toFixed(3), 'nm'],
           }),
         ],

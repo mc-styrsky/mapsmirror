@@ -1,6 +1,5 @@
 import { createHTMLElement } from '../../../../utils/createHTMLElement';
 
-export const addressSearchContainer = createHTMLElement({
+export const addressSearchContainer = createHTMLElement('div', {
   classes: ['dropdown-menu'],
-  tag: 'div',
 });

@@ -11,7 +11,7 @@ import { addressSearchContainer } from './searchContainer';
 
 const addressQueue = new StyQueue(1);
 
-export const addressInput = createHTMLElement({
+export const addressInput = createHTMLElement('input', {
   autocomplete: 'off',
   classes: ['form-control'],
   oninput: async () => {
@@ -58,18 +58,16 @@ export const addressInput = createHTMLElement({
           };
 
           if (idx === 0) addressForm.onsubmit = onclick;
-          return createHTMLElement({
+          return createHTMLElement('a', {
             classes: ['list-group-item'],
             onclick,
             role: 'button',
-            tag: 'a',
             zhilds: [displayName, ` (${z})`],
           });
         });
         addressSearchContainer.innerHTML = '';
-        addressSearchContainer.append(createHTMLElement({
+        addressSearchContainer.append(createHTMLElement('div', {
           classes: ['list-group', 'list-group-flush'],
-          tag: 'div',
           zhilds,
         }));
         return true;
@@ -85,6 +83,5 @@ export const addressInput = createHTMLElement({
     }
   },
   placeholder: 'Address',
-  tag: 'input',
   type: 'text',
 });

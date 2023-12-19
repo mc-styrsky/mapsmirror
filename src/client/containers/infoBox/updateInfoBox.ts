@@ -4,7 +4,7 @@ import { position } from '../../globals/position';
 import { settings } from '../../globals/settings';
 import { tileSize } from '../../globals/tileSize';
 import { boundingRect } from '../../index';
-import { createHTMLElement } from '../../utils/createHTMLElement';
+import { createBr } from '../../utils/createHTMLElement';
 import { px2nm } from '../../utils/px2nm';
 import { rad2string } from '../../utils/rad2string';
 import { x2lon } from '../../utils/x2lon';
@@ -38,11 +38,11 @@ export function updateInfoBox () {
   infoBox.innerHTML = '';
   infoBox.append(
     `Scale: ${scale} (Zoom ${position.z})`,
-    createHTMLElement({ tag: 'br' }),
+    createBr(),
     `Lat/Lon: ${rad2string({ axis: 'NS', pad: 2, phi: lat })} ${rad2string({ axis: 'EW', pad: 3, phi: lon })}`,
-    createHTMLElement({ tag: 'br' }),
+    createBr(),
     `Mouse: ${rad2string({ axis: 'NS', pad: 2, phi: latMouse })} ${rad2string({ axis: 'EW', pad: 3, phi: lonMouse })}`,
-    createHTMLElement({ tag: 'br' }),
+    createBr(),
     `User: ${rad2string({ axis: 'NS', pad: 2, phi: position.user.latitude })} ${rad2string({ axis: 'EW', pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`,
 
   );

@@ -2,10 +2,9 @@ import type { NavionicsDetail } from '../navionicsDetails';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 
 export function spinner (item: NavionicsDetail) {
-  if (item.details && !item.properties) return createHTMLElement({
+  if (item.details && !item.properties) return createHTMLElement('div', {
     classes: ['d-flex'],
-    tag: 'div',
-    zhilds: [createHTMLElement({
+    zhilds: [createHTMLElement('div', {
       classes: [
         'spinner-border',
         'spinner-border-sm',
@@ -13,7 +12,6 @@ export function spinner (item: NavionicsDetail) {
       style: {
         margin: 'auto',
       },
-      tag: 'div',
     })],
   });
   return void 0;

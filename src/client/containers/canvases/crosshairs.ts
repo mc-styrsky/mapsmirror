@@ -15,14 +15,13 @@ import { y2lat } from '../../utils/y2lat';
 export function createCrosshairsCanvas ({
   height, width, x, y,
 }: Pick<XYZ, 'x' | 'y'> & Size) {
-  const canvas = createHTMLElement({
+  const canvas = createHTMLElement('canvas', {
     height,
     style: {
       height: `${height}px`,
       position: 'absolute',
       width: `${width}px`,
     },
-    tag: 'canvas',
     width,
   });
   const context = canvas.getContext('2d');

@@ -7,7 +7,7 @@ import { coordError } from './error';
 import { coordInfo } from './info';
 import { coordSubmit } from './submit';
 
-export const coordInput = createHTMLElement({
+export const coordInput = createHTMLElement('input', {
   autocomplete: 'off',
   classes: ['form-control'],
   oninput: () => {
@@ -42,6 +42,5 @@ export const coordInput = createHTMLElement({
     }
   },
   placeholder: 'Coordinates',
-  tag: 'input',
   type: 'text',
 });

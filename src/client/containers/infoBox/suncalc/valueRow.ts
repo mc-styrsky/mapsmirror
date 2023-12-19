@@ -43,27 +43,23 @@ export class ValueRow {
   addRow ({ row }: {row: (string|HTMLElement)[]}): ValueRow
   addRow ({ col1, col2, col3, row }: Partial<Record<'col1'|'col2'|'col3'|'row', (string|HTMLElement)[]>>) {
     row ??= [
-      createHTMLElement({
+      createHTMLElement('div', {
         style: { marginRight: 'auto' },
-        tag: 'div',
         zhilds: col1,
       }),
-      createHTMLElement({
+      createHTMLElement('div', {
         classes: ['text-end'],
         style: { width: '5em' },
-        tag: 'div',
         zhilds: col2,
       }),
-      createHTMLElement({
+      createHTMLElement('div', {
         classes: ['text-end'],
         style: { width: '5em' },
-        tag: 'div',
         zhilds: col3,
       }),
     ];
-    this.lines.push(createHTMLElement({
+    this.lines.push(createHTMLElement('div', {
       classes: ['d-flex'],
-      tag: 'div',
       zhilds: row,
     }));
     return this;
@@ -83,16 +79,15 @@ export class ValueRow {
       stats: durations.stats,
       width: 15 * 16,
     });
-    const axis = [stats.max, stats.min].map(v => createHTMLElement({
+    const axis = [stats.max, stats.min].map(v => createHTMLElement('div', {
       classes: ['text-end'],
       style: {
         fontSize: '10px',
       },
-      tag: 'div',
       zhilds: [formatDateValue(v)],
     }));
     this.addRow({ row: [
-      createHTMLElement({
+      createHTMLElement('div', {
         style: {
           backgroundColor: '#ffffff',
           borderColor: '#000000',
@@ -101,7 +96,6 @@ export class ValueRow {
           paddingLeft: '3px',
           paddingRight: '3px',
         },
-        tag: 'div',
         zhilds: axis,
       }),
       stats.canvas,

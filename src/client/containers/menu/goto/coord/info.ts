@@ -6,12 +6,11 @@ import { createHTMLElement } from '../../../../utils/createHTMLElement';
 export const coordInfo = fromEntriesTyped(
   coordUnits.map(c => [
     c,
-    createHTMLElement({
+    createHTMLElement('div', {
       classes: ['form-text'],
       style: {
         width: 'max-content',
       },
-      tag: 'div',
     }),
   ] as [CoordUnit, HTMLDivElement]),
 );

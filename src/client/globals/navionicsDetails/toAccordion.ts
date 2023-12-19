@@ -8,10 +8,9 @@ export function toAccordion ({ items, offset, parent }: {
   offset?: number;
 }) {
   const accordionId = `navionicsDetailsList${offset ?? ''}`;
-  const ret = createHTMLElement({
+  const ret = createHTMLElement('div', {
     classes: ['accordion'],
     id: accordionId,
-    tag: 'div',
   });
   if (items.length <= 10) ret.append(...items.map((item, idx) => accordionItem({
     accordionId,
@@ -23,21 +22,19 @@ export function toAccordion ({ items, offset, parent }: {
   else for (let i = 0; i < items.length; i += 10) {
     const itemId = `navionicsDetailsItemList${i}`;
     const itemsSlice = items.slice(i, i + 10);
-    ret.append(createHTMLElement({
+    ret.append(createHTMLElement('div', {
       classes: [
         'accordion-item',
         'mm-menu-text',
       ],
-      tag: 'div',
       zhilds: [
-        createHTMLElement({
+        createHTMLElement('div', {
           classes: [
             'accordion-header',
             'mm-menu-text',
           ],
-          tag: 'div',
           zhilds: [
-            createHTMLElement({
+            createHTMLElement('div', {
               classes: ['accordion-button',
                 'collapsed',
                 'px-2',
@@ -48,13 +45,11 @@ export function toAccordion ({ items, offset, parent }: {
                 bsTarget: `#${itemId}`,
                 bsToggle: 'collapse',
               },
-              tag: 'div',
-              zhilds: [createHTMLElement({
+              zhilds: [createHTMLElement('div', {
                 classes: ['d-flex'],
                 style: {
                   width: '100%',
                 },
-                tag: 'div',
                 zhilds: [
                   itemsSlice.length === 1 ?
                     `${i + 1}` :
@@ -64,13 +59,12 @@ export function toAccordion ({ items, offset, parent }: {
             }),
           ],
         }),
-        createHTMLElement({
+        createHTMLElement('div', {
           classes: ['accordion-collapse', 'collapse', 'px-2', i === 0 ? 'show' : null],
           dataset: {
             bsParent: `#${accordionId}`,
           },
           id: itemId,
-          tag: 'div',
           zhilds: [
             toAccordion({ items: itemsSlice, offset: i, parent }),
           ],

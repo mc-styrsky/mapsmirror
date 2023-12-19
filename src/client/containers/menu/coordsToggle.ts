@@ -2,7 +2,7 @@ import { settings } from '../../globals/settings';
 import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 
-export const coordsToggle = createHTMLElement({
+export const coordsToggle = createHTMLElement('a', {
   classes: ['btn', 'btn-secondary'],
   onclick: () => {
     settings.units.coords = {
@@ -18,7 +18,6 @@ export const coordsToggle = createHTMLElement({
     redraw('coords changed');
   },
   role: 'button',
-  tag: 'a',
   zhilds: [{
     d: 'Dec',
     dm: 'D°M\'',

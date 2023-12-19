@@ -11,7 +11,7 @@ import { createHTMLElement } from './utils/createHTMLElement';
 const {
   container: containerId = '',
 } = Object.fromEntries(new URL(import.meta.url).searchParams.entries());
-const container = document.getElementById(containerId) ?? createHTMLElement({ tag: 'div' });
+const container = document.getElementById(containerId) ?? createHTMLElement('div');
 
 export const boundingRect = new Size(container);
 

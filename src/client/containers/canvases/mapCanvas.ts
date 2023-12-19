@@ -14,7 +14,7 @@ export async function createMapCanvas ({
 }: XYZ & Size) {
   const canvasWidth = width + 2 * tileSize;
   const canvasHeight = height + 2 * tileSize;
-  const canvas = createHTMLElement({
+  const canvas = createHTMLElement('canvas', {
     style: {
       height: `${canvasHeight}px`,
       left: `${-tileSize}px`,
@@ -22,7 +22,6 @@ export async function createMapCanvas ({
       top: `${-tileSize}px`,
       width: `${canvasWidth}px`,
     },
-    tag: 'canvas',
   });
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;

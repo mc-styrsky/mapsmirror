@@ -9,31 +9,26 @@ export class BaselayerMenu {
 
   private baselayerLabel = (source: Baselayer) => `${source || '- none -'} (${baselayers.indexOf(source)})`;
 
-  private baselayerMenuButton = createHTMLElement({
+  private baselayerMenuButton = createHTMLElement('a', {
     classes: ['btn', 'btn-secondary', 'dropdown-toggle'],
     dataset: {
       bsToggle: 'dropdown',
     },
     role: 'button',
-    tag: 'a',
     zhilds: [this.baselayerLabel(settings.baselayer)],
   });
-  private html = createHTMLElement({
+  private html = createHTMLElement('div', {
     classes: ['dropdown'],
-    tag: 'div',
     zhilds: [
       this.baselayerMenuButton,
-      createHTMLElement({
+      createHTMLElement('ul', {
         classes: ['dropdown-menu'],
-        tag: 'ul',
         zhilds: [
-          createHTMLElement({
-            tag: 'li',
+          createHTMLElement('li', {
             zhilds: baselayers.map(source => {
-              return createHTMLElement({
+              return createHTMLElement('a', {
                 classes: ['dropdown-item'],
                 onclick: () => this.baselayer = source,
-                tag: 'a',
                 zhilds: [this.baselayerLabel(source)],
               });
             }),

@@ -3,26 +3,23 @@ import { createHTMLElement } from '../../utils/createHTMLElement';
 
 
 export function icon (item: NavionicsDetail) {
-  return createHTMLElement({
+  return createHTMLElement('div', {
     classes: ['d-flex'],
     style: {
       height: '2em',
       width: '2em',
     },
-    tag: 'div',
-    zhilds: [createHTMLElement({
+    zhilds: [createHTMLElement('div', {
       style: {
         margin: 'auto',
       },
-      tag: 'div',
       zhilds: [
-        createHTMLElement({
+        createHTMLElement('img', {
           src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
           style: {
             maxHeight: '1.5em',
             maxWidth: '1.5em',
           },
-          tag: 'img',
         }),
       ],
     })],

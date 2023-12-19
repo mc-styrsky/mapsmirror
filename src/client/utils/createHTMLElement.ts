@@ -1,19 +1,26 @@
-export function createHTMLElement<T extends keyof HTMLElementTagNameMap> (params: Partial<Omit<HTMLElementTagNameMap[T], 'dataset' | 'style'>> & {
+import { entriesTyped } from '../../common/fromEntriesTyped';
+
+export function createHTMLElement<T extends keyof HTMLElementTagNameMap> (tag: T, {
+  classes,
+  dataset,
+  style,
+  zhilds,
+  ...data
+}: Partial<Omit<HTMLElementTagNameMap[T], 'dataset' | 'style'>> & {
   classes?: (string | null | undefined)[];
   dataset?: Partial<HTMLElementTagNameMap[T]['dataset']>,
   style?: Partial<HTMLElementTagNameMap[T]['style']>;
-  tag: T;
   zhilds?: (HTMLElement | string | null | undefined)[];
-}): HTMLElementTagNameMap[T] {
-  const { classes, dataset, style, tag, zhilds, ...data } = params;
-
+} = {}): HTMLElementTagNameMap[T] {
   const element = document.createElement(tag);
 
-  Object.entries(data).forEach(([k, v]) => element[k] = v);
+  entriesTyped(data).forEach(([k, v]) => element[k] = v);
 
-  if (classes) classes.filter(Boolean).forEach(c => element.classList.add(c ?? ''));
-  if (dataset) Object.entries(dataset).forEach(([k, v]) => element.dataset[k] = v);
-  if (style) Object.entries(style).forEach(([k, v]) => element.style[k] = v);
+  if (classes) classes.forEach(c => {
+    if (typeof c === 'string') element.classList.add(...c.split(' '));
+  });
+  if (dataset) entriesTyped(dataset).forEach(([k, v]) => element.dataset[k] = v);
+  if (style) entriesTyped(style).forEach(([k, v]) => element.style[k] = v);
   if (zhilds) zhilds.forEach(child => {
     if (!child) return;
     if (typeof child === 'string') element.append(document.createTextNode(child));
@@ -22,4 +29,4 @@ export function createHTMLElement<T extends keyof HTMLElementTagNameMap> (params
   return element;
 }
 
-export const createBr = () => createHTMLElement({ tag: 'br' });
+export const createBr = () => createHTMLElement('br');

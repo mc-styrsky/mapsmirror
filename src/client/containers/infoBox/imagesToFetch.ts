@@ -1,6 +1,6 @@
 import type { VirtLayer } from '../../../common/types/layers';
 import type { XYZ } from '../../../common/types/xyz';
-import { createHTMLElement } from '../../utils/createHTMLElement';
+import { createBr } from '../../utils/createHTMLElement';
 import { updateInfoBox } from './updateInfoBox';
 
 class ImagesToFetch {
@@ -35,7 +35,7 @@ class ImagesToFetch {
     return this.state()
     .reduce(
       (arr, [source, size]) => {
-        arr.push(createHTMLElement({ tag: 'br' }));
+        arr.push(createBr());
         arr.push(`${source}: ${size}/${this.total[source]}`);
         return arr;
       },

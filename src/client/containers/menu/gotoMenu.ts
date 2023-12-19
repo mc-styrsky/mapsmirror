@@ -4,22 +4,19 @@ import { coordForm } from './goto/coord/form';
 import { savedPositions } from './goto/savedPositions';
 
 
-export const gotoMenu = createHTMLElement({
+export const gotoMenu = createHTMLElement('div', {
   classes: ['dropdown'],
-  tag: 'div',
   zhilds: [
-    createHTMLElement({
+    createHTMLElement('a', {
       classes: ['btn', 'btn-secondary', 'dropdown-toggle'],
       dataset: {
         bsToggle: 'dropdown',
       },
       role: 'button',
-      tag: 'a',
       zhilds: ['Goto'],
     }),
-    createHTMLElement({
+    createHTMLElement('div', {
       classes: ['dropdown-menu', 'p-2'],
-      tag: 'div',
       zhilds: [
         coordForm,
         addressContainer,

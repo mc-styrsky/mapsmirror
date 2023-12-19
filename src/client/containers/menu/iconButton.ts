@@ -14,10 +14,9 @@ interface SvgIcon {
 }
 
 export function bootstrapIcon ({ fontSize = '175%', icon }: BootstrapIcon) {
-  return createHTMLElement({
+  return createHTMLElement('i', {
     classes: [`bi-${icon}`],
     style: { fontSize },
-    tag: 'i',
   });
 }
 
@@ -30,23 +29,21 @@ type IconButton = {
 export function iconButton ({
   active = () => false, fontSize, icon, onclick = () => void 0, src, style,
 }: IconButton) {
-  const ret = createHTMLElement({
+  const ret = createHTMLElement('a', {
     classes: ['btn', active() ? 'btn-success' : 'btn-secondary'],
     role: 'button',
     style: {
       padding: '0.25rem',
       ...style,
     },
-    tag: 'a',
     zhilds: [
       icon ?
         bootstrapIcon({ fontSize, icon }) :
-        createHTMLElement({
+        createHTMLElement('img', {
           src,
           style: {
             height: '1.75rem',
           },
-          tag: 'img',
         }),
     ],
   });

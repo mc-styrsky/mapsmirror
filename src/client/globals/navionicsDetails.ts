@@ -60,27 +60,24 @@ export class NavionicsDetails {
         parent: this,
       },
       );
-      if (this.isFetch) ret.append(createHTMLElement({
+      if (this.isFetch) ret.append(createHTMLElement('div', {
         classes: [
           'accordion-item',
           'mm-menu-text',
         ],
-        tag: 'div',
-        zhilds: [createHTMLElement({
+        zhilds: [createHTMLElement('div', {
           classes: [
             'accordion-header',
             'mm-menu-text',
           ],
-          tag: 'div',
-          zhilds: [createHTMLElement({
+          zhilds: [createHTMLElement('div', {
             classes: [
               'd-flex',
               'mm-menu-text',
             ],
-            tag: 'div',
             zhilds: [
               this.fetchProgress,
-              createHTMLElement({
+              createHTMLElement('div', {
                 classes: [
                   'spinner-border',
                   'spinner-border-sm',
@@ -88,7 +85,6 @@ export class NavionicsDetails {
                 style: {
                   margin: 'auto',
                 },
-                tag: 'div',
               }),
             ],
           })],

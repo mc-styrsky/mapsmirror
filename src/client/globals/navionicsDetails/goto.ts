@@ -7,7 +7,7 @@ import { lon2x } from '../../utils/lon2x';
 import { position } from '../position';
 
 export function goto (item: NavionicsDetail) {
-  if (item.position) return createHTMLElement({
+  if (item.position) return createHTMLElement('a', {
     onclick: (event) => {
       const { lat, lon } = item.position;
       position.xyz = {
@@ -21,7 +21,6 @@ export function goto (item: NavionicsDetail) {
       marginLeft: 'auto',
       padding: '0.25rem',
     },
-    tag: 'a',
     zhilds: [bootstrapIcon({ icon: 'arrow-right-circle' })],
   });
   return void 0;

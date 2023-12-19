@@ -1,7 +1,7 @@
 import { createHTMLElement } from '../utils/createHTMLElement';
 
 
-export const infoBox = createHTMLElement({
+export const infoBox = createHTMLElement('div', {
   classes: ['float-end'],
   dataset: {
     // bsTheme: 'dark',
@@ -13,6 +13,5 @@ export const infoBox = createHTMLElement({
     padding: '0.3em',
     width: '23em',
   },
-  tag: 'div',
   zhilds: [],
 });

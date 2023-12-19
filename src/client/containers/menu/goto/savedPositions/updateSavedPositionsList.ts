@@ -23,19 +23,17 @@ export function updateSavedPositionsList () {
       z: Number,
     });
     console.log({ item, x, y, z });
-    savedPositions.append(createHTMLElement({
+    savedPositions.append(createHTMLElement('div', {
       classes: ['btn-group', 'my-2', 'd-flex'],
       role: 'group',
-      tag: 'div',
       zhilds: [
-        createHTMLElement({
+        createHTMLElement('a', {
           classes: ['btn', 'btn-secondary'],
           onclick: () => {
             position.xyz = { x, y, z };
             redraw('load position');
           },
           role: 'button',
-          tag: 'a',
           zhilds: [[
             rad2string({ axis: 'NS', pad: 2, phi: y2lat(y, 1 << z) }),
             rad2string({ axis: 'EW', pad: 3, phi: x2lon(x, 1 << z) }),

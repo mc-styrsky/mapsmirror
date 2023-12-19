@@ -1630,17 +1630,33 @@ var Size = class {
   }
 };
 
+// src/common/fromEntriesTyped.ts
+function fromEntriesTyped(entries) {
+  return Object.fromEntries(entries);
+}
+function entriesTyped(o) {
+  return Object.entries(o);
+}
+
 // src/client/utils/createHTMLElement.ts
-function createHTMLElement(params) {
-  const { classes, dataset, style, tag, zhilds, ...data } = params;
+function createHTMLElement(tag, {
+  classes,
+  dataset,
+  style,
+  zhilds,
+  ...data
+} = {}) {
   const element = document.createElement(tag);
-  Object.entries(data).forEach(([k, v]) => element[k] = v);
+  entriesTyped(data).forEach(([k, v]) => element[k] = v);
   if (classes)
-    classes.filter(Boolean).forEach((c) => element.classList.add(c ?? ""));
+    classes.forEach((c) => {
+      if (typeof c === "string")
+        element.classList.add(...c.split(" "));
+    });
   if (dataset)
-    Object.entries(dataset).forEach(([k, v]) => element.dataset[k] = v);
+    entriesTyped(dataset).forEach(([k, v]) => element.dataset[k] = v);
   if (style)
-    Object.entries(style).forEach(([k, v]) => element.style[k] = v);
+    entriesTyped(style).forEach(([k, v]) => element.style[k] = v);
   if (zhilds)
     zhilds.forEach((child) => {
       if (!child)
@@ -1652,10 +1668,10 @@ function createHTMLElement(params) {
     });
   return element;
 }
-var createBr = () => createHTMLElement({ tag: "br" });
+var createBr = () => createHTMLElement("br");
 
 // src/client/containers/infoBox.ts
-var infoBox = createHTMLElement({
+var infoBox = createHTMLElement("div", {
   classes: ["float-end"],
   dataset: {
     // bsTheme: 'dark',
@@ -1667,19 +1683,17 @@ var infoBox = createHTMLElement({
     padding: "0.3em",
     width: "23em"
   },
-  tag: "div",
   zhilds: []
 });
 
 // src/client/containers/mapContainer.ts
-var mapContainer = createHTMLElement({
+var mapContainer = createHTMLElement("div", {
   style: {
     left: "0px",
     position: "absolute",
     top: "0px",
     zIndex: "-200"
   },
-  tag: "div",
   zhilds: []
 });
 
@@ -1957,7 +1971,7 @@ var ImagesToFetch = class {
   stateHtml = () => {
     return this.state().reduce(
       (arr, [source, size]) => {
-        arr.push(createHTMLElement({ tag: "br" }));
+        arr.push(createBr());
         arr.push(`${source}: ${size}/${this.total[source]}`);
         return arr;
       },
@@ -3649,9 +3663,8 @@ var SolarTimesStatsCanvas = class {
     const max = Math.max(...values);
     const scaleY = (height - 1) / (max - min);
     const scaleX = width / stats.length;
-    const canvas = createHTMLElement({
+    const canvas = createHTMLElement("canvas", {
       height,
-      tag: "canvas",
       width,
       ...params
     });
@@ -3708,27 +3721,23 @@ var ValueRow = class {
   }
   addRow({ col1, col2, col3, row }) {
     row ??= [
-      createHTMLElement({
+      createHTMLElement("div", {
         style: { marginRight: "auto" },
-        tag: "div",
         zhilds: col1
       }),
-      createHTMLElement({
+      createHTMLElement("div", {
         classes: ["text-end"],
         style: { width: "5em" },
-        tag: "div",
         zhilds: col2
       }),
-      createHTMLElement({
+      createHTMLElement("div", {
         classes: ["text-end"],
         style: { width: "5em" },
-        tag: "div",
         zhilds: col3
       })
     ];
-    this.lines.push(createHTMLElement({
+    this.lines.push(createHTMLElement("div", {
       classes: ["d-flex"],
-      tag: "div",
       zhilds: row
     }));
     return this;
@@ -3748,16 +3757,15 @@ var ValueRow = class {
       stats: durations.stats,
       width: 15 * 16
     });
-    const axis = [stats.max, stats.min].map((v) => createHTMLElement({
+    const axis = [stats.max, stats.min].map((v) => createHTMLElement("div", {
       classes: ["text-end"],
       style: {
         fontSize: "10px"
       },
-      tag: "div",
       zhilds: [formatDateValue(v)]
     }));
     this.addRow({ row: [
-      createHTMLElement({
+      createHTMLElement("div", {
         style: {
           backgroundColor: "#ffffff",
           borderColor: "#000000",
@@ -3766,7 +3774,6 @@ var ValueRow = class {
           paddingLeft: "3px",
           paddingRight: "3px"
         },
-        tag: "div",
         zhilds: axis
       }),
       stats.canvas
@@ -3812,10 +3819,7 @@ var SolarTimes = class extends SolarTimesDurations {
         keys: ["nauticalDawn", "nauticalDusk"],
         label: "Naut. Twilight"
       }).fill("Night", halfDay * 2).fillStats(durations, halfDay * 2).lines;
-      this.html = createHTMLElement({
-        tag: "div",
-        zhilds
-      });
+      this.html = createHTMLElement("div", { zhilds });
     }
     return this.html;
   };
@@ -3844,11 +3848,11 @@ function updateInfoBox() {
   infoBox.innerHTML = "";
   infoBox.append(
     `Scale: ${scale} (Zoom ${position.z})`,
-    createHTMLElement({ tag: "br" }),
+    createBr(),
     `Lat/Lon: ${rad2string({ axis: "NS", pad: 2, phi: lat })} ${rad2string({ axis: "EW", pad: 3, phi: lon })}`,
-    createHTMLElement({ tag: "br" }),
+    createBr(),
     `Mouse: ${rad2string({ axis: "NS", pad: 2, phi: latMouse })} ${rad2string({ axis: "EW", pad: 3, phi: lonMouse })}`,
-    createHTMLElement({ tag: "br" }),
+    createBr(),
     `User: ${rad2string({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2string({ axis: "EW", pad: 3, phi: position.user.longitude })} (@${new Date(position.user.timestamp).toLocaleTimeString()})`
   );
   if (settings.show.navionicsDetails)
@@ -3997,10 +4001,9 @@ var Marker = class {
 
 // src/client/containers/menu/iconButton.ts
 function bootstrapIcon({ fontSize = "175%", icon: icon2 }) {
-  return createHTMLElement({
+  return createHTMLElement("i", {
     classes: [`bi-${icon2}`],
-    style: { fontSize },
-    tag: "i"
+    style: { fontSize }
   });
 }
 function iconButton({
@@ -4011,21 +4014,19 @@ function iconButton({
   src,
   style
 }) {
-  const ret = createHTMLElement({
+  const ret = createHTMLElement("a", {
     classes: ["btn", active() ? "btn-success" : "btn-secondary"],
     role: "button",
     style: {
       padding: "0.25rem",
       ...style
     },
-    tag: "a",
     zhilds: [
-      icon2 ? bootstrapIcon({ fontSize, icon: icon2 }) : createHTMLElement({
+      icon2 ? bootstrapIcon({ fontSize, icon: icon2 }) : createHTMLElement("img", {
         src,
         style: {
           height: "1.75rem"
-        },
-        tag: "img"
+        }
       })
     ]
   });
@@ -4046,7 +4047,7 @@ function iconButton({
 // src/client/globals/navionicsDetails/goto.ts
 function goto(item) {
   if (item.position)
-    return createHTMLElement({
+    return createHTMLElement("a", {
       onclick: (event) => {
         const { lat, lon } = item.position;
         position.xyz = {
@@ -4060,7 +4061,6 @@ function goto(item) {
         marginLeft: "auto",
         padding: "0.25rem"
       },
-      tag: "a",
       zhilds: [bootstrapIcon({ icon: "arrow-right-circle" })]
     });
   return void 0;
@@ -4068,26 +4068,23 @@ function goto(item) {
 
 // src/client/globals/navionicsDetails/icon.ts
 function icon(item) {
-  return createHTMLElement({
+  return createHTMLElement("div", {
     classes: ["d-flex"],
     style: {
       height: "2em",
       width: "2em"
     },
-    tag: "div",
-    zhilds: [createHTMLElement({
+    zhilds: [createHTMLElement("div", {
       style: {
         margin: "auto"
       },
-      tag: "div",
       zhilds: [
-        createHTMLElement({
+        createHTMLElement("img", {
           src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
           style: {
             maxHeight: "1.5em",
             maxWidth: "1.5em"
-          },
-          tag: "img"
+          }
         })
       ]
     })]
@@ -4097,15 +4094,13 @@ function icon(item) {
 // src/client/globals/navionicsDetails/itemDetails.ts
 function itemDetails(item, itemId, accordionId) {
   if (item.properties)
-    return createHTMLElement({
+    return createHTMLElement("div", {
       classes: ["accordion-collapse", "collapse", "px-2"],
       dataset: {
         bsParent: `#${accordionId}`
       },
       id: itemId,
-      tag: "div",
-      zhilds: item.properties.map((prop) => createHTMLElement({
-        tag: "p",
+      zhilds: item.properties.map((prop) => createHTMLElement("p", {
         zhilds: [prop]
       }))
     });
@@ -4114,23 +4109,20 @@ function itemDetails(item, itemId, accordionId) {
 
 // src/client/globals/navionicsDetails/label.ts
 function label(item) {
-  return createHTMLElement({
+  return createHTMLElement("div", {
     classes: ["d-flex"],
-    tag: "div",
     zhilds: [
-      createHTMLElement({
+      createHTMLElement("div", {
         style: {
           margin: "auto"
         },
-        tag: "div",
         zhilds: [
           item.name,
-          createHTMLElement({
+          createHTMLElement("div", {
             style: {
               fontSize: "70%",
               marginLeft: "0.5rem"
             },
-            tag: "span",
             zhilds: [item.distance.toFixed(3), "nm"]
           })
         ]
@@ -4142,18 +4134,16 @@ function label(item) {
 // src/client/globals/navionicsDetails/spinner.ts
 function spinner(item) {
   if (item.details && !item.properties)
-    return createHTMLElement({
+    return createHTMLElement("div", {
       classes: ["d-flex"],
-      tag: "div",
-      zhilds: [createHTMLElement({
+      zhilds: [createHTMLElement("div", {
         classes: [
           "spinner-border",
           "spinner-border-sm"
         ],
         style: {
           margin: "auto"
-        },
-        tag: "div"
+        }
       })]
     });
   return void 0;
@@ -4162,14 +4152,13 @@ function spinner(item) {
 // src/client/globals/navionicsDetails/accordionItem.ts
 function accordionItem({ accordionId, idx, item, parent }) {
   const itemId = `navionicsDetailsItem${idx}`;
-  return createHTMLElement({
+  return createHTMLElement("div", {
     classes: [
       "accordion-item",
       "mm-menu-text"
     ],
-    tag: "div",
     zhilds: [
-      createHTMLElement({
+      createHTMLElement("div", {
         classes: [
           "accordion-header",
           "mm-menu-text"
@@ -4185,9 +4174,8 @@ function accordionItem({ accordionId, idx, item, parent }) {
             redraw("set navionics marker");
           }
         },
-        tag: "div",
         zhilds: [
-          createHTMLElement({
+          createHTMLElement("div", {
             classes: [
               ...item.properties ? ["accordion-button", "collapsed"] : ["d-flex"],
               "px-2",
@@ -4198,13 +4186,11 @@ function accordionItem({ accordionId, idx, item, parent }) {
               bsTarget: `#${itemId}`,
               bsToggle: "collapse"
             } : {},
-            tag: "div",
-            zhilds: [createHTMLElement({
+            zhilds: [createHTMLElement("div", {
               classes: ["d-flex"],
               style: {
                 width: "100%"
               },
-              tag: "div",
               zhilds: [
                 icon(item),
                 label(item),
@@ -4223,10 +4209,9 @@ function accordionItem({ accordionId, idx, item, parent }) {
 // src/client/globals/navionicsDetails/toAccordion.ts
 function toAccordion({ items, offset, parent }) {
   const accordionId = `navionicsDetailsList${offset ?? ""}`;
-  const ret = createHTMLElement({
+  const ret = createHTMLElement("div", {
     classes: ["accordion"],
-    id: accordionId,
-    tag: "div"
+    id: accordionId
   });
   if (items.length <= 10)
     ret.append(
@@ -4241,21 +4226,19 @@ function toAccordion({ items, offset, parent }) {
     for (let i = 0; i < items.length; i += 10) {
       const itemId = `navionicsDetailsItemList${i}`;
       const itemsSlice = items.slice(i, i + 10);
-      ret.append(createHTMLElement({
+      ret.append(createHTMLElement("div", {
         classes: [
           "accordion-item",
           "mm-menu-text"
         ],
-        tag: "div",
         zhilds: [
-          createHTMLElement({
+          createHTMLElement("div", {
             classes: [
               "accordion-header",
               "mm-menu-text"
             ],
-            tag: "div",
             zhilds: [
-              createHTMLElement({
+              createHTMLElement("div", {
                 classes: [
                   "accordion-button",
                   "collapsed",
@@ -4267,13 +4250,11 @@ function toAccordion({ items, offset, parent }) {
                   bsTarget: `#${itemId}`,
                   bsToggle: "collapse"
                 },
-                tag: "div",
-                zhilds: [createHTMLElement({
+                zhilds: [createHTMLElement("div", {
                   classes: ["d-flex"],
                   style: {
                     width: "100%"
                   },
-                  tag: "div",
                   zhilds: [
                     itemsSlice.length === 1 ? `${i + 1}` : `${i + 1}-${i + itemsSlice.length}`
                   ]
@@ -4281,13 +4262,12 @@ function toAccordion({ items, offset, parent }) {
               })
             ]
           }),
-          createHTMLElement({
+          createHTMLElement("div", {
             classes: ["accordion-collapse", "collapse", "px-2", i === 0 ? "show" : null],
             dataset: {
               bsParent: `#${accordionId}`
             },
             id: itemId,
-            tag: "div",
             zhilds: [
               toAccordion({ items: itemsSlice, offset: i, parent })
             ]
@@ -4338,35 +4318,31 @@ var NavionicsDetails = class {
         }
       );
       if (this.isFetch)
-        ret.append(createHTMLElement({
+        ret.append(createHTMLElement("div", {
           classes: [
             "accordion-item",
             "mm-menu-text"
           ],
-          tag: "div",
-          zhilds: [createHTMLElement({
+          zhilds: [createHTMLElement("div", {
             classes: [
               "accordion-header",
               "mm-menu-text"
             ],
-            tag: "div",
-            zhilds: [createHTMLElement({
+            zhilds: [createHTMLElement("div", {
               classes: [
                 "d-flex",
                 "mm-menu-text"
               ],
-              tag: "div",
               zhilds: [
                 this.fetchProgress,
-                createHTMLElement({
+                createHTMLElement("div", {
                   classes: [
                     "spinner-border",
                     "spinner-border-sm"
                   ],
                   style: {
                     margin: "auto"
-                  },
-                  tag: "div"
+                  }
                 })
               ]
             })]
@@ -4489,14 +4465,13 @@ function createCrosshairsCanvas({
   x,
   y
 }) {
-  const canvas = createHTMLElement({
+  const canvas = createHTMLElement("canvas", {
     height,
     style: {
       height: `${height}px`,
       position: "absolute",
       width: `${width}px`
     },
-    tag: "canvas",
     width
   });
   const context = canvas.getContext("2d");
@@ -4800,15 +4775,14 @@ async function createMapCanvas({
 }) {
   const canvasWidth = width + 2 * tileSize;
   const canvasHeight = height + 2 * tileSize;
-  const canvas = createHTMLElement({
+  const canvas = createHTMLElement("canvas", {
     style: {
       height: `${canvasHeight}px`,
       left: `${-tileSize}px`,
       position: "absolute",
       top: `${-tileSize}px`,
       width: `${canvasWidth}px`
-    },
-    tag: "canvas"
+    }
   });
   canvas.width = canvasWidth;
   canvas.height = canvasHeight;
@@ -4900,14 +4874,13 @@ var createNetCanvas = ({
   x,
   y
 }) => {
-  const canvas = createHTMLElement({
+  const canvas = createHTMLElement("canvas", {
     height,
     style: {
       height: `${height}px`,
       position: "absolute",
       width: `${width}px`
     },
-    tag: "canvas",
     width
   });
   const context = canvas.getContext("2d");
@@ -5036,14 +5009,13 @@ var createNetCanvas = ({
 };
 
 // src/client/containers/overlayContainer.ts
-var overlayContainer = createHTMLElement({
+var overlayContainer = createHTMLElement("div", {
   style: {
     left: "0px",
     position: "absolute",
     top: "0px",
     zIndex: "-100"
   },
-  tag: "div",
   zhilds: []
 });
 
@@ -5115,31 +5087,26 @@ async function redraw(type) {
 var BaselayerMenu = class {
   toHtml = () => this.html;
   baselayerLabel = (source) => `${source || "- none -"} (${baselayers.indexOf(source)})`;
-  baselayerMenuButton = createHTMLElement({
+  baselayerMenuButton = createHTMLElement("a", {
     classes: ["btn", "btn-secondary", "dropdown-toggle"],
     dataset: {
       bsToggle: "dropdown"
     },
     role: "button",
-    tag: "a",
     zhilds: [this.baselayerLabel(settings.baselayer)]
   });
-  html = createHTMLElement({
+  html = createHTMLElement("div", {
     classes: ["dropdown"],
-    tag: "div",
     zhilds: [
       this.baselayerMenuButton,
-      createHTMLElement({
+      createHTMLElement("ul", {
         classes: ["dropdown-menu"],
-        tag: "ul",
         zhilds: [
-          createHTMLElement({
-            tag: "li",
+          createHTMLElement("li", {
             zhilds: baselayers.map((source) => {
-              return createHTMLElement({
+              return createHTMLElement("a", {
                 classes: ["dropdown-item"],
                 onclick: () => this.baselayer = source,
-                tag: "a",
                 zhilds: [this.baselayerLabel(source)]
               });
             })
@@ -5157,7 +5124,7 @@ var BaselayerMenu = class {
 var baselayerMenu = new BaselayerMenu();
 
 // src/client/containers/menu/coordsToggle.ts
-var coordsToggle = createHTMLElement({
+var coordsToggle = createHTMLElement("a", {
   classes: ["btn", "btn-secondary"],
   onclick: () => {
     settings.units.coords = {
@@ -5173,7 +5140,6 @@ var coordsToggle = createHTMLElement({
     redraw("coords changed");
   },
   role: "button",
-  tag: "a",
   zhilds: [{
     d: "Dec",
     dm: "D\xB0M'",
@@ -5189,14 +5155,13 @@ var crosshairToggle = iconButton({
 });
 
 // src/client/containers/menu/goto/address/searchContainer.ts
-var addressSearchContainer = createHTMLElement({
-  classes: ["dropdown-menu"],
-  tag: "div"
+var addressSearchContainer = createHTMLElement("div", {
+  classes: ["dropdown-menu"]
 });
 
 // src/client/containers/menu/goto/address/input.ts
 var addressQueue = new StyQueue(1);
-var addressInput = createHTMLElement({
+var addressInput = createHTMLElement("input", {
   autocomplete: "off",
   classes: ["form-control"],
   oninput: async () => {
@@ -5244,18 +5209,16 @@ var addressInput = createHTMLElement({
           };
           if (idx === 0)
             addressForm.onsubmit = onclick;
-          return createHTMLElement({
+          return createHTMLElement("a", {
             classes: ["list-group-item"],
             onclick,
             role: "button",
-            tag: "a",
             zhilds: [displayName, ` (${z2})`]
           });
         });
         addressSearchContainer.innerHTML = "";
-        addressSearchContainer.append(createHTMLElement({
+        addressSearchContainer.append(createHTMLElement("div", {
           classes: ["list-group", "list-group-flush"],
-          tag: "div",
           zhilds
         }));
         return true;
@@ -5269,25 +5232,22 @@ var addressInput = createHTMLElement({
     }
   },
   placeholder: "Address",
-  tag: "input",
   type: "text"
 });
 
 // src/client/containers/menu/goto/address/form.ts
-var addressForm = createHTMLElement({
+var addressForm = createHTMLElement("form", {
   action: "javascript:void(0)",
   classes: ["m-0"],
   style: {
     minWidth: "20em"
   },
-  tag: "form",
   zhilds: [addressInput]
 });
 
 // src/client/containers/menu/goto/address/container.ts
-var addressContainer = createHTMLElement({
+var addressContainer = createHTMLElement("div", {
   classes: ["dropdown"],
-  tag: "div",
   zhilds: [
     addressForm,
     addressSearchContainer
@@ -5298,15 +5258,9 @@ var addressContainer = createHTMLElement({
 var import_parse_dms2 = __toESM(require_parse_dms(), 1);
 
 // src/client/containers/menu/goto/coord/error.ts
-var coordError = createHTMLElement({
-  classes: ["form-text"],
-  tag: "div"
+var coordError = createHTMLElement("div", {
+  classes: ["form-text"]
 });
-
-// src/common/fromEntriesTyped.ts
-function fromEntriesTyped(entries) {
-  return Object.fromEntries(entries);
-}
 
 // src/client/globals/coordUnits.ts
 var coordUnits = ["d", "dm", "dms"];
@@ -5315,12 +5269,11 @@ var coordUnits = ["d", "dm", "dms"];
 var coordInfo = fromEntriesTyped(
   coordUnits.map((c) => [
     c,
-    createHTMLElement({
+    createHTMLElement("div", {
       classes: ["form-text"],
       style: {
         width: "max-content"
-      },
-      tag: "div"
+      }
     })
   ])
 );
@@ -5335,7 +5288,7 @@ var coordSubmit = iconButton({
 });
 
 // src/client/containers/menu/goto/coord/input.ts
-var coordInput = createHTMLElement({
+var coordInput = createHTMLElement("input", {
   autocomplete: "off",
   classes: ["form-control"],
   oninput: () => {
@@ -5368,12 +5321,11 @@ var coordInput = createHTMLElement({
     }
   },
   placeholder: "Coordinates",
-  tag: "input",
   type: "text"
 });
 
 // src/client/containers/menu/goto/coord/form.ts
-var coordForm = createHTMLElement({
+var coordForm = createHTMLElement("form", {
   action: "javascript:void(0)",
   classes: ["m-0"],
   onsubmit: () => {
@@ -5393,11 +5345,9 @@ var coordForm = createHTMLElement({
   style: {
     minWidth: "20em"
   },
-  tag: "form",
   zhilds: [
-    createHTMLElement({
+    createHTMLElement("div", {
       classes: ["input-group"],
-      tag: "div",
       zhilds: [
         coordInput,
         coordSubmit
@@ -5452,19 +5402,17 @@ function updateSavedPositionsList() {
       z: Number
     });
     console.log({ item, x, y, z: z2 });
-    savedPositions.append(createHTMLElement({
+    savedPositions.append(createHTMLElement("div", {
       classes: ["btn-group", "my-2", "d-flex"],
       role: "group",
-      tag: "div",
       zhilds: [
-        createHTMLElement({
+        createHTMLElement("a", {
           classes: ["btn", "btn-secondary"],
           onclick: () => {
             position.xyz = { x, y, z: z2 };
             redraw("load position");
           },
           role: "button",
-          tag: "a",
           zhilds: [[
             rad2string({ axis: "NS", pad: 2, phi: y2lat(y, 1 << z2) }),
             rad2string({ axis: "EW", pad: 3, phi: x2lon(x, 1 << z2) }),
@@ -5486,28 +5434,23 @@ function updateSavedPositionsList() {
 }
 
 // src/client/containers/menu/goto/savedPositions.ts
-var savedPositions = createHTMLElement({
-  tag: "div"
-});
+var savedPositions = createHTMLElement("div");
 updateSavedPositionsList();
 
 // src/client/containers/menu/gotoMenu.ts
-var gotoMenu = createHTMLElement({
+var gotoMenu = createHTMLElement("div", {
   classes: ["dropdown"],
-  tag: "div",
   zhilds: [
-    createHTMLElement({
+    createHTMLElement("a", {
       classes: ["btn", "btn-secondary", "dropdown-toggle"],
       dataset: {
         bsToggle: "dropdown"
       },
       role: "button",
-      tag: "a",
       zhilds: ["Goto"]
     }),
-    createHTMLElement({
+    createHTMLElement("div", {
       classes: ["dropdown-menu", "p-2"],
-      tag: "div",
       zhilds: [
         coordForm,
         addressContainer,
@@ -5539,13 +5482,12 @@ var overlayToggle = (source) => iconButton({
 var navionicsToggle = overlayToggle("navionics");
 
 // src/client/containers/menu/savePosition.ts
-var savePosition = createHTMLElement({
+var savePosition = createHTMLElement("a", {
   classes: ["btn", "btn-secondary"],
   onclick: () => {
     editSavedPosition({ func: "add", ...position.xyz });
   },
   role: "button",
-  tag: "a",
   zhilds: ["Save"]
 });
 
@@ -5560,18 +5502,16 @@ var suncalcToggle = iconButton({
 var vfdensityToggle = overlayToggle("vfdensity");
 
 // src/client/containers/menuContainer.ts
-var menuContainer = createHTMLElement({
+var menuContainer = createHTMLElement("div", {
   classes: ["d-flex", "gap-2", "m-2"],
   dataset: {
     bsTheme: "dark"
   },
-  tag: "div",
   zhilds: [
     baselayerMenu.toHtml(),
-    createHTMLElement({
+    createHTMLElement("div", {
       classes: ["btn-group"],
       role: "group",
-      tag: "div",
       zhilds: [
         overlayToggle("openseamap"),
         vfdensityToggle,
@@ -5759,7 +5699,7 @@ function onmouse(event) {
 var {
   container: containerId = ""
 } = Object.fromEntries(new URL(import.meta.url).searchParams.entries());
-var container = document.getElementById(containerId) ?? createHTMLElement({ tag: "div" });
+var container = document.getElementById(containerId) ?? createHTMLElement("div");
 var boundingRect = new Size(container);
 container.innerHTML = "";
 container.append(mapContainer, overlayContainer, infoBox, menuContainer);

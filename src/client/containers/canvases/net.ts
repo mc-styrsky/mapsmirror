@@ -49,14 +49,13 @@ export const createNetCanvas = ({
   x,
   y,
 }: Pick<XYZ, 'x' | 'y'> & Size) => {
-  const canvas = createHTMLElement({
+  const canvas = createHTMLElement('canvas', {
     height: height,
     style: {
       height: `${height}px`,
       position: 'absolute',
       width: `${width}px`,
     },
-    tag: 'canvas',
     width: width,
   });
   const context = canvas.getContext('2d');

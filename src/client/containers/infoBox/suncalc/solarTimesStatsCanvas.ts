@@ -21,9 +21,8 @@ export class SolarTimesStatsCanvas {
     const max = Math.max(...values);
     const scaleY = (height - 1) / (max - min);
     const scaleX = width / stats.length;
-    const canvas = createHTMLElement({
+    const canvas = createHTMLElement('canvas', {
       height,
-      tag: 'canvas',
       width,
       ...params,
     });

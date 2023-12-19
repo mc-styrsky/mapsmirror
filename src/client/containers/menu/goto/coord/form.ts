@@ -10,7 +10,7 @@ import { coordInfo } from './info';
 import { coordInput } from './input';
 import { coordSubmit } from './submit';
 
-export const coordForm = createHTMLElement({
+export const coordForm = createHTMLElement('form', {
   action: 'javascript:void(0)',
   classes: ['m-0'],
   onsubmit: () => {
@@ -31,11 +31,9 @@ export const coordForm = createHTMLElement({
   style: {
     minWidth: '20em',
   },
-  tag: 'form',
   zhilds: [
-    createHTMLElement({
+    createHTMLElement('div', {
       classes: ['input-group'],
-      tag: 'div',
       zhilds: [
         coordInput,
         coordSubmit,
