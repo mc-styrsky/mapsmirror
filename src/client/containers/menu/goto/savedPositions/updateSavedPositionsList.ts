@@ -2,12 +2,12 @@ import type { XYZ } from '../../../../../common/types/xyz';
 import { extractProperties } from '../../../../../common/extractProperties';
 import { position } from '../../../../globals/position';
 import { tileSize } from '../../../../globals/tileSize';
-import { redraw } from '../../../../redraw';
 import { createHTMLElement } from '../../../../utils/createHTMLElement';
 import { rad2string } from '../../../../utils/rad2string';
 import { savedPositionsFromLocalStoreage } from '../../../../utils/savedPositionsFromLocalStoreage';
 import { x2lon } from '../../../../utils/x2lon';
 import { y2lat } from '../../../../utils/y2lat';
+import { mapContainer } from '../../../mapContainer';
 import { iconButton } from '../../iconButton';
 import { savedPositions } from '../savedPositions';
 import { editSavedPosition } from './editSavedPosition';
@@ -31,7 +31,7 @@ export function updateSavedPositionsList () {
           classes: ['btn', 'btn-secondary'],
           onclick: () => {
             position.xyz = { x, y, z };
-            redraw('load position');
+            mapContainer.redraw('load position');
           },
           role: 'button',
           zhilds: [[

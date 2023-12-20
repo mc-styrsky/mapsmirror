@@ -1,11 +1,11 @@
 import { StyQueue } from '@mc-styrsky/queue';
 import { extractProperties } from '../../../../../common/extractProperties';
 import { position } from '../../../../globals/position';
-import { redraw } from '../../../../redraw';
 import { createHTMLElement } from '../../../../utils/createHTMLElement';
 import { deg2rad } from '../../../../utils/deg2rad';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
+import { mapContainer } from '../../../mapContainer';
 import { addressForm } from './form';
 import { addressSearchContainer } from './searchContainer';
 
@@ -54,7 +54,7 @@ export const addressInput = createHTMLElement('input', {
               y: lat2y(lat, 1 << z),
               z,
             };
-            redraw('goto address');
+            mapContainer.redraw('goto address');
           };
 
           if (idx === 0) addressForm.onsubmit = onclick;

@@ -512,7 +512,7 @@ var XYZ2UrlOsm = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    if (z >= 2 && z <= 20)
+    if (z >= 2 && z <= 19)
       this.url = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
   }
 };

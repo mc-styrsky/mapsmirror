@@ -1,5 +1,5 @@
 import type { NavionicsDetail, NavionicsDetails } from '../navionicsDetails';
-import { redraw } from '../../redraw';
+import { mapContainer } from '../../containers/mapContainer';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 import { Marker } from '../marker';
 import { goto } from './goto';
@@ -34,7 +34,7 @@ export function accordionItem ({ accordionId, idx, item, parent }: {
               id: item.id,
               type: 'navionics',
             });
-            redraw('set navionics marker');
+            mapContainer.redraw('set navionics marker');
           }
         },
         zhilds: [

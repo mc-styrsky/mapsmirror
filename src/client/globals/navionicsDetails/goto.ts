@@ -1,6 +1,6 @@
 import type { NavionicsDetail } from '../navionicsDetails';
+import { mapContainer } from '../../containers/mapContainer';
 import { bootstrapIcon } from '../../containers/menu/iconButton';
-import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
@@ -14,7 +14,7 @@ export function goto (item: NavionicsDetail) {
         x: lon2x(lon),
         y: lat2y(lat),
       };
-      redraw('goto');
+      mapContainer.redraw('goto');
       event.stopPropagation();
     },
     style: {

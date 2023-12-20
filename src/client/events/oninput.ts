@@ -1,4 +1,4 @@
-import { baselayerMenu } from '../containers/menu/baselayerMenu';
+import { mapContainer } from '../containers/mapContainer';
 import { coordsToggle } from '../containers/menu/coordsToggle';
 import { crosshairToggle } from '../containers/menu/crosshairToggle';
 import { navionicsDetailsToggle } from '../containers/menu/navionicsDetailsToggle';
@@ -11,7 +11,6 @@ import { position } from '../globals/position';
 import { settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
 import { boundingRect } from '../index';
-import { redraw } from '../redraw';
 import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';
 
@@ -55,7 +54,7 @@ export function oninput (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
     const { key } = event;
     if (key >= '0' && key <= '9') {
       const baselayer = baselayers[parseInt(key)];
-      if (typeof baselayer !== 'undefined') baselayerMenu.baselayer = baselayer;
+      if (typeof baselayer !== 'undefined') mapContainer.baselayer = baselayer;
     }
     else if (key === 'c') crosshairToggle.click();
     else if (key === 'd') coordsToggle.click();
@@ -105,6 +104,6 @@ export function oninput (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
     needRedraw = true;
   }
   if (needRedraw) {
-    redraw(type);
+    mapContainer.redraw(type);
   }
 }

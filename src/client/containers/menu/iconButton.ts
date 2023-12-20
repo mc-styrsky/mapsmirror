@@ -1,6 +1,6 @@
 import type BootstrapIcons from 'bootstrap-icons/font/bootstrap-icons.json';
-import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
+import { mapContainer } from '../mapContainer';
 
 interface BootstrapIcon {
   fontSize?: string;
@@ -58,7 +58,8 @@ export function iconButton ({
       ret.classList.add('btn-secondary');
       ret.classList.remove('btn-success');
     }
-    redraw('icon clicked');
+    mapContainer.clear();
+    mapContainer.redraw('icon clicked');
   };
 
   return ret;

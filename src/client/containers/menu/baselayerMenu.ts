@@ -1,13 +1,18 @@
 import type { Baselayer } from '../../../common/types/layers';
 import { baselayers } from '../../globals/baselayers';
 import { settings } from '../../globals/settings';
-import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
+import { mapContainer } from '../mapContainer';
 
 export class BaselayerMenu {
+  static baselayerLabel = (source: Baselayer) => `${source || '- none -'} (${baselayers.indexOf(source)})`;
+
+
   toHtml = () => this.html;
 
-  private baselayerLabel = (source: Baselayer) => `${source || '- none -'} (${baselayers.indexOf(source)})`;
+  set baselayerLabel (val: string) {
+    this.baselayerMenuButton.innerText = val;
+  }
 
   private baselayerMenuButton = createHTMLElement('a', {
     classes: ['btn', 'btn-secondary', 'dropdown-toggle'],
@@ -15,7 +20,7 @@ export class BaselayerMenu {
       bsToggle: 'dropdown',
     },
     role: 'button',
-    zhilds: [this.baselayerLabel(settings.baselayer)],
+    zhilds: [BaselayerMenu.baselayerLabel(settings.baselayer)],
   });
   private html = createHTMLElement('div', {
     classes: ['dropdown'],
@@ -28,8 +33,8 @@ export class BaselayerMenu {
             zhilds: baselayers.map(source => {
               return createHTMLElement('a', {
                 classes: ['dropdown-item'],
-                onclick: () => this.baselayer = source,
-                zhilds: [this.baselayerLabel(source)],
+                onclick: () => mapContainer.baselayer = source,
+                zhilds: [BaselayerMenu.baselayerLabel(source)],
               });
             }),
           }),
@@ -37,12 +42,6 @@ export class BaselayerMenu {
       }),
     ],
   });
-
-  set baselayer (baselayer: Baselayer) {
-    settings.baselayer = baselayer;
-    this.baselayerMenuButton.innerText = this.baselayerLabel(baselayer);
-    redraw('changed baselayer');
-  }
 }
 
 export const baselayerMenu = new BaselayerMenu();

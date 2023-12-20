@@ -88,12 +88,16 @@ class Position {
 }
 
 const searchParams = Object.fromEntries(new URL(window.location.href).searchParams.entries());
-const { z } = extractProperties(searchParams, {
+const { lat, lon, ttl, z } = extractProperties(searchParams, {
+  lat: val => Number(val) ? deg2rad(parseFloat(val)) : 0,
+  lon: val => Number(val) ? deg2rad(parseFloat(val)) : 0,
+  ttl: val => Number(val) ? parseInt(val) : 0,
   z: val => Number(val) ? parseInt(val) : 2,
 });
-export const position = new Position(extractProperties(searchParams, {
-  ttl: val => Number(val) ? parseInt(val) : 0,
-  x: val => Number(val) ? lon2x(deg2rad(parseFloat(val)), 1 << z) : 0,
-  y: val => Number(val) ? lat2y(deg2rad(parseFloat(val)), 1 << z) : 0,
-  z: () => z,
-}));
+
+export const position: Position = new Position({
+  ttl,
+  x: lon2x(lon, 1 << z),
+  y: lat2y(lat, 1 << z),
+  z,
+});

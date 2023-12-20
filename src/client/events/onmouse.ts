@@ -1,10 +1,10 @@
 import { updateInfoBox } from '../containers/infoBox/updateInfoBox';
+import { mapContainer } from '../containers/mapContainer';
 import { mouse } from '../globals/mouse';
 import { navionicsDetails } from '../globals/navionicsDetails';
 import { position } from '../globals/position';
 import { tileSize } from '../globals/tileSize';
 import { boundingRect } from '../index';
-import { redraw } from '../redraw';
 import { oninput } from './oninput';
 
 export function onmouse (event: MouseEvent) {
@@ -37,6 +37,6 @@ export function onmouse (event: MouseEvent) {
   mouse.down.state = isDown;
   mouse.x = clientX;
   mouse.y = clientY;
-  if (position.markers.delete('navionics')) redraw('delete navionics marker');
+  if (position.markers.delete('navionics')) mapContainer.redraw('delete navionics marker');
   updateInfoBox();
 }

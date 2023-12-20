@@ -5,7 +5,6 @@ import { menuContainer } from './containers/menuContainer';
 import { overlayContainer } from './containers/overlayContainer';
 import { oninput } from './events/oninput';
 import { onmouse } from './events/onmouse';
-import { redraw } from './redraw';
 import { createHTMLElement } from './utils/createHTMLElement';
 
 const {
@@ -16,7 +15,7 @@ const container = document.getElementById(containerId) ?? createHTMLElement('div
 export const boundingRect = new Size(container);
 
 container.innerHTML = '';
-container.append(mapContainer, overlayContainer, infoBox, menuContainer);
+container.append(mapContainer.html, overlayContainer, infoBox, menuContainer);
 
 window.addEventListener('keydown', oninput);
 window.addEventListener('wheel', oninput);
@@ -25,7 +24,7 @@ window.addEventListener('mousedown', onmouse);
 window.addEventListener('mouseup', onmouse);
 window.addEventListener('resize', () => {
   boundingRect.refresh();
-  redraw('resize');
+  mapContainer.redraw('resize');
 });
 
-redraw('initial');
+mapContainer.redraw('initial');

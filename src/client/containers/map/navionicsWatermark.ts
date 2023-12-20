@@ -1,4 +1,4 @@
-import { tileSize } from '../../../globals/tileSize';
+import { tileSize } from '../../globals/tileSize';
 
 export const navionicsWatermark = (async () => {
   const img = new Image();

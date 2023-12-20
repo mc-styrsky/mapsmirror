@@ -1,10 +1,10 @@
 import parseDMS from 'parse-dms';
 import { position } from '../../../../globals/position';
-import { redraw } from '../../../../redraw';
 import { createHTMLElement } from '../../../../utils/createHTMLElement';
 import { deg2rad } from '../../../../utils/deg2rad';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
+import { mapContainer } from '../../../mapContainer';
 import { coordError } from './error';
 import { coordInfo } from './info';
 import { coordInput } from './input';
@@ -26,7 +26,7 @@ export const coordForm = createHTMLElement('form', {
         y: lat2y(lat),
       };
     }
-    redraw('goto');
+    mapContainer.redraw('goto');
   },
   style: {
     minWidth: '20em',

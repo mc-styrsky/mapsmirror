@@ -1,6 +1,6 @@
 import { settings } from '../../globals/settings';
-import { redraw } from '../../redraw';
 import { createHTMLElement } from '../../utils/createHTMLElement';
+import { mapContainer } from '../mapContainer';
 
 export const coordsToggle = createHTMLElement('a', {
   classes: ['btn', 'btn-secondary'],
@@ -15,7 +15,7 @@ export const coordsToggle = createHTMLElement('a', {
       dm: 'D°M\'',
       dms: 'DMS',
     }[settings.units.coords];
-    redraw('coords changed');
+    mapContainer.redraw('coords changed');
   },
   role: 'button',
   zhilds: [{
