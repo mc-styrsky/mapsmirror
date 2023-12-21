@@ -1,7 +1,7 @@
 import type { XYZ } from '../../../common/types/xyz';
 import type { NavionicsDetails } from '../navionicsDetails';
 import { extractProperties } from '../../../common/extractProperties';
-import { updateInfoBox } from '../../containers/infoBox/updateInfoBox';
+import { infoBox } from '../../containers/infoBox';
 import { deg2rad } from '../../utils/deg2rad';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
@@ -20,7 +20,7 @@ export async function getNavionicsDetailsList (
   const listMap: Map<string, any> = new Map();
   await parent.queue.enqueue(async () => {
     parent.isFetch = true;
-    parent.clear();
+    parent.clear2();
     const abortController = new AbortController();
     abortControllers.add(abortController);
     const { signal } = abortController;
@@ -110,7 +110,7 @@ export async function getNavionicsDetailsList (
       done++;
       parent.fetchProgress = `${done}/${points.length}`;
       parent.clearHtmlList();
-      updateInfoBox();
+      infoBox.update();
       return prom;
     }, Promise.resolve());
     abortControllers.delete(abortController);

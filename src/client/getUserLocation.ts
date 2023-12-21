@@ -1,4 +1,4 @@
-import { updateInfoBox } from './containers/infoBox/updateInfoBox';
+import { infoBox } from './containers/infoBox';
 import { Marker } from './globals/marker';
 import { position } from './globals/position';
 import { deg2rad } from './utils/deg2rad';
@@ -36,6 +36,6 @@ export async function updateUserLocation () {
     console.warn(`ERROR(${err.code}): ${err.message}`);
   });
 
-  updateInfoBox();
+  infoBox.update();
   return position.user;
 }

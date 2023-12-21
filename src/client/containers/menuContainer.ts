@@ -1,4 +1,4 @@
-import { createHTMLElement } from '../utils/createHTMLElement';
+import { Container } from './container';
 import { baselayerMenu } from './menu/baselayerMenu';
 import { coordsToggle } from './menu/coordsToggle';
 import { crosshairToggle } from './menu/crosshairToggle';
@@ -11,27 +11,27 @@ import { suncalcToggle } from './menu/suncalcToggle';
 import { vfdensityToggle } from './menu/vfdensityToggle';
 
 
-export const menuContainer = createHTMLElement('div', {
+export const menuContainer = Container.from('div', {
   classes: ['d-flex', 'gap-2', 'm-2'],
   dataset: {
     bsTheme: 'dark',
   },
-  zhilds: [
-    baselayerMenu.toHtml(),
-    createHTMLElement('div', {
-      classes: ['btn-group'],
-      role: 'group',
-      zhilds: [
-        overlayToggle('openseamap'),
-        vfdensityToggle,
-        navionicsToggle,
-        navionicsDetailsToggle,
-        crosshairToggle,
-        suncalcToggle,
-        coordsToggle,
-      ],
-    }),
-    gotoMenu,
-    savePosition,
-  ],
-});
+})
+.append(
+  baselayerMenu.toHtml(),
+  Container.from('div', {
+    classes: ['btn-group'],
+    role: 'group',
+  })
+  .append(
+    overlayToggle('openseamap'),
+    vfdensityToggle,
+    navionicsToggle,
+    navionicsDetailsToggle,
+    crosshairToggle,
+    suncalcToggle,
+    coordsToggle,
+  ),
+  gotoMenu,
+  savePosition,
+);

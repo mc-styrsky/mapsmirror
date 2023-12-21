@@ -132,6 +132,26 @@ function modulo(val, mod) {
   return ret < 0 ? ret + mod : ret;
 }
 
+// src/common/layers.ts
+var zoomMax = 20;
+var zoomMin = 2;
+var min = zoomMin;
+var max = zoomMax;
+var layers = {
+  "": { label: "- none -", max, min },
+  bingsat: { label: "bSat", max, min },
+  gebco: { label: "Depth", max: 9, min },
+  googlehybrid: { label: "gHybrid", max, min },
+  googlesat: { label: "gSat", max, min },
+  googlestreet: { label: "gStreet", max, min },
+  navionics: { label: "Navionics", max: 17, min },
+  openseamap: { label: "oSea", max: 18, min },
+  opentopomap: { label: "oTopo", max: 17, min },
+  osm: { label: "oStreet", max: 19, min },
+  vfdensity: { label: "Density", max: 12, min: 3 },
+  worthit: { label: "Worthit", max, min }
+};
+
 // src/server/utils/xyz2quadkey.ts
 var xyz2quadkey = ({ x, y, z }) => {
   return (parseInt(y.toString(2), 4) * 2 + parseInt(x.toString(2), 4)).toString(4).padStart(z, "0");
@@ -202,9 +222,9 @@ var worthItMinMax = async ({ x, y, z }) => {
   const tileMin = worthItDatabase.min[z8]?.[x8]?.[y8];
   if (tileMin && tileMax) {
     const pos = (x & 255) + (y & 255) * 256;
-    const max = tileMax[pos];
-    const min = tileMin[pos];
-    return { max, min };
+    const max2 = tileMax[pos];
+    const min2 = tileMin[pos];
+    return { max: max2, min: min2 };
   }
   const { tileId } = getTileParams({ x: x8, y: y8, z: z8 });
   if (z8 < 0)
@@ -237,12 +257,12 @@ var XYZ2Url = class {
     const res = await worthItMinMax({ x, y, z });
     if (!res)
       return false;
-    const { max, min } = res;
+    const { max: max2, min: min2 } = res;
     if (z <= 6)
-      return min < 132;
+      return min2 < 132;
     if (z <= 10)
-      return max > 1 && min < 132;
-    return max > 96 && min < 144 && (max < 132 || max - min > 3);
+      return max2 > 1 && min2 < 132;
+    return max2 > 96 && min2 < 144 && (max2 < 132 || max2 - min2 > 3);
   };
   worthItArea = async ({ x, y, z }) => {
     return (await Promise.all([
@@ -303,7 +323,7 @@ var XYZ2Url = class {
     const url = await this.url;
     const params = await this.params;
     const { x, y, z } = this;
-    const max = 1 << z;
+    const max2 = 1 << z;
     if (!url) {
       res?.sendStatus(404);
       return false;
@@ -326,8 +346,6 @@ var XYZ2Url = class {
     queues.stats = performance.now() - statsStart;
     queues.statsCount++;
     if (fileStats) {
-      if (this.verbose)
-        console.log("[cached]", filename);
       res?.sendFile(filename);
       return true;
     }
@@ -346,11 +364,13 @@ var XYZ2Url = class {
         return ret;
       });
       if (imageStream.body) {
+        if (this.verbose)
+          console.log("[fetched]", filename);
         res?.send(Buffer.from(imageStream.body));
         await writeFile(filename, Buffer.from(imageStream.body));
         return true;
       }
-      console.log("no imagestream", imageStream.status, { x: (x / max).toFixed(4), y: (y / max).toFixed(4), z }, url);
+      console.log("no imagestream", imageStream.status, { x: (x / max2).toFixed(4), y: (y / max2).toFixed(4), z }, url);
       res?.sendStatus(imageStream.status ?? 500);
       return false;
     }
@@ -366,7 +386,8 @@ var XYZ2UrlBingsat = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    if (z >= 2 && z <= 20)
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
       this.url = `https://t.ssl.ak.tiles.virtualearth.net/tiles/a${xyz2quadkey({ x, y, z })}.jpeg?g=14041&n=z&prx=1`;
   }
 };
@@ -376,7 +397,8 @@ var XYZ2UrlCache = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    if (z >= 2 && z <= 9)
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
       this.url = `./cache/tiles/${z}/${x}/${y}.png`;
     this.local = true;
   }
@@ -388,7 +410,8 @@ var XYZ2UrlGebco = class extends XYZ2Url {
     super(params);
     const { x, y, z } = params;
     this.local = true;
-    if (z >= 2 && z <= 9)
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
       this.url = `./gebco/tiles/${z}/${x}/${y}.png`;
   }
 };
@@ -398,7 +421,8 @@ var XYZ2UrlGooglehybrid = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    if (z >= 2 && z <= 20)
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
       this.url = `https://mt.google.com/vt/lyrs=y&x=${x}&y=${y}&z=${z}`;
   }
 };
@@ -409,7 +433,8 @@ var XYZ2UrlGooglesat = class extends XYZ2Url {
     super(params);
     const { x, y, z } = params;
     this.fallback = XYZ2UrlGooglehybrid;
-    if (z >= 2 && z <= 20)
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
       this.url = `https://mt.google.com/vt/lyrs=s&x=${x}&y=${y}&z=${z}`;
   }
 };
@@ -419,7 +444,8 @@ var XYZ2UrlGooglestreet = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    if (z >= 2 && z <= 20)
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
       this.url = `https://mt.google.com/vt/lyrs=m&x=${x}&y=${y}&z=${z}`;
   }
 };
@@ -458,11 +484,11 @@ var XYZ2UrlNavionics = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
+    const { max: max2, min: min2 } = layers[params.provider];
     if ([
-      z <= 17,
-      z >= 2,
-      y >= 14922 >> 17 - z,
-      y <= 92442 >> 17 - z
+      z >= min2 && z <= max2,
+      z >= 5 && y >= 14922 >> 17 - z,
+      z >= 5 && y <= 92442 >> 17 - z
     ].every(Boolean)) {
       this.url = getNavtoken().then(
         (token) => token ? `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_0.00_0&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${token}` : ""
@@ -492,7 +518,8 @@ var XYZ2UrlOpenseamap = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    if (z >= 2 && z <= 18)
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
       this.url = `https://tiles.openseamap.org/seamark/${z}/${x}/${y}.png`;
   }
 };
@@ -502,7 +529,8 @@ var XYZ2UrlOpentopomap = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    if (z >= 2 && z <= 17)
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
       this.url = `https://tile.opentopomap.org/${z}/${x}/${y}.png`;
   }
 };
@@ -512,7 +540,8 @@ var XYZ2UrlOsm = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    if (z >= 2 && z <= 19)
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
       this.url = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
   }
 };
@@ -522,7 +551,8 @@ var XYZ2UrlVfdensity = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    if (z >= 2 && z <= 20)
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
       this.url = `https://density.tiles.vesselfinder.net/all/${z}/${x}/${y}.png`;
   }
 };
@@ -538,7 +568,9 @@ var XYZ2UrlWorthit = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = this;
-    this.url = `./worthit/tiles/${z}/${x}/${y}.png`;
+    const { max: max2, min: min2 } = layers[params.provider];
+    if (z >= min2 && z <= max2)
+      this.url = `./worthit/tiles/${z}/${x}/${y}.png`;
   }
   fetchFromTileServer = async () => {
     const { x, y, z } = this;

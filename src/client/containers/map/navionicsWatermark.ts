@@ -3,7 +3,7 @@ import { tileSize } from '../../globals/tileSize';
 export const navionicsWatermark = (async () => {
   const img = new Image();
   img.src = '/navionicsWatermark.png';
-  const cnvs = new OffscreenCanvas(256, 256);
+  const cnvs = new OffscreenCanvas(tileSize, tileSize);
   const ctx = cnvs.getContext('2d');
   if (!ctx) return null;
   return new Promise<Uint8ClampedArray>((resolve) => {

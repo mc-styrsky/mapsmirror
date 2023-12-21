@@ -1,7 +1,9 @@
 import type { Marker } from './marker';
 import type { XYZ } from '../../common/types/xyz';
 import { extractProperties } from '../../common/extractProperties';
+import { zoomMax, zoomMin } from '../../common/layers';
 import { modulo } from '../../common/modulo';
+import { overlayContainer } from '../containers/overlayContainer';
 import { deg2rad } from '../utils/deg2rad';
 import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';
@@ -35,6 +37,7 @@ class Position {
     this._tiles = 1 << z;
     this._x = modulo(x, this._tiles);
     this._y = Math.max(0, Math.min(y, this._tiles));
+    setTimeout(() => overlayContainer.redraw(), 1);
     if (!mouse.down.state) setTimeout(() => navionicsDetails.fetch(this), 100);
   }
   get xyz (): XYZ {
@@ -49,7 +52,7 @@ class Position {
   }
 
   readonly zoomIn = () => {
-    if (this._z < 20) {
+    if (this._z < zoomMax) {
       this.xyz = {
         x: this._x * 2,
         y: this._y * 2,
@@ -61,7 +64,7 @@ class Position {
     return false;
   };
   readonly zoomOut = () => {
-    if (this.z > 2) {
+    if (this.z > zoomMin) {
       this.xyz = {
         x: this._x /= 2,
         y: this._y /= 2,

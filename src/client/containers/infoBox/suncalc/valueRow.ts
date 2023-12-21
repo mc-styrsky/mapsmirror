@@ -1,13 +1,13 @@
 import type { AddDuration } from './types/addDuration';
 import type { AddIncrement } from './types/addIncrement';
 import type { DurationKeys } from './types/durationKeys';
-import { createHTMLElement } from '../../../utils/createHTMLElement';
 import { formatDateValue } from '../../../utils/formatDateValue';
+import { Container } from '../../container';
 import { SolarTimesStatics } from './solarTimes/statics';
 import { SolarTimesStatsCanvas } from './solarTimesStatsCanvas';
 
 export class ValueRow {
-  lines: HTMLElement[] = [];
+  lines: Container<any>[] = [];
   total = 0;
   totalKeys: DurationKeys[] = [];
   fill = (label: string, sum: number) => this.add({
@@ -39,29 +39,25 @@ export class ValueRow {
 
     return this;
   }
-  addRow ({ col1, col2, col3 }: Partial<Record<'col1'|'col2'|'col3', (string|HTMLElement)[]>>): ValueRow
-  addRow ({ row }: {row: (string|HTMLElement)[]}): ValueRow
-  addRow ({ col1, col2, col3, row }: Partial<Record<'col1'|'col2'|'col3'|'row', (string|HTMLElement)[]>>) {
+  addRow ({ col1, col2, col3 }: Partial<Record<'col1'|'col2'|'col3', (string|Container<any>)[]>>): ValueRow
+  addRow ({ row }: {row: (string|Container<any>)[]}): ValueRow
+  addRow ({ col1 = [], col2 = [], col3 = [], row }: Partial<Record<'col1'|'col2'|'col3'|'row', (string|Container<any>)[]>>) {
     row ??= [
-      createHTMLElement('div', {
+      Container.from('div', {
         style: { marginRight: 'auto' },
-        zhilds: col1,
-      }),
-      createHTMLElement('div', {
+      }).append(...col1),
+      Container.from('div', {
         classes: ['text-end'],
         style: { width: '5em' },
-        zhilds: col2,
-      }),
-      createHTMLElement('div', {
+      }).append(...col2),
+      Container.from('div', {
         classes: ['text-end'],
         style: { width: '5em' },
-        zhilds: col3,
-      }),
+      }).append(...col3),
     ];
-    this.lines.push(createHTMLElement('div', {
+    this.lines.push(Container.from('div', {
       classes: ['d-flex'],
-      zhilds: row,
-    }));
+    }).append(...row));
     return this;
   }
   addStats ({ durations, keys, map }: Pick<AddDuration, 'durations' | 'keys'> & {map?: (val: number) => number}) {
@@ -79,27 +75,28 @@ export class ValueRow {
       stats: durations.stats,
       width: 15 * 16,
     });
-    const axis = [stats.max, stats.min].map(v => createHTMLElement('div', {
+    const axis = [stats.max, stats.min].map(v => Container.from('div', {
       classes: ['text-end'],
       style: {
         fontSize: '10px',
       },
-      zhilds: [formatDateValue(v)],
-    }));
-    this.addRow({ row: [
-      createHTMLElement('div', {
-        style: {
-          backgroundColor: '#ffffff',
-          borderColor: '#000000',
-          borderRight: '1px solid',
-          marginLeft: 'auto',
-          paddingLeft: '3px',
-          paddingRight: '3px',
-        },
-        zhilds: axis,
-      }),
-      stats.canvas,
-    ] });
+    }).append(formatDateValue(v)));
+    this.addRow({
+      row: [
+        Container.from('div', {
+          style: {
+            backgroundColor: '#ffffff',
+            borderColor: '#000000',
+            borderRight: '1px solid',
+            marginLeft: 'auto',
+            paddingLeft: '3px',
+            paddingRight: '3px',
+          },
+        })
+        .append(...axis),
+        stats.canvas,
+      ],
+    });
 
     this.totalKeys.push(...keys);
     return this;

@@ -15,33 +15,30 @@ import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';
 
 
-export function oninput (event: KeyboardEvent | WheelEvent | MouseEvent | UIEvent) {
+export function inputListener (
+  event: KeyboardEvent | WheelEvent | MouseEvent | UIEvent,
+  { x, y }: {x: number, y: number} = { x: 0, y: 0 },
+) {
   const { height, width } = boundingRect;
   const { type } = event;
   let needRedraw = false;
 
   console.log(event.target);
-  if (![
-    event.target instanceof HTMLBodyElement,
-    // event.target instanceof Window,
-  ].some(Boolean)) {
-    return;
-  }
   if (event instanceof WheelEvent) {
-    const { clientX, clientY, deltaY } = event;
+    const { deltaY } = event;
 
     if (deltaY > 0) {
       needRedraw = position.zoomOut();
       position.xyz = {
-        x: position.x - (clientX - width / 2) / tileSize / 2,
-        y: position.y - (clientY - height / 2) / tileSize / 2,
+        x: position.x - (x - width / 2) / tileSize / 2,
+        y: position.y - (y - height / 2) / tileSize / 2,
       };
     }
     else if (deltaY < 0) {
       needRedraw = position.zoomIn();
       position.xyz = {
-        x: position.x + (clientX - width / 2) / tileSize,
-        y: position.y + (clientY - height / 2) / tileSize,
+        x: position.x + (x - width / 2) / tileSize,
+        y: position.y + (y - height / 2) / tileSize,
       };
     }
     else {
@@ -49,25 +46,25 @@ export function oninput (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
       return;
     }
   }
-  else if (event instanceof KeyboardEvent) {
+  else if (event instanceof KeyboardEvent && event.target instanceof HTMLBodyElement) {
     if (event.isComposing) return;
     const { key } = event;
     if (key >= '0' && key <= '9') {
       const baselayer = baselayers[parseInt(key)];
       if (typeof baselayer !== 'undefined') mapContainer.baselayer = baselayer;
     }
-    else if (key === 'c') crosshairToggle.click();
-    else if (key === 'd') coordsToggle.click();
+    else if (key === 'c') crosshairToggle.html.click();
+    else if (key === 'd') coordsToggle.html.click();
     else if (key === 'l') updateUserLocation();
     else if (key === 'n') {
       if (settings.show.navionicsDetails && settings.show.navionics) {
-        navionicsDetailsToggle.click();
-        navionicsToggle.click();
+        navionicsDetailsToggle.html.click();
+        navionicsToggle.html.click();
       }
-      else if (settings.show.navionics) navionicsDetailsToggle.click();
-      else navionicsToggle.click();
+      else if (settings.show.navionics) navionicsDetailsToggle.html.click();
+      else navionicsToggle.html.click();
     }
-    else if (key === 'v') vfdensityToggle.click();
+    else if (key === 'v') vfdensityToggle.html.click();
     else {
       needRedraw = true;
       if (key === 'r') {
@@ -96,10 +93,9 @@ export function oninput (event: KeyboardEvent | WheelEvent | MouseEvent | UIEven
     }
   }
   else if (event instanceof MouseEvent) {
-    const { clientX, clientY } = event;
     position.xyz = {
-      x: Math.round(position.x * tileSize + (mouse.x - clientX)) / tileSize,
-      y: Math.round(position.y * tileSize + (mouse.y - clientY)) / tileSize,
+      x: Math.round(position.x * tileSize + (mouse.x - x)) / tileSize,
+      y: Math.round(position.y * tileSize + (mouse.y - y)) / tileSize,
     };
     needRedraw = true;
   }

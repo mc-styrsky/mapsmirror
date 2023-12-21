@@ -1,11 +1,11 @@
-import { createHTMLElement } from '../../../../utils/createHTMLElement';
+import { Container } from '../../../container';
 import { addressInput } from './input';
 
-export const addressForm: HTMLFormElement = createHTMLElement('form', {
+export const addressForm = Container.from('form', {
   action: 'javascript:void(0)',
   classes: ['m-0'],
   style: {
     minWidth: '20em',
   },
-  zhilds: [addressInput],
-});
+})
+.append(addressInput);

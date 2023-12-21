@@ -1,8 +1,8 @@
 import { settings } from '../../globals/settings';
-import { createHTMLElement } from '../../utils/createHTMLElement';
+import { Container } from '../container';
 import { mapContainer } from '../mapContainer';
 
-export const coordsToggle = createHTMLElement('a', {
+export const coordsToggle = Container.from('a', {
   classes: ['btn', 'btn-secondary'],
   onclick: () => {
     settings.units.coords = {
@@ -10,7 +10,7 @@ export const coordsToggle = createHTMLElement('a', {
       dm: <const> 'dms',
       dms: <const> 'd',
     }[settings.units.coords] ?? 'dm';
-    coordsToggle.innerText = {
+    coordsToggle.html.innerText = {
       d: 'Dec',
       dm: 'D°M\'',
       dms: 'DMS',
@@ -18,9 +18,9 @@ export const coordsToggle = createHTMLElement('a', {
     mapContainer.redraw('coords changed');
   },
   role: 'button',
-  zhilds: [{
-    d: 'Dec',
-    dm: 'D°M\'',
-    dms: 'DMS',
-  }[settings.units.coords]],
-});
+})
+.append({
+  d: 'Dec',
+  dm: 'D°M\'',
+  dms: 'DMS',
+}[settings.units.coords]);

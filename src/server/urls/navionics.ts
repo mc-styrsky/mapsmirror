@@ -1,4 +1,5 @@
-import type { ConstructorParameters } from "../../common/types/constructorParameters";
+import type { ConstructorParameters } from '../../common/types/constructorParameters';
+import { layers } from '../../common/layers';
 import { XYZ2Url } from './default';
 
 let navtoken: null | string = null;
@@ -38,11 +39,11 @@ export class XYZ2UrlNavionics extends XYZ2Url {
   constructor (params: ConstructorParameters<typeof XYZ2Url>[0]) {
     super(params);
     const { x, y, z } = params;
+    const { max, min } = layers[params.provider];
     if ([
-      z <= 17,
-      z >= 2,
-      y >= 14922 >> 17 - z,
-      y <= 92442 >> 17 - z,
+      z >= min && z <= max,
+      z >= 5 && y >= 14922 >> 17 - z,
+      z >= 5 && y <= 92442 >> 17 - z,
     ].every(Boolean)) {
       this.url = getNavtoken().then(token => token ?
         `https://backend.navionics.com/tile/${z}/${x}/${y}?LAYERS=config_1_0.00_0&TRANSPARENT=TRUE&UGC=TRUE&theme=0&navtoken=${token}` :

@@ -1,10 +1,12 @@
 import type { NavionicsDetail } from '../navionicsDetails';
-import { createHTMLElement } from '../../utils/createHTMLElement';
+import { Container } from '../../containers/container';
 
 export function spinner (item: NavionicsDetail) {
-  if (item.details && !item.properties) return createHTMLElement('div', {
+  if (item.details && !item.properties) return Container.from('div', {
     classes: ['d-flex'],
-    zhilds: [createHTMLElement('div', {
+  })
+  .append(
+    Container.from('div', {
       classes: [
         'spinner-border',
         'spinner-border-sm',
@@ -12,7 +14,7 @@ export function spinner (item: NavionicsDetail) {
       style: {
         margin: 'auto',
       },
-    })],
-  });
+    }),
+  );
   return void 0;
 }

@@ -1,7 +1,7 @@
-import type { VirtLayer } from '../../../common/types/layers';
+import type { VirtLayer } from '../../../common/types/layer';
 import type { XYZ } from '../../../common/types/xyz';
-import { createBr } from '../../utils/createHTMLElement';
-import { updateInfoBox } from './updateInfoBox';
+import { Container } from '../container';
+import { infoBox } from '../infoBox';
 
 class ImagesToFetch {
   constructor () {
@@ -17,7 +17,7 @@ class ImagesToFetch {
   add = ({ source, ...xyz }: XYZ & {source: VirtLayer}) => {
     this.getSet(source).add(this.xyz2string(xyz));
     this.total[source] = (this.total[source] ?? 0) + 1;
-    updateInfoBox();
+    infoBox.update();
   };
   delete = ({ source, ...xyz }: XYZ & {source: VirtLayer}) => {
     this.getSet(source).delete(this.xyz2string(xyz));
@@ -25,7 +25,7 @@ class ImagesToFetch {
       delete this.data[source];
       delete this.total[source];
     }
-    updateInfoBox();
+    infoBox.update();
   };
   state = () => {
     return Object.entries(this.data)
@@ -35,11 +35,11 @@ class ImagesToFetch {
     return this.state()
     .reduce(
       (arr, [source, size]) => {
-        arr.push(createBr());
+        arr.push(Container.from('br'));
         arr.push(`${source}: ${size}/${this.total[source]}`);
         return arr;
       },
-      <(HTMLElement | string)[]>[],
+      <(Container<any> | string)[]>[],
     );
   };
 }

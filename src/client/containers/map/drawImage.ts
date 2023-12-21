@@ -1,4 +1,5 @@
 import type { DrawImage } from '../../../common/types/drawImage';
+import { layers } from '../../../common/layers';
 import { tileSize } from '../../globals/tileSize';
 import { imagesToFetch } from '../infoBox/imagesToFetch';
 import { drawCachedImage } from './drawCachedImage';
@@ -6,8 +7,7 @@ import { drawCachedImage } from './drawCachedImage';
 export function drawImage ({
   context, source, ttl, x, y, z,
 }: DrawImage): PromiseLike<boolean> {
-  if (z < 2) return Promise.resolve(false);
-  if (source === 'vfdensity' && z < 3) return Promise.resolve(false);
+  if (z < layers[source].min) return Promise.resolve(false);
   const src = `/tile/${source}/${[
     z,
     x.toString(16),
@@ -15,15 +15,15 @@ export function drawImage ({
   ].join('/')}?ttl=${ttl}`;
 
   imagesToFetch.add({ source, x, y, z });
-  const img = new Image();
-  img.src = src;
-  const prom: Promise<boolean> = new Promise(resolve => {
-    img.onload = () => {
+
+  return new Promise(resolve => {
+    const img = new Image();
+    const onload = () => {
       context.drawImage(img, 0, 0);
       imagesToFetch.delete({ source, x, y, z });
       resolve(true);
     };
-    img.onerror = async () => {
+    const onerror = async () => {
       console.log('fallback', { source, x, y, z });
       const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
       const workerContext = workerCanvas.getContext('2d');
@@ -38,7 +38,7 @@ export function drawImage ({
           z: z - 1,
         });
 
-        const success = await draw();
+        const success = draw();
         if (success) context.drawImage(
           workerCanvas,
           (x & 1) * tileSize / 2,
@@ -52,9 +52,13 @@ export function drawImage ({
       else {
         imagesToFetch.delete({ source, x, y, z });
         resolve(false);
-        return;
       }
     };
+    if (z > layers[source].max) onerror();
+    else {
+      img.src = src;
+      img.onload = onload;
+      img.onerror = onerror;
+    }
   });
-  return prom;
 }

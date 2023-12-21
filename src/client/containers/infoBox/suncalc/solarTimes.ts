@@ -1,14 +1,14 @@
 import { halfDay } from '../../../globals/halfDay';
 import { position } from '../../../globals/position';
-import { createHTMLElement } from '../../../utils/createHTMLElement';
 import { rad2deg } from '../../../utils/rad2deg';
 import { x2lon } from '../../../utils/x2lon';
 import { y2lat } from '../../../utils/y2lat';
+import { Container } from '../../container';
 import { SolarTimesDurations } from './solarTimes/durations';
 import { ValueRow } from './valueRow';
 
 class SolarTimes extends SolarTimesDurations {
-  private html: HTMLElement | null = null;
+  private html: Container<HTMLDivElement> | null = null;
 
   toHtml = () => {
     if (this.x !== position.x || this.y !== position.y) {
@@ -55,7 +55,7 @@ class SolarTimes extends SolarTimesDurations {
       .fill('Night', halfDay * 2)
       .fillStats(durations, halfDay * 2)
       .lines;
-      this.html = createHTMLElement('div', { zhilds });
+      this.html = Container.from('div').append(...zhilds);
     }
     return this.html;
   };

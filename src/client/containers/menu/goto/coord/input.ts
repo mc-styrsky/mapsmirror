@@ -1,24 +1,24 @@
 import parseDMS from 'parse-dms';
 import { coordUnits } from '../../../../globals/coordUnits';
-import { createHTMLElement } from '../../../../utils/createHTMLElement';
 import { deg2rad } from '../../../../utils/deg2rad';
 import { rad2stringFuncs } from '../../../../utils/rad2string';
+import { Container } from '../../../container';
 import { coordError } from './error';
 import { coordInfo } from './info';
 import { coordSubmit } from './submit';
 
-export const coordInput = createHTMLElement('input', {
+export const coordInput = Container.from('input', {
   autocomplete: 'off',
   classes: ['form-control'],
   oninput: () => {
     console.log('oninput');
     coordUnits.forEach(u => {
-      coordInfo[u].style.display = 'none';
+      coordInfo[u].html.style.display = 'none';
     });
 
     try {
-      if (!coordInput.value) coordSubmit.classList.add('disabled');
-      const { lat: latDeg, lon: lonDeg } = parseDMS(coordInput.value) as { lat: number; lon: number; };
+      if (!coordInput.html.value) coordSubmit.html.classList.add('disabled');
+      const { lat: latDeg, lon: lonDeg } = parseDMS(coordInput.html.value) as { lat: number; lon: number; };
       const { lat, lon } = {
         lat: deg2rad(latDeg),
         lon: deg2rad(lonDeg),
@@ -28,17 +28,17 @@ export const coordInput = createHTMLElement('input', {
         coordUnits.forEach(u => {
           console.log('update lat/lon');
           const func = rad2stringFuncs[u];
-          coordInfo[u].innerText = `${func({ axis: 'NS', pad: 2, phi: lat })} ${func({ axis: 'EW', pad: 3, phi: lon })}`;
-          coordInfo[u].style.display = 'block';
-          coordError.style.display = 'none';
-          coordSubmit.classList.remove('disabled');
+          coordInfo[u].html.innerText = `${func({ axis: 'NS', pad: 2, phi: lat })} ${func({ axis: 'EW', pad: 3, phi: lon })}`;
+          coordInfo[u].html.style.display = 'block';
+          coordError.html.style.display = 'none';
+          coordSubmit.html.classList.remove('disabled');
         });
       }
     }
     catch (e: any) {
-      coordError.innerText = e.toString();
-      coordError.style.display = 'block';
-      coordSubmit.classList.add('disabled');
+      coordError.html.innerText = e.toString();
+      coordError.html.style.display = 'block';
+      coordSubmit.html.classList.add('disabled');
     }
   },
   placeholder: 'Coordinates',

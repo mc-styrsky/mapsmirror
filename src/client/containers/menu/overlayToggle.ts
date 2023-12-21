@@ -1,4 +1,4 @@
-import type { Layer } from '../../../common/types/layers';
+import type { Layer } from '../../../common/types/layer';
 import { settings } from '../../globals/settings';
 import { iconButton } from './iconButton';
 

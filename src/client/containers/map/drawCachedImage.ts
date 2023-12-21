@@ -5,7 +5,7 @@ import { tileSize } from '../../globals/tileSize';
 import { drawImage } from './drawImage';
 import { drawNavionics } from './drawNavionics';
 
-const imagesMap: Record<string, PromiseLike<OffscreenCanvas | null>> = {};
+const imagesMap: Record<string, PromiseLike<OffscreenCanvas | null> | undefined> = {};
 
 export async function drawCachedImage (
   {
@@ -17,7 +17,7 @@ export async function drawCachedImage (
     y,
     z,
   }: DrawImage & { alpha: number; },
-): Promise<() => Promise<boolean>> {
+): Promise<() => true> {
   const isNavionics = source === 'navionics';
   const src = `/${source}/${[
     z,
@@ -33,11 +33,11 @@ export async function drawCachedImage (
   const cachedCanvas = await imagesMap[src];
   if (cachedCanvas) return () => {
     drawCanvas(cachedCanvas);
-    return Promise.resolve(true);
+    return true;
   };
   const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
   const workerContext = workerCanvas.getContext('2d');
-  if (!workerContext) return () => Promise.resolve(true);
+  if (!workerContext) return () => true;
 
 
   const successProm = isNavionics ?
@@ -45,10 +45,11 @@ export async function drawCachedImage (
     drawImage({ context: workerContext, source, ttl, x, y, z });
 
   imagesMap[src] = successProm.then(success => success ? workerCanvas : null);
-  return async () => {
-    const success = await successProm;
+
+  const success = await successProm;
+  return () => {
     if (success) drawCanvas(workerCanvas);
 
-    return success;
+    return true;
   };
 }

@@ -1,4 +1,4 @@
-import type { Baselayer, LayerSettings, Overlay } from '../../common/types/layers';
+import type { Baselayer, LayerSettings, Overlay } from '../../common/types/layer';
 import { extractProperties } from '../../common/extractProperties';
 import { LocalStorageItem } from '../utils/localStorageItem';
 import { baselayers } from './baselayers';

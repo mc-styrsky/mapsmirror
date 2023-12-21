@@ -1,5 +1,5 @@
-import { createHTMLElement } from '../../../../utils/createHTMLElement';
+import { Container } from '../../../container';
 
-export const coordError = createHTMLElement('div', {
+export const coordError = Container.from('div', {
   classes: ['form-text'],
 });

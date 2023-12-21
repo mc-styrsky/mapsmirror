@@ -1,15 +1,29 @@
 import type { XYZ } from '../../../common/types/xyz';
-import { modulo } from '../../../common/modulo';
+import { zoomMax } from '../../../common/layers';
 import { position } from '../../globals/position';
 import { settings } from '../../globals/settings';
 import { tileSize } from '../../globals/tileSize';
-import { createHTMLElement } from '../../utils/createHTMLElement';
+import { Container } from '../container';
 import { drawCachedImage } from './drawCachedImage';
 
+const pad = (1 << zoomMax).toString().length + 1;
 export class MapTile {
   static id ({ x, y, z }: XYZ) {
-    return `${z.toFixed(0).padStart(2, '0')}_${modulo(x, 1 << z)}_${modulo(y, 1 << z)}`;
+    return `z:${
+      z.toFixed(0).padStart(2, ' ')
+    }, x:${
+      x.toFixed(0).padStart(pad, ' ')
+    }, y:${
+      y.toFixed(0).padStart(pad, ' ')
+    }`;
   }
+  static distance ({ x, y, z }: XYZ, ref: XYZ) {
+    const scale = (1 << ref.z) / (1 << z);
+    const dx = (x + 0.5) * scale - ref.x;
+    const dy = (y + 0.5) * scale - ref.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+
   constructor ({ x, y, z }: XYZ) {
     const width = tileSize;
     const height = tileSize;
@@ -19,11 +33,12 @@ export class MapTile {
     this.z = z;
     this.id = MapTile.id({ x, y, z });
 
-    const canvas = createHTMLElement('canvas', {
+    const canvas = Container.from('canvas', {
       dataset: {
         x: x.toFixed(0),
         y: y.toFixed(0),
-        z: z.toFixed(0) },
+        z: z.toFixed(0),
+      },
       style: {
         height: `${height}px`,
         left: '50%',
@@ -32,19 +47,20 @@ export class MapTile {
         width: `${width}px`,
       },
     });
-    canvas.width = width;
-    canvas.height = height;
-    this.canvas = canvas;
-    const context = canvas.getContext('2d');
+    canvas.html.width = width;
+    canvas.html.height = height;
+    this.canvas = canvas.html;
+    const context = canvas.html.getContext('2d');
 
     if (context) {
-      settings.tiles.reduce(async (prom, entry) => {
+      Promise.all(settings.tiles.map(async (entry) => {
         const { alpha, source } = entry;
-        const draw = drawCachedImage({ alpha, context, source, ttl, x, y, z });
-        await prom;
-        await (await draw)();
-        return prom;
-      }, Promise.resolve());
+        return await drawCachedImage({ alpha, context, source, ttl, x, y, z });
+      }))
+      .then(draws => draws.reduce(
+        (prom, draw) => prom.then(() => draw()),
+        Promise.resolve(true),
+      ));
     }
   }
   canvas: HTMLCanvasElement;
@@ -68,13 +84,6 @@ export class MapTile {
     }px)`;
   }
 
-  distance ({ x, y, z }: XYZ) {
-    const tilesThis = 1 << this.z;
-    const tilesRemote = 1 << z;
-    const dx = (this.x + 0.5) / tilesThis * tilesRemote - x;
-    const dy = (this.y + 0.5) / tilesThis * tilesRemote - y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
   readonly id: string;
 
   toHtml () {

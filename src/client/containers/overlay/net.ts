@@ -1,9 +1,7 @@
-import type { Size } from '../../../common/types/size';
-import type { XYZ } from '../../../common/types/xyz';
+import type { Overlay } from '../../../common/types/overlay';
 import type { Marker } from '../../globals/marker';
 import { position } from '../../globals/position';
 import { tileSize } from '../../globals/tileSize';
-import { createHTMLElement } from '../../utils/createHTMLElement';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
 import { min2rad } from '../../utils/min2rad';
@@ -43,24 +41,13 @@ const getScale = (lat: number, minPx = 100) => {
   }, scales[0]));
 };
 
-export const createNetCanvas = ({
+export const drawNet = ({
+  context,
   height,
   width,
   x,
   y,
-}: Pick<XYZ, 'x' | 'y'> & Size) => {
-  const canvas = createHTMLElement('canvas', {
-    height: height,
-    style: {
-      height: `${height}px`,
-      position: 'absolute',
-      width: `${width}px`,
-    },
-    width: width,
-  });
-  const context = canvas.getContext('2d');
-  if (!context) return canvas;
-  context.translate(width / 2, height / 2);
+}: Overlay) => {
   const lat = y2lat(y);
   const scaleX = getScale(0, context.measureText(rad2string({ axis: 'EW', pad: 3, phi: 0 })).width);
   const scaleY = getScale(lat);
@@ -184,6 +171,4 @@ export const createNetCanvas = ({
     context.lineTo(markerX, markerY - to);
     context.stroke();
   });
-
-  return canvas;
 };

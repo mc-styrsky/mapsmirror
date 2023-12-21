@@ -1,4 +1,4 @@
-import type { Layer } from './layers';
+import type { Layer } from './layer';
 import type { XYZ } from './xyz';
 
 export type DrawImage = XYZ & {

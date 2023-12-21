@@ -1,4 +1,4 @@
-import type { Baselayer } from '../../common/types/layers';
+import type { Baselayer } from '../../common/types/layer';
 
 
 export const baselayers: Baselayer[] = [

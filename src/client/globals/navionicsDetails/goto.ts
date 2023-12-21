@@ -1,13 +1,13 @@
 import type { NavionicsDetail } from '../navionicsDetails';
+import { Container } from '../../containers/container';
 import { mapContainer } from '../../containers/mapContainer';
 import { bootstrapIcon } from '../../containers/menu/iconButton';
-import { createHTMLElement } from '../../utils/createHTMLElement';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
 import { position } from '../position';
 
 export function goto (item: NavionicsDetail) {
-  if (item.position) return createHTMLElement('a', {
+  if (item.position) return Container.from('a', {
     onclick: (event) => {
       const { lat, lon } = item.position;
       position.xyz = {
@@ -21,7 +21,7 @@ export function goto (item: NavionicsDetail) {
       marginLeft: 'auto',
       padding: '0.25rem',
     },
-    zhilds: [bootstrapIcon({ icon: 'arrow-right-circle' })],
-  });
+  })
+  .append(bootstrapIcon({ icon: 'arrow-right-circle' }));
   return void 0;
 }

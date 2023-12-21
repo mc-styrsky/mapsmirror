@@ -1,7 +1,7 @@
 import type { Marker } from './marker';
 import { StyQueue } from '@mc-styrsky/queue';
-import { updateInfoBox } from '../containers/infoBox/updateInfoBox';
-import { createHTMLElement } from '../utils/createHTMLElement';
+import { Container } from '../containers/container';
+import { infoBox } from '../containers/infoBox';
 import { getNavionicsDetailsList } from './navionicsDetails/getNavionicsDetailsList';
 import { toAccordion } from './navionicsDetails/toAccordion';
 
@@ -31,20 +31,20 @@ export class NavionicsDetails {
     return this._list;
   }
   marker: Marker | undefined;
-  private htmlList: HTMLElement | null = null;
+  private htmlList: Container<HTMLDivElement> | null = null;
   queue = new StyQueue(1);
 
   add = (item: NavionicsDetail) => {
     this._list.set(item.id, item);
     this.clearHtmlList();
   };
-  clear = () => {
+  clear2 = () => {
     this._list.clear();
     this.clearHtmlList();
   };
   clearHtmlList = () => {
     this.htmlList = null;
-    updateInfoBox();
+    infoBox.update();
   };
   delete = (item: NavionicsDetail) => {
     this._list.delete(item.id);
@@ -58,26 +58,32 @@ export class NavionicsDetails {
       const ret = toAccordion({
         items: [...this.list.values()].sort((a, b) => a.distance - b.distance),
         parent: this,
-      },
-      );
-      if (this.isFetch) ret.append(createHTMLElement('div', {
-        classes: [
-          'accordion-item',
-          'mm-menu-text',
-        ],
-        zhilds: [createHTMLElement('div', {
+      });
+      if (this.isFetch) ret.append(
+        Container.from('div', {
           classes: [
-            'accordion-header',
+            'accordion-item',
             'mm-menu-text',
           ],
-          zhilds: [createHTMLElement('div', {
+        })
+        .append(
+          Container.from('div', {
             classes: [
-              'd-flex',
+              'accordion-header',
               'mm-menu-text',
             ],
-            zhilds: [
+          })
+          .append(
+
+            Container.from('div', {
+              classes: [
+                'd-flex',
+                'mm-menu-text',
+              ],
+            })
+            .append(
               this.fetchProgress,
-              createHTMLElement('div', {
+              Container.from('div', {
                 classes: [
                   'spinner-border',
                   'spinner-border-sm',
@@ -86,10 +92,10 @@ export class NavionicsDetails {
                   margin: 'auto',
                 },
               }),
-            ],
-          })],
-        })],
-      }));
+            ),
+          ),
+        ),
+      );
 
       return ret;
     })();

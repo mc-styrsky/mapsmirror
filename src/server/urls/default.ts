@@ -129,7 +129,7 @@ export class XYZ2Url {
     queues.statsCount++;
 
     if (fileStats) {
-      if (this.verbose) console.log('[cached]', filename);
+      // if (this.verbose) console.log('[cached]', filename);
       res?.sendFile(filename);
       return true;
     }
@@ -149,6 +149,7 @@ export class XYZ2Url {
       });
 
       if (imageStream.body) {
+        if (this.verbose) console.log('[fetched]', filename);
         res?.send(Buffer.from(imageStream.body));
         await writeFile(filename, Buffer.from(imageStream.body));
         return true;

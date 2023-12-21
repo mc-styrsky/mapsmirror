@@ -1,16 +1,16 @@
 import type { NavionicsDetail } from '../navionicsDetails';
-import { createHTMLElement } from '../../utils/createHTMLElement';
+import { Container } from '../../containers/container';
 
 export function itemDetails (item: NavionicsDetail, itemId: string, accordionId: string) {
-  if (item.properties) return createHTMLElement('div', {
+  if (item.properties) return Container.from('div', {
     classes: ['accordion-collapse', 'collapse', 'px-2'],
     dataset: {
       bsParent: `#${accordionId}`,
     },
     id: itemId,
-    zhilds: item.properties.map(prop => createHTMLElement('p', {
-      zhilds: [prop],
-    })),
-  });
+  })
+  .append(
+    ...item.properties.map(prop => Container.from('p').append(prop)),
+  );
   return void 0;
 }

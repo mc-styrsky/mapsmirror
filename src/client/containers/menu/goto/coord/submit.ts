@@ -3,5 +3,5 @@ import { coordForm } from './form';
 
 export const coordSubmit = iconButton({
   icon: 'arrow-right-circle',
-  onclick: () => coordForm.submit(),
+  onclick: () => coordForm.html.submit(),
 });

@@ -1,27 +1,29 @@
 import { Size } from './boundingRect';
+import { Container } from './containers/container';
 import { infoBox } from './containers/infoBox';
 import { mapContainer } from './containers/mapContainer';
 import { menuContainer } from './containers/menuContainer';
+import { mouseContainer } from './containers/mouseContainer';
 import { overlayContainer } from './containers/overlayContainer';
-import { oninput } from './events/oninput';
-import { onmouse } from './events/onmouse';
-import { createHTMLElement } from './utils/createHTMLElement';
+import { inputListener } from './events/inputListener';
 
 const {
   container: containerId = '',
 } = Object.fromEntries(new URL(import.meta.url).searchParams.entries());
-const container = document.getElementById(containerId) ?? createHTMLElement('div');
+const container = Container.from(document.getElementById(containerId) ?? Container.from('div').html);
 
 export const boundingRect = new Size(container);
 
-container.innerHTML = '';
-container.append(mapContainer.html, overlayContainer, infoBox, menuContainer);
+container.clear();
+container.append(
+  mapContainer,
+  overlayContainer,
+  mouseContainer,
+  infoBox,
+  menuContainer,
+);
 
-window.addEventListener('keydown', oninput);
-window.addEventListener('wheel', oninput);
-window.addEventListener('mousemove', onmouse);
-window.addEventListener('mousedown', onmouse);
-window.addEventListener('mouseup', onmouse);
+window.addEventListener('keydown', inputListener);
 window.addEventListener('resize', () => {
   boundingRect.refresh();
   mapContainer.redraw('resize');

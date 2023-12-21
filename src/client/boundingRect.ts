@@ -1,15 +1,17 @@
+import type { Container } from './containers/container';
+
 export class Size {
-  constructor (container: HTMLElement) {
-    this._container = container;
+  constructor (container: Container<any>) {
+    this.container = container;
     this.refresh();
   }
   refresh = () => {
-    const { height, width } = this._container.getBoundingClientRect();
+    const { height, width } = this.container.getBoundingClientRect();
     console.log('new bounding rect', { height, width });
     this._height = height;
     this._width = width;
   };
-  private _container: HTMLElement;
+  private container: Container<any>;
   private _height: number = 0;
   private _width: number = 0;
   get height () {

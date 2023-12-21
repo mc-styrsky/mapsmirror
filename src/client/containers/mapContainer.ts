@@ -1,60 +1,40 @@
-import type { Baselayer } from '../../common/types/layers';
-import { modulo } from '../../common/modulo';
+import type { Baselayer } from '../../common/types/layer';
+import { zoomMin } from '../../common/layers';
+import { containerStyle } from '../globals/containerStyle';
 import { position } from '../globals/position';
 import { settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
 import { boundingRect } from '../index';
-import { createHTMLElement } from '../utils/createHTMLElement';
 import { LocalStorageItem } from '../utils/localStorageItem';
 import { rad2deg } from '../utils/rad2deg';
 import { x2lon } from '../utils/x2lon';
 import { y2lat } from '../utils/y2lat';
-import { createCrosshairsCanvas } from './canvases/crosshairs';
-import { createNetCanvas } from './canvases/net';
-import { updateInfoBox } from './infoBox/updateInfoBox';
+import { Container } from './container';
+import { infoBox } from './infoBox';
 import { MapTile } from './map/mapTile';
 import { BaselayerMenu, baselayerMenu } from './menu/baselayerMenu';
-import { overlayContainer } from './overlayContainer';
 
-export class MapContainer {
+export class MapContainer extends Container<HTMLDivElement> {
+  constructor () {
+    super(Container.from('div', {
+      id: MapContainer.name,
+      style: containerStyle,
+    }));
+  }
   private mapTiles = new Map<string, MapTile>();
 
   set baselayer (baselayer: Baselayer) {
     settings.baselayer = baselayer;
     baselayerMenu.baselayerLabel = BaselayerMenu.baselayerLabel(baselayer);
-    this.clear();
-    mapContainer.redraw('changed baselayer');
-  }
-
-  html = createHTMLElement('div', {
-    style: {
-      height: '100%',
-      left: '0px',
-      overflow: 'hidden',
-      position: 'absolute',
-      top: '0px',
-      width: '100%',
-      zIndex: '-200',
-    },
-    zhilds: [],
-  });
-
-  clear () {
     this.mapTiles.clear();
+    mapContainer.redraw('changed baselayer');
   }
 
   redraw (type: string) {
     const { height, width } = boundingRect;
-
     const { tiles, ttl, x, y, z } = position;
 
-    const crosshairs = createCrosshairsCanvas({ height, width, x, y });
-    const net = createNetCanvas({ height, width, x, y });
-    overlayContainer.innerHTML = '';
-    overlayContainer.append(crosshairs, net);
-
-
-    updateInfoBox();
+    infoBox.update();
 
     console.log(`${type} redraw@${new Date().toISOString()}`);
 
@@ -66,7 +46,10 @@ export class MapContainer {
 
     const txArray: number[] = [];
     for (let tx = mindx; tx < maxdx; tx++) {
-      txArray.push(modulo(tx, tiles));
+      txArray.push(tx);
+      if (tx < 0) txArray.push(tx + tiles);
+      if (tx > tiles) txArray.push(tx - tiles);
+      // txArray.push(modulo(tx, tiles));
     }
     const tyArray: number[] = [];
     for (let ty = mindy; ty < maxdy; ty++) {
@@ -74,7 +57,7 @@ export class MapContainer {
     }
 
     const tileIds = new Map<string, {x: number, y: number, z: number}>();
-    for (let tz = 2; tz <= z; tz++) {
+    for (let tz = zoomMin; tz <= z; tz++) {
       txArray.forEach(tx => {
         tyArray.forEach(ty => {
           const xyz = {
@@ -89,9 +72,16 @@ export class MapContainer {
     }
 
     this.html.innerHTML = '';
-    [...tileIds.entries()]
-    .sort(([a], [b]) => a > b ? 1 : -1)
-    .forEach(([id, xyz]) => {
+    const sortedTiles = [...tileIds.entries()]
+    .sort(([, a], [, b]) => {
+      if (a.z === b.z) return MapTile.distance(a, position) - MapTile.distance(b, position);
+      if (a.z === z) return 1;
+      if (b.z === z) return -1;
+      if (a.z > z && b.z > z) return b.z - a.z;
+      return a.z - b.z;
+    });
+
+    sortedTiles.forEach(([id, xyz]) => {
       const tile = this.mapTiles.get(id) ?? (() => {
         const t = new MapTile(xyz);
         this.mapTiles.set(t.id, t);
@@ -117,10 +107,6 @@ export class MapContainer {
       }
       new LocalStorageItem<typeof settings>('settings').set(settings);
     })();
-  }
-
-  toHtml () {
-    return this.html;
   }
 }
 

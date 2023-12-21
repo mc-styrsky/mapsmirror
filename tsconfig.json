@@ -22,7 +22,9 @@
   "files": [
     "src/server/index.ts",
     "src/client/index.ts",
-    "src/client/globals/baselayers.ts",
-    "src/common/types/constructorParameters.ts"
+    "src/common/types/overlay.ts",
+  ],
+  "include": [
+    "src"
   ]
 }
