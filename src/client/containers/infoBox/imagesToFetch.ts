@@ -1,11 +1,11 @@
 import type { VirtLayer } from '../../../common/types/layer';
 import type { XYZ } from '../../../common/types/xyz';
-import { Container } from '../container';
+import { Container } from '../../utils/htmlElements/container';
 import { infoBox } from '../infoBox';
 
-class ImagesToFetch {
+class ImagesToFetch extends Container {
   constructor () {
-
+    super();
   }
   private xyz2string = ({ x, y, z }: XYZ) => `${z.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
 
@@ -31,16 +31,13 @@ class ImagesToFetch {
     return Object.entries(this.data)
     .map(([key, val]) => [key, val.size]);
   };
-  stateHtml = () => {
-    return this.state()
-    .reduce(
-      (arr, [source, size]) => {
-        arr.push(Container.from('br'));
-        arr.push(`${source}: ${size}/${this.total[source]}`);
-        return arr;
-      },
-      <(Container<any> | string)[]>[],
-    );
+  refresh = () => {
+    this.clear();
+    this.state()
+    .forEach(([source, size], idx) => {
+      if (idx !== 0) this.append(Container.from('br'));
+      this.append(`${source}: ${size}/${this.total[source]}`);
+    });
   };
 }
 

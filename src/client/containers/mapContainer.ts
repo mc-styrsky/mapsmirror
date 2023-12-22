@@ -5,16 +5,16 @@ import { position } from '../globals/position';
 import { settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
 import { boundingRect } from '../index';
+import { Container } from '../utils/htmlElements/container';
 import { LocalStorageItem } from '../utils/localStorageItem';
 import { rad2deg } from '../utils/rad2deg';
 import { x2lon } from '../utils/x2lon';
 import { y2lat } from '../utils/y2lat';
-import { Container } from './container';
 import { infoBox } from './infoBox';
 import { MapTile } from './map/mapTile';
 import { BaselayerMenu, baselayerMenu } from './menu/baselayerMenu';
 
-export class MapContainer extends Container<HTMLDivElement> {
+export class MapContainer extends Container {
   constructor () {
     super(Container.from('div', {
       id: MapContainer.name,
@@ -87,7 +87,7 @@ export class MapContainer extends Container<HTMLDivElement> {
         this.mapTiles.set(t.id, t);
         return t;
       })();
-      this.html.append(tile.toHtml());
+      this.append(tile);
       tile.moveTo({ x, y, z });
     });
 

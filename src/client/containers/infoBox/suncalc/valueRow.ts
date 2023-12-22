@@ -2,12 +2,12 @@ import type { AddDuration } from './types/addDuration';
 import type { AddIncrement } from './types/addIncrement';
 import type { DurationKeys } from './types/durationKeys';
 import { formatDateValue } from '../../../utils/formatDateValue';
-import { Container } from '../../container';
+import { Container } from '../../../utils/htmlElements/container';
 import { SolarTimesStatics } from './solarTimes/statics';
 import { SolarTimesStatsCanvas } from './solarTimesStatsCanvas';
 
 export class ValueRow {
-  lines: Container<any>[] = [];
+  lines: Container[] = [];
   total = 0;
   totalKeys: DurationKeys[] = [];
   fill = (label: string, sum: number) => this.add({
@@ -39,9 +39,9 @@ export class ValueRow {
 
     return this;
   }
-  addRow ({ col1, col2, col3 }: Partial<Record<'col1'|'col2'|'col3', (string|Container<any>)[]>>): ValueRow
-  addRow ({ row }: {row: (string|Container<any>)[]}): ValueRow
-  addRow ({ col1 = [], col2 = [], col3 = [], row }: Partial<Record<'col1'|'col2'|'col3'|'row', (string|Container<any>)[]>>) {
+  addRow ({ col1, col2, col3 }: Partial<Record<'col1'|'col2'|'col3', (string|Container<HTMLElement>)[]>>): ValueRow
+  addRow ({ row }: {row: (string|Container<HTMLElement>)[]}): ValueRow
+  addRow ({ col1 = [], col2 = [], col3 = [], row }: Partial<Record<'col1'|'col2'|'col3'|'row', (string|Container<HTMLElement>)[]>>) {
     row ??= [
       Container.from('div', {
         style: { marginRight: 'auto' },
@@ -94,7 +94,7 @@ export class ValueRow {
           },
         })
         .append(...axis),
-        stats.canvas,
+        stats,
       ],
     });
 

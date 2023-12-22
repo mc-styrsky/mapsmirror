@@ -1,10 +1,10 @@
 import { containerStyle } from '../globals/containerStyle';
 import { position } from '../globals/position';
-import { Container } from './container';
+import { Container } from '../utils/htmlElements/container';
 import { drawCrosshair } from './overlay/crosshairs';
 import { drawNet } from './overlay/net';
 
-class OverlayContainer extends Container<HTMLDivElement> {
+class OverlayContainer extends Container {
   constructor () {
     super(Container.from('div', {
       id: OverlayContainer.name,

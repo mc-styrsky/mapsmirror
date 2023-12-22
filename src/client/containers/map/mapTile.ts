@@ -3,11 +3,11 @@ import { zoomMax } from '../../../common/layers';
 import { position } from '../../globals/position';
 import { settings } from '../../globals/settings';
 import { tileSize } from '../../globals/tileSize';
-import { Container } from '../container';
+import { Container } from '../../utils/htmlElements/container';
 import { drawCachedImage } from './drawCachedImage';
 
 const pad = (1 << zoomMax).toString().length + 1;
-export class MapTile {
+export class MapTile extends Container<HTMLCanvasElement> {
   static id ({ x, y, z }: XYZ) {
     return `z:${
       z.toFixed(0).padStart(2, ' ')
@@ -28,12 +28,8 @@ export class MapTile {
     const width = tileSize;
     const height = tileSize;
     const ttl = Math.max(Math.min(17, z + Math.max(0, position.ttl)) - z, 0);
-    this.x = x;
-    this.y = y;
-    this.z = z;
-    this.id = MapTile.id({ x, y, z });
 
-    const canvas = Container.from('canvas', {
+    super(Container.from('canvas', {
       dataset: {
         x: x.toFixed(0),
         y: y.toFixed(0),
@@ -46,11 +42,15 @@ export class MapTile {
         top: '50%',
         width: `${width}px`,
       },
-    });
-    canvas.html.width = width;
-    canvas.html.height = height;
-    this.canvas = canvas.html;
-    const context = canvas.html.getContext('2d');
+    }));
+
+    this.x = x;
+    this.y = y;
+    this.z = z;
+    this.id = MapTile.id({ x, y, z });
+    this.html.width = width;
+    this.html.height = height;
+    const context = this.html.getContext('2d');
 
     if (context) {
       Promise.all(settings.tiles.map(async (entry) => {
@@ -63,7 +63,6 @@ export class MapTile {
       ));
     }
   }
-  canvas: HTMLCanvasElement;
   private x: XYZ['x'];
   private y: XYZ['x'];
   private z: XYZ['x'];
@@ -75,9 +74,9 @@ export class MapTile {
       1 / (1 << this.z - z);
     const size = tileSize * scaleZ;
 
-    this.canvas.style.height = `${size}px`;
-    this.canvas.style.width = `${size}px`;
-    this.canvas.style.transform = `translate(${
+    this.html.style.height = `${size}px`;
+    this.html.style.width = `${size}px`;
+    this.html.style.transform = `translate(${
       Math.floor((this.x * scaleZ - x) * tileSize)
     }px, ${
       Math.floor((this.y * scaleZ - y) * tileSize)
@@ -85,8 +84,4 @@ export class MapTile {
   }
 
   readonly id: string;
-
-  toHtml () {
-    return this.canvas;
-  }
 }

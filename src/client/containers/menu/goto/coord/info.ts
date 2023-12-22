@@ -1,7 +1,7 @@
 import type { CoordUnit } from '../../../../globals/settings';
 import { fromEntriesTyped } from '../../../../../common/fromEntriesTyped';
 import { coordUnits } from '../../../../globals/coordUnits';
-import { Container } from '../../../container';
+import { Container } from '../../../../utils/htmlElements/container';
 
 export const coordInfo = fromEntriesTyped(
   coordUnits.map(c => [
@@ -12,5 +12,5 @@ export const coordInfo = fromEntriesTyped(
         width: 'max-content',
       },
     }),
-  ] as [CoordUnit, Container<HTMLDivElement>]),
+  ] as [CoordUnit, Container]),
 );

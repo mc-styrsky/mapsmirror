@@ -1,11 +1,12 @@
-import { Container } from '../../../container';
+import { Container } from '../../../../utils/htmlElements/container';
 import { addressForm } from './form';
 import { addressSearchContainer } from './searchContainer';
 
 export const addressContainer = Container.from('div', {
   classes: ['dropdown'],
-})
-.append(
+});
+
+addressContainer.append(
   addressForm,
   addressSearchContainer,
 );

@@ -1,4 +1,4 @@
-import { Container } from '../container';
+import { Container } from '../../utils/htmlElements/container';
 import { addressContainer } from './goto/address/container';
 import { coordForm } from './goto/coord/form';
 import { savedPositions } from './goto/savedPositions';
@@ -6,8 +6,9 @@ import { savedPositions } from './goto/savedPositions';
 
 export const gotoMenu = Container.from('div', {
   classes: ['dropdown'],
-})
-.append(
+});
+
+gotoMenu.append(
   Container.from('a', {
     classes: ['btn', 'btn-secondary', 'dropdown-toggle'],
     dataset: {

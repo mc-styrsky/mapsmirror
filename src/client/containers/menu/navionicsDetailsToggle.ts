@@ -1,9 +1,9 @@
 import { navionicsDetails } from '../../globals/navionicsDetails';
 import { position } from '../../globals/position';
 import { settings } from '../../globals/settings';
-import { iconButton } from './iconButton';
+import { IconButton } from '../../utils/htmlElements/iconButton';
 
-export const navionicsDetailsToggle = iconButton({
+export const navionicsDetailsToggle = new IconButton({
   active: () => settings.show.navionicsDetails,
   icon: 'question-circle',
   onclick: () => {

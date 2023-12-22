@@ -3,20 +3,17 @@ import { position } from '../../../globals/position';
 import { rad2deg } from '../../../utils/rad2deg';
 import { x2lon } from '../../../utils/x2lon';
 import { y2lat } from '../../../utils/y2lat';
-import { Container } from '../../container';
 import { SolarTimesDurations } from './solarTimes/durations';
 import { ValueRow } from './valueRow';
 
 class SolarTimes extends SolarTimesDurations {
-  private html: Container<HTMLDivElement> | null = null;
-
-  toHtml = () => {
+  refresh = () => {
     if (this.x !== position.x || this.y !== position.y) {
       this.x = position.x;
       this.y = position.y;
       this.lat = rad2deg(y2lat(this.y));
       this.lon = rad2deg(x2lon(this.x));
-      this.html = null;
+      this.clear();
     }
     const date = new Date();
     if (!this.html) {
@@ -55,9 +52,8 @@ class SolarTimes extends SolarTimesDurations {
       .fill('Night', halfDay * 2)
       .fillStats(durations, halfDay * 2)
       .lines;
-      this.html = Container.from('div').append(...zhilds);
+      this.append(...zhilds);
     }
-    return this.html;
   };
 }
 

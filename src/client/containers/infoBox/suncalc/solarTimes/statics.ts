@@ -2,9 +2,12 @@ import type { DurationKeys } from '../types/durationKeys';
 import type { SolarDuration } from '../types/solarDuration';
 import { format } from 'date-fns';
 import { halfDay } from '../../../../globals/halfDay';
-import { Container } from '../../../container';
+import { Container } from '../../../../utils/htmlElements/container';
 
-export class SolarTimesStatics {
+export class SolarTimesStatics extends Container {
+  constructor () {
+    super();
+  }
   lat = 0;
   lon = 0;
   x = -1;
@@ -25,7 +28,7 @@ export class SolarTimesStatics {
     }
     return ret;
   }, [])
-  .reduce((ret: (Container<any> | string)[], { end, start }, idx) => {
+  .reduce((ret: (Container<HTMLElement> | string)[], { end, start }, idx) => {
     if (idx !== 0) ret.push(Container.from('br'));
     ret.push(start.valueOf() === end.valueOf() ?
       format(start, 'dd.MM.yyyy') :

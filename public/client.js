@@ -1630,57 +1630,6 @@ var Size = class {
   }
 };
 
-// src/common/fromEntriesTyped.ts
-function fromEntriesTyped(entries) {
-  return Object.fromEntries(entries);
-}
-function entriesTyped(o) {
-  return Object.entries(o);
-}
-
-// src/client/containers/container.ts
-var Container = class _Container {
-  static from(tag, props) {
-    const {
-      classes,
-      dataset,
-      style,
-      ...data
-    } = props ?? {};
-    const html = tag instanceof HTMLElement ? tag : document.createElement(tag);
-    entriesTyped(data).forEach(([k, v]) => html[k] = v);
-    if (classes)
-      classes.forEach((c) => {
-        if (typeof c === "string")
-          html.classList.add(...c.split(" "));
-      });
-    if (dataset)
-      entriesTyped(dataset).forEach(([k, v]) => html.dataset[k] = v);
-    if (style)
-      entriesTyped(style).forEach(([k, v]) => html.style[k] = v);
-    return new _Container(html);
-  }
-  constructor(html) {
-    this.html = html instanceof _Container ? html.html : html;
-  }
-  html;
-  clear() {
-    this.html.innerHTML = "";
-  }
-  append(...items) {
-    items.forEach((item) => {
-      if (item instanceof _Container)
-        this.html.append(item.html);
-      else if (item)
-        this.html.append(item);
-    });
-    return this;
-  }
-  getBoundingClientRect() {
-    return this.html.getBoundingClientRect();
-  }
-};
-
 // src/client/globals/mouse.ts
 var mouse = {
   down: {
@@ -1743,6 +1692,57 @@ function extractProperties(obj, builder) {
 function deg2rad(val) {
   return Number(val) * Math.PI / 180;
 }
+
+// src/common/fromEntriesTyped.ts
+function fromEntriesTyped(entries) {
+  return Object.fromEntries(entries);
+}
+function entriesTyped(o) {
+  return Object.entries(o);
+}
+
+// src/client/utils/htmlElements/container.ts
+var Container = class _Container {
+  static from(tag, props) {
+    const {
+      classes,
+      dataset,
+      style,
+      ...data
+    } = props ?? {};
+    const html = tag instanceof HTMLElement ? tag : document.createElement(tag);
+    entriesTyped(data).forEach(([k, v]) => html[k] = v);
+    if (classes)
+      classes.forEach((c) => {
+        if (typeof c === "string")
+          html.classList.add(...c.split(" "));
+      });
+    if (dataset)
+      entriesTyped(dataset).forEach(([k, v]) => html.dataset[k] = v);
+    if (style)
+      entriesTyped(style).forEach(([k, v]) => html.style[k] = v);
+    return new _Container(html);
+  }
+  constructor(html = _Container.from("div")) {
+    this.html = html instanceof _Container ? html.html : html;
+  }
+  html;
+  clear() {
+    this.html.innerHTML = "";
+  }
+  append(...items) {
+    items.forEach((item) => {
+      if (item instanceof _Container)
+        this.html.append(item.html);
+      else if (item)
+        this.html.append(item);
+    });
+    return this;
+  }
+  getBoundingClientRect() {
+    return this.html.getBoundingClientRect();
+  }
+};
 
 // src/common/layers.ts
 var zoomMax = 20;
@@ -2346,127 +2346,15 @@ function lat2y(lat2, tiles = position.tiles) {
   return (0.5 - Math.asinh(Math.tan(lat2)) / Math.PI / 2) * tiles;
 }
 
-// src/client/globals/navionicsDetails/getNavionicsDetailsList.ts
-var abortControllers = /* @__PURE__ */ new Set();
-async function getNavionicsDetailsList({ parent, x, y, z: z2 }) {
-  while (parent.queue.shift())
-    /* @__PURE__ */ (() => void 0)();
-  abortControllers.forEach((ac) => ac.abort());
-  if (!settings.show.navionicsDetails)
-    return;
-  const listMap = /* @__PURE__ */ new Map();
-  await parent.queue.enqueue(async () => {
-    parent.isFetch = true;
-    parent.clear2();
-    const abortController = new AbortController();
-    abortControllers.add(abortController);
-    const { signal } = abortController;
-    const max2 = 4;
-    const perTile = 20;
-    const points = [{
-      dx: Math.round(x * tileSize) / tileSize,
-      dy: Math.round(y * tileSize) / tileSize,
-      radius: 0
-    }];
-    for (let iX = -max2; iX < max2; iX++) {
-      for (let iY = -max2; iY < max2; iY++) {
-        const dx = Math.ceil(x * perTile + iX) / perTile;
-        const dy = Math.ceil(y * perTile + iY) / perTile;
-        const radius = Math.sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y));
-        points.push({ dx, dy, radius });
-      }
-    }
-    let done = 0;
-    await points.sort((a, b) => a.radius - b.radius).reduce(async (prom, { dx, dy }) => {
-      const ret = fetch(`/navionics/quickinfo/${z2}/${dx}/${dy}`, { signal }).then(async (res) => {
-        if (!res.ok)
-          return;
-        const body = await res.json();
-        await Promise.all((body.items ?? []).map(async (item) => {
-          if (listMap.has(item.id))
-            return;
-          if ([
-            "depth_area",
-            "depth_contour"
-          ].includes(item.category_id))
-            return;
-          listMap.set(item.id, item);
-          const {
-            category_id,
-            details,
-            icon_id,
-            id,
-            name,
-            position: position2
-          } = extractProperties(item, {
-            category_id: String,
-            details: Boolean,
-            icon_id: String,
-            id: String,
-            name: String,
-            position: ({ lat: lat2, lon: lon2 }) => ({
-              lat: deg2rad(lat2),
-              lon: deg2rad(lon2),
-              x: lon2x(deg2rad(lon2)),
-              y: lat2y(deg2rad(lat2))
-            })
-          });
-          const pdx = position2.x - x;
-          const pdy = position2.y - y;
-          const distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(position2.lat);
-          parent.add({
-            category_id,
-            details,
-            distance,
-            icon_id,
-            id,
-            name,
-            position: position2
-          });
-          if (item.details) {
-            const { label: label2, properties } = extractProperties(
-              await fetch(`/navionics/objectinfo/${item.id}`, { signal }).then(async (res2) => res2.ok ? await res2.json() : {}).catch(() => {
-              }),
-              {
-                label: String,
-                properties: (val) => val?.map(({ label: label3 }) => label3)?.filter(Boolean)
-              }
-            );
-            parent.add({
-              category_id,
-              details,
-              distance,
-              icon_id,
-              id,
-              label: label2,
-              name,
-              position: position2,
-              properties
-            });
-          }
-        }));
-      }).catch((rej) => console.error(rej));
-      await ret;
-      done++;
-      parent.fetchProgress = `${done}/${points.length}`;
-      parent.clearHtmlList();
-      infoBox.update();
-      return prom;
-    }, Promise.resolve());
-    abortControllers.delete(abortController);
-    parent.isFetch = false;
-  });
-  parent.clearHtmlList();
-}
-
 // src/client/utils/rad2deg.ts
 function rad2deg(val) {
   return Number(val) * 180 / Math.PI;
 }
 
 // src/client/containers/infoBox/imagesToFetch.ts
-var ImagesToFetch = class {
+var ImagesToFetch = class extends Container {
   constructor() {
+    super();
   }
   xyz2string = ({ x, y, z: z2 }) => `${z2.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
   data = {};
@@ -2488,15 +2376,13 @@ var ImagesToFetch = class {
   state = () => {
     return Object.entries(this.data).map(([key, val]) => [key, val.size]);
   };
-  stateHtml = () => {
-    return this.state().reduce(
-      (arr, [source, size]) => {
-        arr.push(Container.from("br"));
-        arr.push(`${source}: ${size}/${this.total[source]}`);
-        return arr;
-      },
-      []
-    );
+  refresh = () => {
+    this.clear();
+    this.state().forEach(([source, size], idx) => {
+      if (idx !== 0)
+        this.append(Container.from("br"));
+      this.append(`${source}: ${size}/${this.total[source]}`);
+    });
   };
 };
 var imagesToFetch = new ImagesToFetch();
@@ -2713,7 +2599,7 @@ async function drawCachedImage({
 
 // src/client/containers/map/mapTile.ts
 var pad = (1 << zoomMax).toString().length + 1;
-var MapTile = class _MapTile {
+var MapTile = class _MapTile extends Container {
   static id({ x, y, z: z2 }) {
     return `z:${z2.toFixed(0).padStart(2, " ")}, x:${x.toFixed(0).padStart(pad, " ")}, y:${y.toFixed(0).padStart(pad, " ")}`;
   }
@@ -2727,11 +2613,7 @@ var MapTile = class _MapTile {
     const width = tileSize;
     const height = tileSize;
     const ttl2 = Math.max(Math.min(17, z2 + Math.max(0, position.ttl)) - z2, 0);
-    this.x = x;
-    this.y = y;
-    this.z = z2;
-    this.id = _MapTile.id({ x, y, z: z2 });
-    const canvas = Container.from("canvas", {
+    super(Container.from("canvas", {
       dataset: {
         x: x.toFixed(0),
         y: y.toFixed(0),
@@ -2744,11 +2626,14 @@ var MapTile = class _MapTile {
         top: "50%",
         width: `${width}px`
       }
-    });
-    canvas.html.width = width;
-    canvas.html.height = height;
-    this.canvas = canvas.html;
-    const context = canvas.html.getContext("2d");
+    }));
+    this.x = x;
+    this.y = y;
+    this.z = z2;
+    this.id = _MapTile.id({ x, y, z: z2 });
+    this.html.width = width;
+    this.html.height = height;
+    const context = this.html.getContext("2d");
     if (context) {
       Promise.all(settings.tiles.map(async (entry) => {
         const { alpha, source } = entry;
@@ -2759,27 +2644,42 @@ var MapTile = class _MapTile {
       ));
     }
   }
-  canvas;
   x;
   y;
   z;
   moveTo({ x, y, z: z2 }) {
     const scaleZ = z2 >= this.z ? 1 << z2 - this.z : 1 / (1 << this.z - z2);
     const size = tileSize * scaleZ;
-    this.canvas.style.height = `${size}px`;
-    this.canvas.style.width = `${size}px`;
-    this.canvas.style.transform = `translate(${Math.floor((this.x * scaleZ - x) * tileSize)}px, ${Math.floor((this.y * scaleZ - y) * tileSize)}px)`;
+    this.html.style.height = `${size}px`;
+    this.html.style.width = `${size}px`;
+    this.html.style.transform = `translate(${Math.floor((this.x * scaleZ - x) * tileSize)}px, ${Math.floor((this.y * scaleZ - y) * tileSize)}px)`;
   }
   id;
-  toHtml() {
-    return this.canvas;
-  }
 };
 
 // src/client/containers/menu/baselayerMenu.ts
-var BaselayerMenu = class _BaselayerMenu {
+var BaselayerMenu = class _BaselayerMenu extends Container {
   static baselayerLabel = (source) => `${layers[source].label} (${baselayers.indexOf(source)})`;
-  toHtml = () => this.html;
+  constructor() {
+    super(Container.from("div", {
+      classes: ["dropdown"]
+    }));
+    this.append(
+      this.baselayerMenuButton,
+      Container.from("ul", {
+        classes: ["dropdown-menu"]
+      }).append(
+        Container.from("li").append(
+          ...baselayers.map((source) => {
+            return Container.from("a", {
+              classes: ["dropdown-item"],
+              onclick: () => mapContainer.baselayer = source
+            }).append(_BaselayerMenu.baselayerLabel(source));
+          })
+        )
+      )
+    );
+  }
   set baselayerLabel(val) {
     this.baselayerMenuButton.html.innerText = val;
   }
@@ -2790,23 +2690,6 @@ var BaselayerMenu = class _BaselayerMenu {
     },
     role: "button"
   }).append(_BaselayerMenu.baselayerLabel(settings.baselayer));
-  html = Container.from("div", {
-    classes: ["dropdown"]
-  }).append(
-    this.baselayerMenuButton,
-    Container.from("ul", {
-      classes: ["dropdown-menu"]
-    }).append(
-      Container.from("li").append(
-        ...baselayers.map((source) => {
-          return Container.from("a", {
-            classes: ["dropdown-item"],
-            onclick: () => mapContainer.baselayer = source
-          }).append(_BaselayerMenu.baselayerLabel(source));
-        })
-      )
-    )
-  );
 };
 var baselayerMenu = new BaselayerMenu();
 
@@ -2879,7 +2762,7 @@ var MapContainer = class _MapContainer extends Container {
         this.mapTiles.set(t.id, t);
         return t;
       })();
-      this.html.append(tile.toHtml());
+      this.append(tile);
       tile.moveTo({ x, y, z: z2 });
     });
     (() => {
@@ -2899,6 +2782,26 @@ var MapContainer = class _MapContainer extends Container {
   }
 };
 var mapContainer = new MapContainer();
+
+// src/client/utils/htmlElements/spinner.ts
+var Spinner = class extends Container {
+  constructor() {
+    super(Container.from("div", {
+      classes: ["d-flex"]
+    }));
+    this.append(
+      Container.from("div", {
+        classes: [
+          "spinner-border",
+          "spinner-border-sm"
+        ],
+        style: {
+          margin: "auto"
+        }
+      })
+    );
+  }
+};
 
 // src/client/globals/marker.ts
 var Marker = class {
@@ -2924,55 +2827,59 @@ var Marker = class {
   }
 };
 
-// src/client/containers/menu/iconButton.ts
-function bootstrapIcon({ fontSize = "175%", icon: icon2 }) {
-  return Container.from("i", {
-    classes: [`bi-${icon2}`],
-    style: { fontSize }
-  });
-}
-function iconButton({
-  active = () => false,
-  fontSize,
-  icon: icon2,
-  onclick = () => void 0,
-  src,
-  style
-}) {
-  const ret = Container.from("a", {
-    classes: ["btn", active() ? "btn-success" : "btn-secondary"],
-    role: "button",
-    style: {
-      padding: "0.25rem",
-      ...style
-    }
-  }).append(
-    icon2 ? bootstrapIcon({ fontSize, icon: icon2 }) : Container.from("img", {
-      src,
+// src/client/utils/htmlElements/iconButton.ts
+var BootstrapIcon = class extends Container {
+  constructor({ fontSize = "175%", icon }) {
+    super(Container.from("i", {
+      classes: [`bi-${icon}`],
+      style: { fontSize }
+    }));
+  }
+};
+var IconButton = class extends Container {
+  constructor({
+    active = () => false,
+    fontSize,
+    icon,
+    onclick = () => void 0,
+    src,
+    style
+  }) {
+    super(Container.from("a", {
+      classes: ["btn", active() ? "btn-success" : "btn-secondary"],
+      role: "button",
       style: {
-        height: "1.75rem"
+        padding: "0.25rem",
+        ...style
       }
-    })
-  );
-  ret.html.onclick = () => {
-    onclick();
-    if (active()) {
-      ret.html.classList.add("btn-success");
-      ret.html.classList.remove("btn-secondary");
-    } else {
-      ret.html.classList.add("btn-secondary");
-      ret.html.classList.remove("btn-success");
-    }
-    mapContainer.clear();
-    mapContainer.redraw("icon clicked");
-  };
-  return ret;
-}
+    }));
+    this.append(
+      icon ? new BootstrapIcon({ fontSize, icon }) : Container.from("img", {
+        src,
+        style: {
+          height: "1.75rem"
+        }
+      })
+    );
+    this.html.onclick = () => {
+      onclick();
+      if (active()) {
+        this.html.classList.add("btn-success");
+        this.html.classList.remove("btn-secondary");
+      } else {
+        this.html.classList.add("btn-secondary");
+        this.html.classList.remove("btn-success");
+      }
+      mapContainer.clear();
+      mapContainer.redraw("icon clicked");
+    };
+  }
+};
 
 // src/client/globals/navionicsDetails/goto.ts
-function goto(item) {
-  if (item.position)
-    return Container.from("a", {
+var NavionicsGoto = class extends Container {
+  constructor(item) {
+    super(Container.from("a", {
       onclick: (event) => {
         const { lat: lat2, lon: lon2 } = item.position;
         position.xyz = {
@@ -2986,255 +2893,160 @@ function goto(item) {
         marginLeft: "auto",
         padding: "0.25rem"
       }
-    }).append(bootstrapIcon({ icon: "arrow-right-circle" }));
-  return void 0;
-}
+    }));
+    this.append(new BootstrapIcon({ icon: "arrow-right-circle" }));
+  }
+};
 
 // src/client/globals/navionicsDetails/icon.ts
-function icon(item) {
-  return Container.from("div", {
-    classes: ["d-flex"],
-    style: {
-      height: "2em",
-      width: "2em"
-    }
-  }).append(
-    Container.from("div", {
+var NavionicsIcon = class extends Container {
+  constructor(item) {
+    super(Container.from("div", {
+      classes: ["d-flex"],
       style: {
-        margin: "auto"
+        height: "2em",
+        width: "2em"
       }
-    }).append(
-      Container.from("img", {
-        src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
+    }));
+    this.append(
+      Container.from("div", {
         style: {
-          maxHeight: "1.5em",
-          maxWidth: "1.5em"
+          margin: "auto"
         }
-      })
-    )
-  );
-}
+      }).append(
+        Container.from("img", {
+          src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
+          style: {
+            maxHeight: "1.5em",
+            maxWidth: "1.5em"
+          }
+        })
+      )
+    );
+  }
+};
 
 // src/client/globals/navionicsDetails/itemDetails.ts
-function itemDetails(item, itemId, accordionId) {
-  if (item.properties)
-    return Container.from("div", {
+var NavionicsItemDetails = class extends Container {
+  constructor(item, itemId, accordionId) {
+    super(Container.from("div", {
       classes: ["accordion-collapse", "collapse", "px-2"],
       dataset: {
         bsParent: `#${accordionId}`
       },
       id: itemId
-    }).append(
-      ...item.properties.map((prop) => Container.from("p").append(prop))
-    );
-  return void 0;
-}
+    }));
+    if (item.properties)
+      item.properties.forEach((prop) => {
+        this.append(Container.from("p").append(prop));
+      });
+  }
+};
 
 // src/client/globals/navionicsDetails/label.ts
-function label(item) {
-  return Container.from("div", {
-    classes: ["d-flex"]
-  }).append(
-    Container.from("div", {
-      style: {
-        margin: "auto"
-      }
-    }).append(item.name).append(
-      Container.from("div", {
-        style: {
-          fontSize: "70%",
-          marginLeft: "0.5rem"
-        }
-      }).append(item.distance.toFixed(3), "nm")
-    )
-  );
-}
-
-// src/client/globals/navionicsDetails/spinner.ts
-function spinner(item) {
-  if (item.details && !item.properties)
-    return Container.from("div", {
+var NavionicsItemLabel = class extends Container {
+  constructor(item) {
+    super(Container.from("div", {
       classes: ["d-flex"]
-    }).append(
+    }));
+    this.append(
       Container.from("div", {
-        classes: [
-          "spinner-border",
-          "spinner-border-sm"
-        ],
         style: {
           margin: "auto"
         }
-      })
+      }).append(item.name).append(
+        Container.from("div", {
+          style: {
+            fontSize: "70%",
+            marginLeft: "0.5rem"
+          }
+        }).append(item.distance.toFixed(3), "nm")
+      )
     );
-  return void 0;
-}
+  }
+};
 
 // src/client/globals/navionicsDetails/accordionItem.ts
-function accordionItem({ accordionId, idx, item, parent }) {
-  const itemId = `navionicsDetailsItem${idx}`;
-  return Container.from("div", {
-    classes: [
-      "accordion-item",
-      "mm-menu-text"
-    ]
-  }).append(
-    Container.from("div", {
+var AccordionItem = class extends Container {
+  constructor({ accordionId, idx, item, parent }) {
+    const itemId = `navionicsDetailsItem${idx}`;
+    super(Container.from("div", {
       classes: [
-        "accordion-header",
+        "accordion-item",
         "mm-menu-text"
-      ],
-      onmousemove: (event) => {
-        event.stopPropagation();
-        if (parent.marker?.id !== item.id) {
-          parent.marker = new Marker({
-            ...item.position,
-            id: item.id,
-            type: "navionics"
-          });
-          mapContainer.redraw("set navionics marker");
-        }
-      }
-    }).append(
+      ]
+    }));
+    this.append(
       Container.from("div", {
         classes: [
-          ...item.properties ? ["accordion-button", "collapsed"] : ["d-flex"],
-          "px-2",
-          "py-0",
+          "accordion-header",
           "mm-menu-text"
         ],
-        dataset: item.properties ? {
-          bsTarget: `#${itemId}`,
-          bsToggle: "collapse"
-        } : {}
+        onmousemove: (event) => {
+          event.stopPropagation();
+          if (parent.marker?.id !== item.id) {
+            parent.marker = new Marker({
+              ...item.position,
+              id: item.id,
+              type: "navionics"
+            });
+            mapContainer.redraw("set navionics marker");
+          }
+        }
       }).append(
         Container.from("div", {
-          classes: ["d-flex"],
-          style: {
-            width: "100%"
-          }
+          classes: [
+            ...item.properties ? ["accordion-button", "collapsed"] : ["d-flex"],
+            "px-2",
+            "py-0",
+            "mm-menu-text"
+          ],
+          dataset: item.properties ? {
+            bsTarget: `#${itemId}`,
+            bsToggle: "collapse"
+          } : {}
         }).append(
-          icon(item),
-          label(item),
-          goto(item),
-          spinner(item)
+          Container.from("div", {
+            classes: ["d-flex"],
+            style: {
+              width: "100%"
+            }
+          }).append(
+            new NavionicsIcon(item),
+            new NavionicsItemLabel(item),
+            item.position ? new NavionicsGoto(item) : null,
+            item.details && !item.properties ? new Spinner() : null
+          )
         )
       )
-    ),
-    itemDetails(item, itemId, accordionId)
-  );
-}
-
-// src/client/globals/navionicsDetails/toAccordion.ts
-function toAccordion({ items, offset, parent }) {
-  const accordionId = `navionicsDetailsList${offset ?? ""}`;
-  const ret = Container.from("div", {
-    classes: ["accordion"],
-    id: accordionId
-  });
-  if (items.length <= 10)
-    ret.append(
-      ...items.map((item, idx) => accordionItem({
-        accordionId,
-        idx: idx + (offset ?? 0),
-        item,
-        parent
-      }))
     );
-  else
-    for (let i = 0; i < items.length; i += 10) {
-      const itemId = `navionicsDetailsItemList${i}`;
-      const itemsSlice = items.slice(i, i + 10);
-      ret.append(
-        Container.from("div", {
-          classes: [
-            "accordion-item",
-            "mm-menu-text"
-          ]
-        }).append(
-          Container.from("div", {
-            classes: [
-              "accordion-header",
-              "mm-menu-text"
-            ]
-          }).append(
-            Container.from("div", {
-              classes: [
-                "accordion-button",
-                "collapsed",
-                "px-2",
-                "py-0",
-                "mm-menu-text"
-              ],
-              dataset: {
-                bsTarget: `#${itemId}`,
-                bsToggle: "collapse"
-              }
-            }).append(
-              Container.from("div", {
-                classes: ["d-flex"],
-                style: {
-                  width: "100%"
-                }
-              }).append(
-                itemsSlice.length === 1 ? `${i + 1}` : `${i + 1}-${i + itemsSlice.length}`
-              )
-            )
-          )
-        ).append(
-          Container.from("div", {
-            classes: ["accordion-collapse", "collapse", "px-2", i === 0 ? "show" : null],
-            dataset: {
-              bsParent: `#${accordionId}`
-            },
-            id: itemId
-          }).append(
-            toAccordion({ items: itemsSlice, offset: i, parent })
-          )
-        )
-      );
-    }
-  return ret;
-}
+    if (item.properties)
+      this.append(new NavionicsItemDetails(item, itemId, accordionId));
+  }
+};
 
-// src/client/globals/navionicsDetails.ts
-var NavionicsDetails = class {
-  constructor() {
-    this.queue.enqueue(() => new Promise((r) => setInterval(r, 1)));
-  }
-  isFetch = false;
-  fetchProgress = "";
-  _list = /* @__PURE__ */ new Map();
-  get list() {
-    return this._list;
-  }
-  marker;
-  htmlList = null;
-  queue = new StyQueue(1);
-  add = (item) => {
-    this._list.set(item.id, item);
-    this.clearHtmlList();
-  };
-  clear2 = () => {
-    this._list.clear();
-    this.clearHtmlList();
-  };
-  clearHtmlList = () => {
-    this.htmlList = null;
-    infoBox.update();
-  };
-  delete = (item) => {
-    this._list.delete(item.id);
-    this.clearHtmlList();
-  };
-  fetch = ({ x, y, z: z2 }) => getNavionicsDetailsList({ parent: this, x, y, z: z2 });
-  toHtml = () => {
-    this.htmlList ??= (() => {
-      const ret = toAccordion({
-        items: [...this.list.values()].sort((a, b) => a.distance - b.distance),
-        parent: this
+// src/client/globals/navionicsDetails/accordion.ts
+var Accordion = class _Accordion extends Container {
+  constructor({ items, offset, parent }) {
+    const accordionId = `navionicsDetailsList${offset ?? ""}`;
+    super(Container.from("div", {
+      classes: ["accordion"],
+      id: accordionId
+    }));
+    if (items.length <= 10)
+      items.forEach((item, idx) => {
+        this.append(new AccordionItem({
+          accordionId,
+          idx: idx + (offset ?? 0),
+          item,
+          parent
+        }));
       });
-      if (this.isFetch)
-        ret.append(
+    else {
+      for (let i = 0; i < items.length; i += 10) {
+        const itemId = `navionicsDetailsItemList${i}`;
+        const itemsSlice = items.slice(i, i + 10);
+        this.append(
           Container.from("div", {
             classes: [
               "accordion-item",
@@ -3249,28 +3061,218 @@ var NavionicsDetails = class {
             }).append(
               Container.from("div", {
                 classes: [
-                  "d-flex",
+                  "accordion-button",
+                  "collapsed",
+                  "px-2",
+                  "py-0",
                   "mm-menu-text"
-                ]
+                ],
+                dataset: {
+                  bsTarget: `#${itemId}`,
+                  bsToggle: "collapse"
+                }
               }).append(
-                this.fetchProgress,
                 Container.from("div", {
-                  classes: [
-                    "spinner-border",
-                    "spinner-border-sm"
-                  ],
+                  classes: ["d-flex"],
                   style: {
-                    margin: "auto"
+                    width: "100%"
                   }
-                })
+                }).append(
+                  itemsSlice.length === 1 ? `${i + 1}` : `${i + 1}-${i + itemsSlice.length}`
+                )
               )
             )
+          ).append(
+            Container.from("div", {
+              classes: ["accordion-collapse", "collapse", "px-2", i === 0 ? "show" : null],
+              dataset: {
+                bsParent: `#${accordionId}`
+              },
+              id: itemId
+            }).append(new _Accordion({ items: itemsSlice, offset: i, parent }))
           )
         );
-      return ret;
-    })();
-    return this.htmlList;
+      }
+    }
+  }
+};
+
+// src/client/globals/navionicsDetails.ts
+var NavionicsDetails = class extends Container {
+  constructor() {
+    super();
+    this.queue.enqueue(() => new Promise((r) => setInterval(r, 1)));
+  }
+  isFetch = false;
+  fetchProgress = "";
+  list = /* @__PURE__ */ new Map();
+  marker;
+  queue = new StyQueue(1);
+  abortControllers = /* @__PURE__ */ new Set();
+  add = (item) => {
+    this.list.set(item.id, item);
+    this.refresh();
   };
+  delete = (item) => {
+    this.list.delete(item.id);
+    this.refresh();
+  };
+  refresh = () => {
+    this.clear();
+    this.append(new Accordion({
+      items: [...this.list.values()].sort((a, b) => a.distance - b.distance),
+      parent: this
+    }));
+    if (this.isFetch)
+      this.append(
+        Container.from("div", {
+          classes: [
+            "accordion-item",
+            "mm-menu-text"
+          ]
+        }).append(
+          Container.from("div", {
+            classes: [
+              "accordion-header",
+              "mm-menu-text"
+            ]
+          }).append(
+            Container.from("div", {
+              classes: [
+                "d-flex",
+                "mm-menu-text"
+              ]
+            }).append(
+              this.fetchProgress,
+              Container.from("div", {
+                classes: [
+                  "spinner-border",
+                  "spinner-border-sm"
+                ],
+                style: {
+                  margin: "auto"
+                }
+              })
+            )
+          )
+        )
+      );
+    infoBox.update();
+  };
+  async fetch({ x, y, z: z2 }) {
+    while (this.queue.shift())
+      /* @__PURE__ */ (() => void 0)();
+    this.abortControllers.forEach((ac) => {
+      ac.abort();
+      this.abortControllers.delete(ac);
+    });
+    if (!settings.show.navionicsDetails)
+      return;
+    const listMap = /* @__PURE__ */ new Map();
+    await this.queue.enqueue(async () => {
+      this.isFetch = true;
+      this.list.clear();
+      this.refresh();
+      const abortController = new AbortController();
+      this.abortControllers.add(abortController);
+      const { signal } = abortController;
+      const max2 = 4;
+      const perTile = 20;
+      const points = [{
+        dx: Math.round(x * tileSize) / tileSize,
+        dy: Math.round(y * tileSize) / tileSize,
+        radius: 0
+      }];
+      for (let iX = -max2; iX < max2; iX++) {
+        for (let iY = -max2; iY < max2; iY++) {
+          const dx = Math.ceil(x * perTile + iX) / perTile;
+          const dy = Math.ceil(y * perTile + iY) / perTile;
+          const radius = Math.sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y));
+          points.push({ dx, dy, radius });
+        }
+      }
+      let done = 0;
+      await points.sort((a, b) => a.radius - b.radius).reduce(async (prom, { dx, dy }) => {
+        const ret = fetch(`/navionics/quickinfo/${z2}/${dx}/${dy}`, { signal }).then(async (res) => {
+          if (!res.ok)
+            return;
+          const body = await res.json();
+          await Promise.all((body.items ?? []).map(async (item) => {
+            if (listMap.has(item.id))
+              return;
+            if ([
+              "depth_area",
+              "depth_contour"
+            ].includes(item.category_id))
+              return;
+            listMap.set(item.id, item);
+            const {
+              category_id,
+              details,
+              icon_id,
+              id,
+              name,
+              position: position2
+            } = extractProperties(item, {
+              category_id: String,
+              details: Boolean,
+              icon_id: String,
+              id: String,
+              name: String,
+              position: ({ lat: lat2, lon: lon2 }) => ({
+                lat: deg2rad(lat2),
+                lon: deg2rad(lon2),
+                x: lon2x(deg2rad(lon2)),
+                y: lat2y(deg2rad(lat2))
+              })
+            });
+            const pdx = position2.x - x;
+            const pdy = position2.y - y;
+            const distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(position2.lat);
+            this.add({
+              category_id,
+              details,
+              distance,
+              icon_id,
+              id,
+              name,
+              position: position2
+            });
+            if (item.details) {
+              const { label, properties } = extractProperties(
+                await fetch(`/navionics/objectinfo/${item.id}`, { signal }).then(async (res2) => res2.ok ? await res2.json() : {}).catch(() => {
+                }),
+                {
+                  label: String,
+                  properties: (val) => val?.map(({ label: label2 }) => label2)?.filter(Boolean)
+                }
+              );
+              this.add({
+                category_id,
+                details,
+                distance,
+                icon_id,
+                id,
+                label,
+                name,
+                position: position2,
+                properties
+              });
+            }
+          }));
+        }).catch((rej) => console.error(rej));
+        await ret;
+        done++;
+        this.fetchProgress = `${done}/${points.length}`;
+        this.refresh();
+        infoBox.update();
+        return prom;
+      }, Promise.resolve());
+      this.abortControllers.delete(abortController);
+      this.isFetch = false;
+    });
+    this.refresh();
+  }
 };
 var navionicsDetails = new NavionicsDetails();
 
@@ -4873,7 +4875,10 @@ function intervalValueOf({ end: endDate, solarNoon: noonDate, start: startDate }
 }
 
 // src/client/containers/infoBox/suncalc/solarTimes/statics.ts
-var SolarTimesStatics = class {
+var SolarTimesStatics = class extends Container {
+  constructor() {
+    super();
+  }
   lat = 0;
   lon = 0;
   x = -1;
@@ -4944,19 +4949,19 @@ function formatDateValue(val) {
 }
 
 // src/client/containers/infoBox/suncalc/solarTimesStatsCanvas.ts
-var SolarTimesStatsCanvas = class {
+var SolarTimesStatsCanvas = class extends Container {
   constructor({ height, keys, map = (val) => val, params = {}, stats, width }) {
     const values = stats.map((durations) => map(SolarTimesStatics.increment({ durations, keys })));
     const min2 = Math.min(...values);
     const max2 = Math.max(...values);
     const scaleY = (height - 1) / (max2 - min2);
     const scaleX = width / stats.length;
-    const canvas = Container.from("canvas", {
+    super(Container.from("canvas", {
       height,
       width,
       ...params
-    });
-    const context = canvas.html.getContext("2d");
+    }));
+    const context = this.html.getContext("2d");
     if (context) {
       context.beginPath();
       context.strokeStyle = "#000000";
@@ -4970,11 +4975,9 @@ var SolarTimesStatsCanvas = class {
       });
       context.stroke();
     }
-    this.canvas = canvas;
     this.max = max2;
     this.min = min2;
   }
-  canvas;
   min;
   max;
 };
@@ -4984,22 +4987,22 @@ var ValueRow = class {
   lines = [];
   total = 0;
   totalKeys = [];
-  fill = (label2, sum) => this.add({
+  fill = (label, sum) => this.add({
     increment: sum - this.total,
-    label: label2
+    label
   });
   fillStats = (durations, sum) => this.addStats({
     durations,
     keys: this.totalKeys,
     map: (val) => sum - val
   });
-  add({ durations, increment, keys, label: label2 }) {
+  add({ durations, increment, keys, label }) {
     increment ??= SolarTimesStatics.increment({
       durations: durations.today,
       keys
     }), this.total += increment;
     this.addRow({
-      col1: [label2],
+      col1: [label],
       col2: [increment ? `+${formatDateValue(increment)}` : ""],
       col3: [formatDateValue(this.total)]
     });
@@ -5059,7 +5062,7 @@ var ValueRow = class {
             paddingRight: "3px"
           }
         }).append(...axis),
-        stats.canvas
+        stats
       ]
     });
     this.totalKeys.push(...keys);
@@ -5069,14 +5072,13 @@ var ValueRow = class {
 
 // src/client/containers/infoBox/suncalc/solarTimes.ts
 var SolarTimes = class extends SolarTimesDurations {
-  html = null;
-  toHtml = () => {
+  refresh = () => {
     if (this.x !== position.x || this.y !== position.y) {
       this.x = position.x;
       this.y = position.y;
       this.lat = rad2deg(y2lat(this.y));
       this.lon = rad2deg(x2lon(this.x));
-      this.html = null;
+      this.clear();
     }
     const date = /* @__PURE__ */ new Date();
     if (!this.html) {
@@ -5103,9 +5105,8 @@ var SolarTimes = class extends SolarTimesDurations {
         keys: ["nauticalDawn", "nauticalDusk"],
         label: "Naut. Twilight"
       }).fill("Night", halfDay * 2).fillStats(durations, halfDay * 2).lines;
-      this.html = Container.from("div").append(...zhilds);
+      this.append(...zhilds);
     }
-    return this.html;
   };
 };
 var solarTimes = new SolarTimes();
@@ -5129,10 +5130,13 @@ var InfoBox = class extends Container {
     this.clear();
     this.append(coordinates());
     if (settings.show.navionicsDetails)
-      this.append(navionicsDetails.toHtml());
-    if (settings.show.suncalc)
-      this.append(solarTimes.toHtml());
-    this.append(...imagesToFetch.stateHtml());
+      this.append(navionicsDetails.html);
+    if (settings.show.suncalc) {
+      solarTimes.refresh();
+      this.append(solarTimes);
+    }
+    imagesToFetch.refresh();
+    this.append(imagesToFetch);
   }
 };
 var coordinates = () => {
@@ -5182,25 +5186,30 @@ var coordsToggle = Container.from("a", {
       dm: "dms",
       dms: "d"
     }[settings.units.coords] ?? "dm";
-    coordsToggle.html.innerText = {
+    coordsToggle.clear();
+    coordsToggle.append({
       d: "Dec",
       dm: "D\xB0M'",
       dms: "DMS"
-    }[settings.units.coords];
+    }[settings.units.coords]);
     mapContainer.redraw("coords changed");
   },
   role: "button"
-}).append({
+});
+coordsToggle.append({
   d: "Dec",
   dm: "D\xB0M'",
   dms: "DMS"
 }[settings.units.coords]);
 
 // src/client/containers/menu/crosshairToggle.ts
-var crosshairToggle = iconButton({
+var crosshairToggle = new IconButton({
   active: () => settings.show.crosshair,
   icon: "crosshair",
-  onclick: () => settings.show.crosshair = !settings.show.crosshair
+  onclick: () => {
+    settings.show.crosshair = !settings.show.crosshair;
+    overlayContainer.redraw();
+  }
 });
 
 // src/client/containers/menu/goto/address/searchContainer.ts
@@ -5292,12 +5301,14 @@ var addressForm = Container.from("form", {
   style: {
     minWidth: "20em"
   }
-}).append(addressInput);
+});
+addressForm.append(addressInput);
 
 // src/client/containers/menu/goto/address/container.ts
 var addressContainer = Container.from("div", {
   classes: ["dropdown"]
-}).append(
+});
+addressContainer.append(
   addressForm,
   addressSearchContainer
 );
@@ -5330,7 +5341,7 @@ var coordInfo = fromEntriesTyped(
 var import_parse_dms = __toESM(require_parse_dms(), 1);
 
 // src/client/containers/menu/goto/coord/submit.ts
-var coordSubmit = iconButton({
+var coordSubmit = new IconButton({
   icon: "arrow-right-circle",
   onclick: () => coordForm.html.submit()
 });
@@ -5393,7 +5404,8 @@ var coordForm = Container.from("form", {
   style: {
     minWidth: "20em"
   }
-}).append(
+});
+coordForm.append(
   Container.from("div", {
     classes: ["input-group"]
   }).append(
@@ -5405,6 +5417,9 @@ var coordForm = Container.from("form", {
   coordInfo.dm,
   coordInfo.dms
 );
+
+// src/client/containers/menu/goto/savedPositions.ts
+var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
 
 // src/client/utils/savedPositionsFromLocalStoreage.ts
 function savedPositionsFromLocalStoreage() {
@@ -5424,69 +5439,79 @@ function savedPositionsFromLocalStoreage() {
   return [];
 }
 
-// src/client/containers/menu/goto/savedPositions/editSavedPosition.ts
-var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
-function editSavedPosition({ func, x, y, z: z2 }) {
-  const list = new Set(savedPositionsFromLocalStoreage().map((e) => (0, import_json_stable_stringify2.default)(e)));
-  list[func]((0, import_json_stable_stringify2.default)({
-    x: Math.round(x * tileSize),
-    y: Math.round(y * tileSize),
-    z: z2
-  }));
-  new LocalStorageItem("savedPositions").set([...list].map((e) => JSON.parse(e)));
-  updateSavedPositionsList();
-}
-
-// src/client/containers/menu/goto/savedPositions/updateSavedPositionsList.ts
-function updateSavedPositionsList() {
-  savedPositions.clear();
-  const list = savedPositionsFromLocalStoreage();
-  list.forEach((item) => {
-    const { x, y, z: z2 } = extractProperties(item, {
-      x: (val) => Number(val) / tileSize,
-      y: (val) => Number(val) / tileSize,
-      z: Number
-    });
-    console.log({ item, x, y, z: z2 });
-    savedPositions.append(
-      Container.from("div", {
-        classes: ["btn-group", "my-2", "d-flex"],
-        role: "group"
-      }).append(
-        Container.from("a", {
-          classes: ["btn", "btn-secondary"],
-          onclick: () => {
-            position.xyz = { x, y, z: z2 };
-            mapContainer.redraw("load position");
-          },
-          role: "button"
-        }).append([
-          rad2string({ axis: "NS", pad: 2, phi: y2lat(y, 1 << z2) }),
-          rad2string({ axis: "EW", pad: 3, phi: x2lon(x, 1 << z2) }),
-          `(${z2})`
-        ].join(" ")),
-        iconButton({
-          icon: "x",
-          onclick: () => {
-            editSavedPosition({ func: "delete", x, y, z: z2 });
-          },
-          style: {
-            flexGrow: "0"
-          }
-        })
-      )
-    );
-  });
-}
-
 // src/client/containers/menu/goto/savedPositions.ts
-var savedPositions = Container.from("div");
-updateSavedPositionsList();
+var SavedPositions = class extends Container {
+  constructor() {
+    super();
+    this.refresh();
+  }
+  add({ x, y, z: z2 }) {
+    this.edit({ func: "add", x, y, z: z2 });
+  }
+  delete({ x, y, z: z2 }) {
+    this.edit({ func: "delete", x, y, z: z2 });
+  }
+  refresh() {
+    this.clear();
+    const list = savedPositionsFromLocalStoreage();
+    list.forEach((item) => {
+      const { x, y, z: z2 } = extractProperties(item, {
+        x: (val) => Number(val) / tileSize,
+        y: (val) => Number(val) / tileSize,
+        z: Number
+      });
+      console.log({ item, x, y, z: z2 });
+      this.append(
+        Container.from("div", {
+          classes: ["btn-group", "my-2", "d-flex"],
+          role: "group"
+        }).append(
+          Container.from("a", {
+            classes: ["btn", "btn-secondary"],
+            onclick: () => {
+              position.xyz = { x, y, z: z2 };
+              mapContainer.redraw("load position");
+            },
+            role: "button"
+          }).append([
+            rad2string({ axis: "NS", pad: 2, phi: y2lat(y, 1 << z2) }),
+            rad2string({ axis: "EW", pad: 3, phi: x2lon(x, 1 << z2) }),
+            `(${z2})`
+          ].join(" ")),
+          new IconButton({
+            icon: "x",
+            onclick: () => {
+              this.delete({ x, y, z: z2 });
+            },
+            style: {
+              flexGrow: "0"
+            }
+          })
+        )
+      );
+    });
+  }
+  edit({ func, x, y, z: z2 }) {
+    const list = new Set(savedPositionsFromLocalStoreage().map((e) => (0, import_json_stable_stringify2.default)(e)));
+    list[func]((0, import_json_stable_stringify2.default)({
+      x: Math.round(x * tileSize),
+      y: Math.round(y * tileSize),
+      z: z2
+    }));
+    new LocalStorageItem("savedPositions").set([...list].map((e) => JSON.parse(e)));
+    updateSavedPositionsList();
+  }
+};
+var savedPositions = new SavedPositions();
+function updateSavedPositionsList() {
+  throw new Error("Function not implemented.");
+}
 
 // src/client/containers/menu/gotoMenu.ts
 var gotoMenu = Container.from("div", {
   classes: ["dropdown"]
-}).append(
+});
+gotoMenu.append(
   Container.from("a", {
     classes: ["btn", "btn-secondary", "dropdown-toggle"],
     dataset: {
@@ -5504,7 +5529,7 @@ var gotoMenu = Container.from("div", {
 );
 
 // src/client/containers/menu/navionicsDetailsToggle.ts
-var navionicsDetailsToggle = iconButton({
+var navionicsDetailsToggle = new IconButton({
   active: () => settings.show.navionicsDetails,
   icon: "question-circle",
   onclick: () => {
@@ -5515,57 +5540,71 @@ var navionicsDetailsToggle = iconButton({
 });
 
 // src/client/containers/menu/overlayToggle.ts
-var overlayToggle = (source) => iconButton({
-  active: () => Boolean(settings.show[source]),
-  onclick: () => settings.show[source] = !settings.show[source],
-  src: `icons/${source}.svg`
-});
+var OverlayToggle = class extends IconButton {
+  constructor(source) {
+    super({
+      active: () => Boolean(settings.show[source]),
+      onclick: () => {
+        settings.show[source] = !settings.show[source];
+        mapContainer.redraw(`overlay ${source} toggle`);
+      },
+      src: `icons/${source}.svg`
+    });
+  }
+};
 
 // src/client/containers/menu/navionicsToggle.ts
-var navionicsToggle = overlayToggle("navionics");
+var navionicsToggle = new OverlayToggle("navionics");
 
 // src/client/containers/menu/savePosition.ts
 var savePosition = Container.from("a", {
   classes: ["btn", "btn-secondary"],
   onclick: () => {
-    editSavedPosition({ func: "add", ...position.xyz });
+    savedPositions.add(position.xyz);
   },
   role: "button"
-}).append("Save");
+});
+savePosition.append("Save");
 
 // src/client/containers/menu/suncalcToggle.ts
-var suncalcToggle = iconButton({
+var suncalcToggle = new IconButton({
   active: () => settings.show.suncalc,
   icon: "sunrise",
   onclick: () => settings.show.suncalc = !settings.show.suncalc
 });
 
 // src/client/containers/menu/vfdensityToggle.ts
-var vfdensityToggle = overlayToggle("vfdensity");
+var vfdensityToggle = new OverlayToggle("vfdensity");
 
 // src/client/containers/menuContainer.ts
-var menuContainer = Container.from("div", {
-  classes: ["d-flex", "gap-2", "m-2"],
-  dataset: {
-    bsTheme: "dark"
+var MenuContainer = class extends Container {
+  constructor() {
+    super(Container.from("div", {
+      classes: ["d-flex", "gap-2", "m-2"],
+      dataset: {
+        bsTheme: "dark"
+      }
+    }));
+    this.append(
+      baselayerMenu,
+      Container.from("div", {
+        classes: ["btn-group"],
+        role: "group"
+      }).append(
+        new OverlayToggle("openseamap"),
+        vfdensityToggle,
+        navionicsToggle,
+        navionicsDetailsToggle,
+        crosshairToggle,
+        suncalcToggle,
+        coordsToggle
+      ),
+      gotoMenu,
+      savePosition
+    );
   }
-}).append(
-  baselayerMenu.toHtml(),
-  Container.from("div", {
-    classes: ["btn-group"],
-    role: "group"
-  }).append(
-    overlayToggle("openseamap"),
-    vfdensityToggle,
-    navionicsToggle,
-    navionicsDetailsToggle,
-    crosshairToggle,
-    suncalcToggle,
-    coordsToggle
-  ),
-  gotoMenu,
-  savePosition
-);
+};
+var menuContainer = new MenuContainer();
 
 // src/client/getUserLocation.ts
 var geolocationBlocked = false;

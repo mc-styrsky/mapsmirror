@@ -1,12 +1,13 @@
 import { position } from '../../globals/position';
-import { Container } from '../container';
-import { editSavedPosition } from './goto/savedPositions/editSavedPosition';
+import { Container } from '../../utils/htmlElements/container';
+import { savedPositions } from './goto/savedPositions';
 
 export const savePosition = Container.from('a', {
   classes: ['btn', 'btn-secondary'],
   onclick: () => {
-    editSavedPosition({ func: 'add', ...position.xyz });
+    savedPositions.add(position.xyz);
   },
   role: 'button',
-})
-.append('Save');
+});
+
+savePosition.append('Save');

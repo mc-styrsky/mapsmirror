@@ -1,29 +1,32 @@
 import type { NavionicsDetail } from '../navionicsDetails';
-import { Container } from '../../containers/container';
+import { Container } from '../../utils/htmlElements/container';
 
 
-export function icon (item: NavionicsDetail) {
-  return Container.from('div', {
-    classes: ['d-flex'],
-    style: {
-      height: '2em',
-      width: '2em',
-    },
-  })
-  .append(
-    Container.from('div', {
+export class NavionicsIcon extends Container {
+  constructor (item: NavionicsDetail) {
+    super(Container.from('div', {
+      classes: ['d-flex'],
       style: {
-        margin: 'auto',
+        height: '2em',
+        width: '2em',
       },
-    })
-    .append(
-      Container.from('img', {
-        src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
+    }));
+
+    this.append(
+      Container.from('div', {
         style: {
-          maxHeight: '1.5em',
-          maxWidth: '1.5em',
+          margin: 'auto',
         },
-      }),
-    ),
-  );
+      })
+      .append(
+        Container.from('img', {
+          src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
+          style: {
+            maxHeight: '1.5em',
+            maxWidth: '1.5em',
+          },
+        }),
+      ),
+    );
+  }
 }

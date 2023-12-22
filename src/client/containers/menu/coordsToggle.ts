@@ -1,5 +1,5 @@
 import { settings } from '../../globals/settings';
-import { Container } from '../container';
+import { Container } from '../../utils/htmlElements/container';
 import { mapContainer } from '../mapContainer';
 
 export const coordsToggle = Container.from('a', {
@@ -10,16 +10,19 @@ export const coordsToggle = Container.from('a', {
       dm: <const> 'dms',
       dms: <const> 'd',
     }[settings.units.coords] ?? 'dm';
-    coordsToggle.html.innerText = {
+
+    coordsToggle.clear();
+    coordsToggle.append({
       d: 'Dec',
       dm: 'D°M\'',
       dms: 'DMS',
-    }[settings.units.coords];
+    }[settings.units.coords]);
     mapContainer.redraw('coords changed');
   },
   role: 'button',
-})
-.append({
+});
+
+coordsToggle.append({
   d: 'Dec',
   dm: 'D°M\'',
   dms: 'DMS',

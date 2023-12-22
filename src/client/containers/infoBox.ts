@@ -4,15 +4,15 @@ import { position } from '../globals/position';
 import { settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
 import { boundingRect } from '../index';
+import { Container } from '../utils/htmlElements/container';
 import { px2nm } from '../utils/px2nm';
 import { rad2string } from '../utils/rad2string';
 import { x2lon } from '../utils/x2lon';
 import { y2lat } from '../utils/y2lat';
-import { Container } from './container';
 import { imagesToFetch } from './infoBox/imagesToFetch';
 import { solarTimes } from './infoBox/suncalc/solarTimes';
 
-class InfoBox extends Container<HTMLDivElement> {
+class InfoBox extends Container {
   constructor () {
     super(Container.from('div', {
       classes: ['p-2', 'mt-2'],
@@ -29,9 +29,13 @@ class InfoBox extends Container<HTMLDivElement> {
   update () {
     this.clear();
     this.append(coordinates());
-    if (settings.show.navionicsDetails) this.append(navionicsDetails.toHtml());
-    if (settings.show.suncalc) this.append(solarTimes.toHtml());
-    this.append(...imagesToFetch.stateHtml());
+    if (settings.show.navionicsDetails) this.append(navionicsDetails.html);
+    if (settings.show.suncalc) {
+      solarTimes.refresh();
+      this.append(solarTimes);
+    }
+    imagesToFetch.refresh();
+    this.append(imagesToFetch);
   }
 }
 

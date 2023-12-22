@@ -1,11 +1,11 @@
 import { Size } from './boundingRect';
-import { Container } from './containers/container';
 import { infoBox } from './containers/infoBox';
 import { mapContainer } from './containers/mapContainer';
 import { menuContainer } from './containers/menuContainer';
 import { mouseContainer } from './containers/mouseContainer';
 import { overlayContainer } from './containers/overlayContainer';
 import { inputListener } from './events/inputListener';
+import { Container } from './utils/htmlElements/container';
 
 const {
   container: containerId = '',

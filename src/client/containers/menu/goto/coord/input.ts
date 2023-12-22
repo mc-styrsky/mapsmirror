@@ -1,8 +1,8 @@
 import parseDMS from 'parse-dms';
 import { coordUnits } from '../../../../globals/coordUnits';
 import { deg2rad } from '../../../../utils/deg2rad';
+import { Container } from '../../../../utils/htmlElements/container';
 import { rad2stringFuncs } from '../../../../utils/rad2string';
-import { Container } from '../../../container';
 import { coordError } from './error';
 import { coordInfo } from './info';
 import { coordSubmit } from './submit';

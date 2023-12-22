@@ -1,3 +1,3 @@
-import { overlayToggle } from './overlayToggle';
+import { OverlayToggle } from './overlayToggle';
 
-export const navionicsToggle = overlayToggle('navionics');
+export const navionicsToggle = new OverlayToggle('navionics');

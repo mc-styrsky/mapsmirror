@@ -1,9 +1,9 @@
 import parseDMS from 'parse-dms';
 import { position } from '../../../../globals/position';
 import { deg2rad } from '../../../../utils/deg2rad';
+import { Container } from '../../../../utils/htmlElements/container';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
-import { Container } from '../../../container';
 import { mapContainer } from '../../../mapContainer';
 import { coordError } from './error';
 import { coordInfo } from './info';
@@ -31,8 +31,9 @@ export const coordForm = Container.from('form', {
   style: {
     minWidth: '20em',
   },
-})
-.append(
+});
+
+coordForm.append(
   Container.from('div', {
     classes: ['input-group'],
   })

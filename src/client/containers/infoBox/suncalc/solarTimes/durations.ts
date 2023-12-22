@@ -6,7 +6,7 @@ import { intervalValueOf } from '../intervalValueOf';
 import { SolarTimesStatics } from './statics';
 
 export class SolarTimesDurations extends SolarTimesStatics {
-  getDurations = ({ date }: { date: Date; }): SolarDuration => {
+  protected getDurations = ({ date }: { date: Date; }): SolarDuration => {
     const { dawn, dusk, nauticalDawn, nauticalDusk, night, nightEnd, solarNoon, sunrise, sunriseEnd, sunset, sunsetStart } = getTimes(date, this.lat, this.lon);
     const dayRaw = intervalValueOf({ end: sunsetStart, solarNoon, start: sunriseEnd });
     const isPolarDay = dayRaw === 0 && getPosition(solarNoon, this.lat, this.lon).altitude >= 0;
@@ -22,7 +22,7 @@ export class SolarTimesDurations extends SolarTimesStatics {
       sunset: intervalValueOf({ end: sunset, solarNoon, start: sunsetStart }),
     };
   };
-  getDurationsStat = ({ year }: {
+  protected getDurationsStat = ({ year }: {
     year: number;
   }) => {
     let date = new Date(year, 0);

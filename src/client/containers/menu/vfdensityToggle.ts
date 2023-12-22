@@ -1,3 +1,3 @@
-import { overlayToggle } from './overlayToggle';
+import { OverlayToggle } from './overlayToggle';
 
-export const vfdensityToggle = overlayToggle('vfdensity');
+export const vfdensityToggle = new OverlayToggle('vfdensity');

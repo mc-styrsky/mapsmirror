@@ -1,4 +1,4 @@
-import { entriesTyped } from '../../common/fromEntriesTyped';
+import { entriesTyped } from '../../../common/fromEntriesTyped';
 
 type HtmlProps<E extends HTMLElement> = Partial<Omit<E, 'dataset' | 'style'>> & {
   classes?: (string | null | undefined)[];
@@ -10,7 +10,7 @@ declare const _: unique symbol;
 type Forbidden = { [_]: typeof _; }
 type NoOverride<T=void> = T & Forbidden;
 
-export class Container<Selector extends HTMLElement> {
+export class Container<Selector extends HTMLElement = HTMLDivElement> {
   static from <T extends keyof HTMLElementTagNameMap> (
     tag: T,
     props?: HtmlProps<HTMLElementTagNameMap[T]>,
@@ -36,7 +36,10 @@ export class Container<Selector extends HTMLElement> {
     if (style) entriesTyped(style).forEach(([k, v]) => html.style[k] = v);
     return new Container<T extends keyof HTMLElementTagNameMap ? HTMLElementTagNameMap[T] : T>(html);
   }
-  constructor (html: HTMLElement | Container<any>) {
+  constructor ()
+  constructor (html: Container<any>)
+  constructor (html: HTMLElement)
+  constructor (html: HTMLElement | Container<any> = Container.from('div')) {
     this.html = html instanceof Container ? html.html : html;
   }
 
@@ -47,7 +50,7 @@ export class Container<Selector extends HTMLElement> {
     this.html.innerHTML = '';
   }
 
-  append (...items: (string | Node | Container<any> | undefined | null)[]): NoOverride<this> {
+  append (...items: (string | Node | Container<HTMLElement> | undefined | null)[]): NoOverride<this> {
     items.forEach(item => {
       if (item instanceof Container) this.html.append(item.html);
       else if (item) this.html.append(item);

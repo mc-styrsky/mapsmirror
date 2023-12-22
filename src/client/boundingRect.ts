@@ -1,7 +1,7 @@
-import type { Container } from './containers/container';
+import type { Container } from './utils/htmlElements/container';
 
 export class Size {
-  constructor (container: Container<any>) {
+  constructor (container: Container<HTMLElement>) {
     this.container = container;
     this.refresh();
   }
@@ -11,7 +11,7 @@ export class Size {
     this._height = height;
     this._width = width;
   };
-  private container: Container<any>;
+  private container: Container<HTMLElement>;
   private _height: number = 0;
   private _width: number = 0;
   get height () {
