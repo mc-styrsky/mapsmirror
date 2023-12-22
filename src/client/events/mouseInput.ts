@@ -1,11 +1,11 @@
 import { infoBox } from '../containers/infoBox';
+import { navionicsDetails } from '../containers/infoBox/navionicsDetails';
 import { mouseContainer } from '../containers/mouseContainer';
 import { overlayContainer } from '../containers/overlayContainer';
 import { mouse } from '../globals/mouse';
 import { position } from '../globals/position';
 import { tileSize } from '../globals/tileSize';
 import { boundingRect } from '../index';
-import { navionicsDetails } from '../utils/htmlElements/navionicsDetails';
 import { inputListener } from './inputListener';
 
 export function mouseInput (event: MouseEvent | WheelEvent) {

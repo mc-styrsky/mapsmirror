@@ -27,13 +27,11 @@ class ImagesToFetch extends Container {
     }
     infoBox.update();
   };
-  state = () => {
-    return Object.entries(this.data)
-    .map(([key, val]) => [key, val.size]);
-  };
+
   refresh = () => {
     this.clear();
-    this.state()
+    Object.entries(this.data)
+    .map(([key, val]) => [key, val.size])
     .forEach(([source, size], idx) => {
       if (idx !== 0) this.append(Container.from('br'));
       this.append(`${source}: ${size}/${this.total[source]}`);

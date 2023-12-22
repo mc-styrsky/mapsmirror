@@ -1,5 +1,5 @@
 import type { NavionicsDetail, NavionicsDetails } from '../navionicsDetails';
-import { Container } from '../container';
+import { Container } from '../../../utils/htmlElements/container';
 import { AccordionItem } from './accordionItem';
 
 export class Accordion extends Container {
@@ -42,7 +42,8 @@ export class Accordion extends Container {
             })
             .append(
               Container.from('div', {
-                classes: ['accordion-button',
+                classes: [
+                  'accordion-button',
                   'collapsed',
                   'px-2',
                   'py-0',
@@ -71,7 +72,13 @@ export class Accordion extends Container {
           )
           .append(
             Container.from('div', {
-              classes: ['accordion-collapse', 'collapse', 'px-2', i === 0 ? 'show' : null],
+              classes: [
+                'accordion-collapse',
+                'collapse',
+                'ps-2',
+                'pe-0',
+                i === 0 ? 'show' : null,
+              ],
               dataset: {
                 bsParent: `#${accordionId}`,
               },

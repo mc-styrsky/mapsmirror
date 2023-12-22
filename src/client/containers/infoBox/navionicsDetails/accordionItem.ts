@@ -1,12 +1,12 @@
 import type { NavionicsDetail, NavionicsDetails } from '../navionicsDetails';
-import { overlayContainer } from '../../../containers/overlayContainer';
 import { Marker } from '../../../globals/marker';
-import { Container } from '../container';
-import { Spinner } from '../spinner';
+import { Container } from '../../../utils/htmlElements/container';
 import { NavionicsGoto } from './goto';
 import { NavionicsIcon } from './icon';
 import { NavionicsItemDetails } from './itemDetails';
 import { NavionicsItemLabel } from './label';
+import { Spinner } from '../../../utils/htmlElements/spinner';
+import { overlayContainer } from '../../overlayContainer';
 
 export class AccordionItem extends Container {
   constructor ({ accordionId, idx, item, parent }: {
@@ -69,6 +69,11 @@ export class AccordionItem extends Container {
             new NavionicsIcon(item),
             new NavionicsItemLabel(item),
             item.position ? new NavionicsGoto(item) : null,
+            item.details ? null : Container.from('div', {
+              style: {
+                width: 'var(--bs-accordion-btn-icon-width)',
+              },
+            }),
             item.details && !item.properties ? new Spinner() : null,
           ),
         ),

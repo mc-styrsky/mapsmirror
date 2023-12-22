@@ -1,10 +1,10 @@
 import type { NavionicsDetail } from '../navionicsDetails';
-import { mapContainer } from '../../../containers/mapContainer';
 import { position } from '../../../globals/position';
-import { lat2y } from '../../lat2y';
-import { lon2x } from '../../lon2x';
-import { Container } from '../container';
-import { BootstrapIcon } from '../iconButton';
+import { Container } from '../../../utils/htmlElements/container';
+import { BootstrapIcon } from '../../../utils/htmlElements/iconButton';
+import { lat2y } from '../../../utils/lat2y';
+import { lon2x } from '../../../utils/lon2x';
+import { mapContainer } from '../../mapContainer';
 
 export class NavionicsGoto extends Container {
   constructor (item: NavionicsDetail) {

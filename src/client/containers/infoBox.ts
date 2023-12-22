@@ -1,8 +1,8 @@
 import { settings } from '../globals/settings';
 import { Container } from '../utils/htmlElements/container';
-import { navionicsDetails } from '../utils/htmlElements/navionicsDetails';
 import { imagesToFetch } from './infoBox/imagesToFetch';
-import { InfoBoxCoords } from './infoBox/InfoBoxCoords';
+import { InfoBoxCoords } from './infoBox/infoBoxCoords';
+import { navionicsDetails } from './infoBox/navionicsDetails';
 import { solarTimes } from './infoBox/suncalc/solarTimes';
 
 class InfoBox extends Container {

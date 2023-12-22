@@ -1,7 +1,7 @@
 import { position } from '../../globals/position';
 import { settings } from '../../globals/settings';
 import { IconButton } from '../../utils/htmlElements/iconButton';
-import { navionicsDetails } from '../../utils/htmlElements/navionicsDetails';
+import { navionicsDetails } from '../infoBox/navionicsDetails';
 
 export const navionicsDetailsToggle = new IconButton({
   active: () => settings.show.navionicsDetails,

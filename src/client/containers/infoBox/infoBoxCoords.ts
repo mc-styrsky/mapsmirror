@@ -45,7 +45,7 @@ export class InfoBoxCoords extends Container {
       }`,
     );
   }
-  private row (a: string, b: string) {
+  private row (left: string, right: string) {
     this.append(
       Container.from('div', {
         classes: [
@@ -57,8 +57,8 @@ export class InfoBoxCoords extends Container {
         },
       })
       .append(
-        Container.from('div', { style: { marginRight: 'auto' } }).append(a),
-        Container.from('div', { style: { marginLeft: 'auto' } }).append(b),
+        Container.from('div', { style: { marginRight: 'auto' } }).append(left),
+        Container.from('div', { style: { marginLeft: 'auto' } }).append(right),
       ),
     );
   }
