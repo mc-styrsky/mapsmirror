@@ -1890,6 +1890,12 @@ function lon2x(lon2, tiles = position.tiles) {
   return (lon2 / Math.PI / 2 + 0.5) * tiles;
 }
 
+// src/client/utils/px2nm.ts
+function px2nm(lat2) {
+  const stretch = 1 / Math.cos(lat2);
+  return 360 * 60 / position.tiles / tileSize / stretch;
+}
+
 // src/client/globals/marker.ts
 var Marker = class {
   constructor({ id = "", lat: lat2, lon: lon2, type }) {
@@ -1914,6 +1920,26 @@ var Marker = class {
   }
 };
 
+// src/client/utils/htmlElements/spinner.ts
+var Spinner = class extends Container {
+  constructor() {
+    super(Container.from("div", {
+      classes: ["d-flex"]
+    }));
+    this.append(
+      Container.from("div", {
+        classes: [
+          "spinner-border",
+          "spinner-border-sm"
+        ],
+        style: {
+          margin: "auto"
+        }
+      })
+    );
+  }
+};
+
 // src/client/globals/containerStyle.ts
 var containerStyle = {
   height: "100%",
@@ -1924,9 +1950,20 @@ var containerStyle = {
   width: "100%"
 };
 
-// src/client/utils/rad2deg.ts
-function rad2deg(val) {
-  return Number(val) * 180 / Math.PI;
+// src/client/utils/frac.ts
+function frac(x) {
+  return x - Math.floor(x);
+}
+
+// src/client/utils/min2rad.ts
+function min2rad(min2) {
+  return min2 / 60 / 180 * Math.PI;
+}
+
+// src/client/utils/nm2px.ts
+function nm2px(lat2) {
+  const stretch = 1 / Math.cos(lat2);
+  return position.tiles * tileSize / 360 / 60 * stretch;
 }
 
 // src/common/x2lon.ts
@@ -1947,6 +1984,349 @@ function y2latCommon(y, tiles) {
 // src/client/utils/y2lat.ts
 function y2lat(y, tiles = position.tiles) {
   return y2latCommon(y, tiles);
+}
+
+// src/client/containers/overlay/sphericCircle.ts
+function sphericCircle(lat2, lon2, radius, steps = 256) {
+  const sinRadius = Math.sin(radius);
+  const cosRadius = Math.cos(radius);
+  const sinLat = Math.sin(lat2);
+  const cosLat = Math.cos(lat2);
+  const pi2 = Math.PI * 2;
+  const points = [];
+  for (let step = 0; step <= steps; step++) {
+    const omega = step / steps * pi2;
+    const { lat2: lat22, lon2: lon22 } = sphericLatLon({ cosLat, cosRadius, lat: lat2, omega, radius, sinLat, sinRadius });
+    if (step === 0)
+      points.push([lat22, lon2 + Math.abs(lon22), false]);
+    else if (step === steps / 2) {
+      points.push([lat22, lon2 + Math.abs(lon22), true]);
+      points.push([lat22, lon2 - Math.abs(lon22), false]);
+    } else if (step === steps)
+      points.push([lat22, lon2 - Math.abs(lon22), true]);
+    else
+      points.push([lat22, lon2 + lon22, true]);
+  }
+  return points;
+}
+function sphericLatLon({ cosLat, cosRadius, lat: lat2, omega, radius, sinLat, sinRadius }) {
+  sinRadius ??= Math.sin(radius);
+  cosRadius ??= Math.cos(radius);
+  sinLat ??= Math.sin(lat2);
+  cosLat ??= Math.cos(lat2);
+  const pi2 = 2 * Math.PI;
+  const lonSign = omega - pi2 * Math.floor(omega / pi2) > Math.PI ? -1 : 1;
+  const sinLat2 = Math.max(-1, Math.min(Math.cos(omega) * cosLat * sinRadius + sinLat * cosRadius, 1));
+  const lat22 = Math.asin(sinLat2);
+  const cosLat2 = Math.sqrt(1 - sinLat2 * sinLat2);
+  const cosLon2 = Math.max(-1, Math.min((cosRadius - sinLat * sinLat2) / cosLat / cosLat2, 1));
+  const lon2 = Math.acos(cosLon2) * lonSign;
+  const cosOmega2 = (sinLat - sinLat2 * cosRadius) / (cosLat2 * sinRadius);
+  return { cosOmega2, lat2: lat22, lon2 };
+}
+
+// src/client/containers/overlay/crosshairs.ts
+function drawCrosshair({
+  context,
+  width,
+  x,
+  y
+}) {
+  if (!settings.show.crosshair)
+    return;
+  const lat2 = y2lat(y);
+  const lon2 = x2lon(x);
+  const milesPerTile = 100 / nm2px(lat2);
+  const scale = Math.log10(milesPerTile);
+  const scaleFloor = Math.floor(scale);
+  const scaleFrac = frac(scale);
+  const milesPerArc = Math.pow(10, scaleFloor) * (scaleFrac < 0.3 ? 1 : scaleFrac > 0.7 ? 5 : 2);
+  const milesPerDiv = milesPerArc / 10;
+  let minLast = 0;
+  context.beginPath();
+  context.strokeStyle = "#ff0000";
+  context.moveTo(-5, 5);
+  context.lineTo(5, -5);
+  context.moveTo(5, 5);
+  context.lineTo(-5, -5);
+  context.stroke();
+  for (let minArc = milesPerArc; minArc < 10800; minArc += milesPerArc) {
+    const radiusX = nm2px(lat2) * minArc;
+    if (radiusX > width)
+      break;
+    const radDiv = min2rad(minArc);
+    const circlePoints = sphericCircle(lat2, lon2, radDiv).map(([latPoint, lonPoint, draw]) => ({
+      draw,
+      tx: (lon2x(lonPoint) - x) * tileSize,
+      ty: (lat2y(latPoint) - y) * tileSize
+    }));
+    context.beginPath();
+    context.strokeStyle = "#ff0000";
+    circlePoints.forEach(({ draw, tx, ty }, idx) => {
+      if (draw)
+        context.lineTo(tx, ty);
+      else
+        context.moveTo(tx, ty);
+      if (idx === 96)
+        context.strokeText(
+          `${minArc.toFixed(Math.max(0, -scaleFloor))}nm`,
+          tx,
+          ty
+        );
+    });
+    context.stroke();
+    const piHalf = Math.PI / 2;
+    context.beginPath();
+    context.strokeStyle = "#ff0000";
+    for (let minDiv = minLast + milesPerDiv; minDiv < minArc; minDiv += milesPerDiv) {
+      const radDiv2 = min2rad(minDiv);
+      if (lat2 + radDiv2 < piHalf) {
+        const top = (lat2y(lat2 + radDiv2) - y) * tileSize;
+        context.moveTo(-5, top);
+        context.lineTo(5, top);
+      }
+      if (lat2 - radDiv2 > -piHalf) {
+        const bottom = (lat2y(lat2 - radDiv2) - y) * tileSize;
+        context.moveTo(-5, bottom);
+        context.lineTo(5, bottom);
+      }
+      const { cosOmega2, lat2: lat22, lon2: lon22 } = sphericLatLon({
+        lat: lat2,
+        omega: piHalf,
+        radius: radDiv2
+      });
+      const sinOmega2 = Math.sqrt(1 - cosOmega2 * cosOmega2);
+      context.moveTo(
+        (lon2x(lon2 + lon22) - x) * tileSize + cosOmega2 * 5,
+        (lat2y(lat22) - y) * tileSize - sinOmega2 * 5
+      );
+      context.lineTo(
+        (lon2x(lon2 + lon22) - x) * tileSize - cosOmega2 * 5,
+        (lat2y(lat22) - y) * tileSize + sinOmega2 * 5
+      );
+      context.moveTo(
+        (lon2x(lon2 - lon22) - x) * tileSize - cosOmega2 * 5,
+        (lat2y(lat22) - y) * tileSize - sinOmega2 * 5
+      );
+      context.lineTo(
+        (lon2x(lon2 - lon22) - x) * tileSize + cosOmega2 * 5,
+        (lat2y(lat22) - y) * tileSize + sinOmega2 * 5
+      );
+    }
+    context.stroke();
+    minLast = minArc;
+  }
+}
+
+// src/client/containers/overlay/markers.ts
+var drawMarkers = ({
+  context,
+  x,
+  y
+}) => {
+  position.markers.forEach((marker) => {
+    const markerX = (marker.x - x) * tileSize;
+    const markerY = (marker.y - y) * tileSize;
+    const from = 40;
+    const to = 10;
+    [
+      { color: "#000000", width: 3 },
+      { color: { navionics: "#00ff00", user: "#800000" }[marker.type], width: 1 }
+    ].forEach(({ color, width }) => {
+      context.beginPath();
+      context.strokeStyle = color;
+      context.lineWidth = width;
+      context.arc(
+        markerX,
+        markerY,
+        5,
+        2 * Math.PI,
+        0
+      );
+      context.moveTo(markerX + from, markerY);
+      context.lineTo(markerX + to, markerY);
+      context.moveTo(markerX - from, markerY);
+      context.lineTo(markerX - to, markerY);
+      context.moveTo(markerX, markerY + from);
+      context.lineTo(markerX, markerY + to);
+      context.moveTo(markerX, markerY - from);
+      context.lineTo(markerX, markerY - to);
+      context.stroke();
+    });
+  });
+};
+
+// src/client/utils/rad2string.ts
+var rad2ModuloDeg = (phi) => modulo(phi * 180 / Math.PI + 180, 360) - 180;
+var rad2stringFuncs = {
+  d: ({ axis = " -", pad: pad2 = 0, phi }) => {
+    const deg = Math.round(rad2ModuloDeg(phi) * 1e5) / 1e5;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad2 + 6, "0")}\xB0`;
+  },
+  dm: ({ axis = " -", pad: pad2 = 0, phi }) => {
+    const deg = Math.round(rad2ModuloDeg(phi) * 6e4) / 6e4;
+    const degrees = deg | 0;
+    const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}`;
+  },
+  dms: ({ axis = " -", pad: pad2 = 0, phi }) => {
+    const deg = Math.round(rad2ModuloDeg(phi) * 36e4) / 36e4;
+    const degrees = deg | 0;
+    const min2 = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
+    const minutes = min2 | 0;
+    const seconds = (min2 - minutes) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}`;
+  }
+};
+function rad2string({ axis = " -", pad: pad2 = 0, phi }) {
+  return rad2stringFuncs[settings.units.coords]({ axis, pad: pad2, phi });
+}
+
+// src/client/containers/overlay/net.ts
+var scales = [
+  0.025,
+  0.05,
+  0.1,
+  0.2,
+  0.5,
+  1,
+  2,
+  5,
+  10,
+  15,
+  20,
+  30,
+  60,
+  2 * 60,
+  5 * 60,
+  10 * 60,
+  15 * 60,
+  20 * 60,
+  30 * 60,
+  45 * 60
+];
+var getScale = (lat2, minPx = 100) => {
+  const target = px2nm(lat2) * minPx;
+  return min2rad(scales.reduce((prev, curr) => {
+    return prev > target ? prev : curr;
+  }, scales[0]));
+};
+var drawNet = ({
+  context,
+  height,
+  width,
+  x,
+  y
+}) => {
+  const lat2 = y2lat(y);
+  const scaleX = getScale(0, context.measureText(rad2string({ axis: "EW", pad: 3, phi: 0 })).width);
+  const scaleY = getScale(lat2);
+  const left = x - width / 2 / tileSize;
+  const right = x + width / 2 / tileSize;
+  const top = y - height / 2 / tileSize;
+  const bottom = y + height / 2 / tileSize;
+  const strokeText = (text, x2, y2) => {
+    context.strokeText(text, x2, y2);
+    context.fillText(text, x2, y2);
+  };
+  const latTop = Math.floor(y2lat(top) / scaleY) * scaleY;
+  const latBottom = Math.ceil(y2lat(bottom) / scaleY) * scaleY;
+  const pointsY = [];
+  for (let ctr = 0; ctr < 1e3; ctr++) {
+    const latGrid = latTop - scaleY * ctr;
+    if (latGrid < latBottom)
+      break;
+    pointsY.push({
+      latGrid,
+      x1: (left - x) * tileSize,
+      x2: (right - x) * tileSize,
+      y1: (lat2y(latGrid) - y) * tileSize
+    });
+  }
+  const lonLeft = Math.floor(x2lon(left) / scaleX) * scaleX;
+  const lonRight = Math.ceil(x2lon(right) / scaleX) * scaleX;
+  const pointsX = [];
+  for (let ctr = 0; ctr < 1e3; ctr++) {
+    const lonGrid = lonLeft + scaleX * ctr;
+    if (lonGrid > lonRight)
+      break;
+    pointsX.push({
+      lonGrid,
+      x1: (lon2x(lonGrid) - x) * tileSize,
+      y1: (top - y) * tileSize,
+      y2: (bottom - y) * tileSize
+    });
+  }
+  context.beginPath();
+  context.strokeStyle = "#808080";
+  pointsY.forEach(({ x1, x2, y1 }) => {
+    context.moveTo(x1, y1);
+    context.lineTo(x2, y1);
+  });
+  pointsX.forEach(({ x1, y1, y2 }) => {
+    context.moveTo(x1, y1);
+    context.lineTo(x1, y2);
+  });
+  context.stroke();
+  context.beginPath();
+  context.strokeStyle = "#ffffff";
+  context.fillStyle = "#000000";
+  context.lineWidth = 3;
+  pointsY.forEach(({ latGrid, x1, y1 }) => {
+    strokeText(
+      rad2string({ axis: "NS", pad: 2, phi: latGrid }),
+      x1 + 3,
+      y1 - 3
+    );
+  });
+  pointsX.forEach(({ lonGrid, x1, y2 }) => {
+    strokeText(
+      rad2string({ axis: "EW", pad: 3, phi: lonGrid }),
+      x1 + 3,
+      y2 - 3
+    );
+  });
+  context.fill();
+  context.stroke();
+};
+
+// src/client/containers/overlayContainer.ts
+var OverlayContainer = class _OverlayContainer extends Container {
+  constructor() {
+    super(Container.from("div", {
+      id: _OverlayContainer.name,
+      style: containerStyle
+    }));
+  }
+  redraw() {
+    const { height, width } = this.html.getBoundingClientRect();
+    const canvas = Container.from("canvas", {
+      height,
+      style: {
+        height: "100%",
+        position: "absolute",
+        width: "100%"
+      },
+      width
+    });
+    const context = canvas.html.getContext("2d");
+    this.clear();
+    if (context) {
+      const { x, y } = position;
+      context.translate(width / 2, height / 2);
+      const props = { context, height, width, x, y };
+      drawCrosshair(props);
+      drawNet(props);
+      drawMarkers(props);
+      this.append(canvas);
+    }
+  }
+};
+var overlayContainer = new OverlayContainer();
+
+// src/client/utils/rad2deg.ts
+function rad2deg(val) {
+  return Number(val) * 180 / Math.PI;
 }
 
 // src/client/containers/map/drawImage.ts
@@ -2486,386 +2866,6 @@ var NavionicsItemLabel = class extends Container {
     );
   }
 };
-
-// src/client/utils/htmlElements/spinner.ts
-var Spinner = class extends Container {
-  constructor() {
-    super(Container.from("div", {
-      classes: ["d-flex"]
-    }));
-    this.append(
-      Container.from("div", {
-        classes: [
-          "spinner-border",
-          "spinner-border-sm"
-        ],
-        style: {
-          margin: "auto"
-        }
-      })
-    );
-  }
-};
-
-// src/client/utils/frac.ts
-function frac(x) {
-  return x - Math.floor(x);
-}
-
-// src/client/utils/min2rad.ts
-function min2rad(min2) {
-  return min2 / 60 / 180 * Math.PI;
-}
-
-// src/client/utils/nm2px.ts
-function nm2px(lat2) {
-  const stretch = 1 / Math.cos(lat2);
-  return position.tiles * tileSize / 360 / 60 * stretch;
-}
-
-// src/client/containers/overlay/sphericCircle.ts
-function sphericCircle(lat2, lon2, radius, steps = 256) {
-  const sinRadius = Math.sin(radius);
-  const cosRadius = Math.cos(radius);
-  const sinLat = Math.sin(lat2);
-  const cosLat = Math.cos(lat2);
-  const pi2 = Math.PI * 2;
-  const points = [];
-  for (let step = 0; step <= steps; step++) {
-    const omega = step / steps * pi2;
-    const { lat2: lat22, lon2: lon22 } = sphericLatLon({ cosLat, cosRadius, lat: lat2, omega, radius, sinLat, sinRadius });
-    if (step === 0)
-      points.push([lat22, lon2 + Math.abs(lon22), false]);
-    else if (step === steps / 2) {
-      points.push([lat22, lon2 + Math.abs(lon22), true]);
-      points.push([lat22, lon2 - Math.abs(lon22), false]);
-    } else if (step === steps)
-      points.push([lat22, lon2 - Math.abs(lon22), true]);
-    else
-      points.push([lat22, lon2 + lon22, true]);
-  }
-  return points;
-}
-function sphericLatLon({ cosLat, cosRadius, lat: lat2, omega, radius, sinLat, sinRadius }) {
-  sinRadius ??= Math.sin(radius);
-  cosRadius ??= Math.cos(radius);
-  sinLat ??= Math.sin(lat2);
-  cosLat ??= Math.cos(lat2);
-  const pi2 = 2 * Math.PI;
-  const lonSign = omega - pi2 * Math.floor(omega / pi2) > Math.PI ? -1 : 1;
-  const sinLat2 = Math.max(-1, Math.min(Math.cos(omega) * cosLat * sinRadius + sinLat * cosRadius, 1));
-  const lat22 = Math.asin(sinLat2);
-  const cosLat2 = Math.sqrt(1 - sinLat2 * sinLat2);
-  const cosLon2 = Math.max(-1, Math.min((cosRadius - sinLat * sinLat2) / cosLat / cosLat2, 1));
-  const lon2 = Math.acos(cosLon2) * lonSign;
-  const cosOmega2 = (sinLat - sinLat2 * cosRadius) / (cosLat2 * sinRadius);
-  return { cosOmega2, lat2: lat22, lon2 };
-}
-
-// src/client/containers/overlay/crosshairs.ts
-function drawCrosshair({
-  context,
-  width,
-  x,
-  y
-}) {
-  if (!settings.show.crosshair)
-    return;
-  const lat2 = y2lat(y);
-  const lon2 = x2lon(x);
-  const milesPerTile = 100 / nm2px(lat2);
-  const scale = Math.log10(milesPerTile);
-  const scaleFloor = Math.floor(scale);
-  const scaleFrac = frac(scale);
-  const milesPerArc = Math.pow(10, scaleFloor) * (scaleFrac < 0.3 ? 1 : scaleFrac > 0.7 ? 5 : 2);
-  const milesPerDiv = milesPerArc / 10;
-  let minLast = 0;
-  context.beginPath();
-  context.strokeStyle = "#ff0000";
-  context.moveTo(-5, 5);
-  context.lineTo(5, -5);
-  context.moveTo(5, 5);
-  context.lineTo(-5, -5);
-  context.stroke();
-  for (let minArc = milesPerArc; minArc < 10800; minArc += milesPerArc) {
-    const radiusX = nm2px(lat2) * minArc;
-    if (radiusX > width)
-      break;
-    const radDiv = min2rad(minArc);
-    const circlePoints = sphericCircle(lat2, lon2, radDiv).map(([latPoint, lonPoint, draw]) => ({
-      draw,
-      tx: (lon2x(lonPoint) - x) * tileSize,
-      ty: (lat2y(latPoint) - y) * tileSize
-    }));
-    context.beginPath();
-    context.strokeStyle = "#ff0000";
-    circlePoints.forEach(({ draw, tx, ty }, idx) => {
-      if (draw)
-        context.lineTo(tx, ty);
-      else
-        context.moveTo(tx, ty);
-      if (idx === 96)
-        context.strokeText(
-          `${minArc.toFixed(Math.max(0, -scaleFloor))}nm`,
-          tx,
-          ty
-        );
-    });
-    context.stroke();
-    const piHalf = Math.PI / 2;
-    context.beginPath();
-    context.strokeStyle = "#ff0000";
-    for (let minDiv = minLast + milesPerDiv; minDiv < minArc; minDiv += milesPerDiv) {
-      const radDiv2 = min2rad(minDiv);
-      if (lat2 + radDiv2 < piHalf) {
-        const top = (lat2y(lat2 + radDiv2) - y) * tileSize;
-        context.moveTo(-5, top);
-        context.lineTo(5, top);
-      }
-      if (lat2 - radDiv2 > -piHalf) {
-        const bottom = (lat2y(lat2 - radDiv2) - y) * tileSize;
-        context.moveTo(-5, bottom);
-        context.lineTo(5, bottom);
-      }
-      const { cosOmega2, lat2: lat22, lon2: lon22 } = sphericLatLon({
-        lat: lat2,
-        omega: piHalf,
-        radius: radDiv2
-      });
-      const sinOmega2 = Math.sqrt(1 - cosOmega2 * cosOmega2);
-      context.moveTo(
-        (lon2x(lon2 + lon22) - x) * tileSize + cosOmega2 * 5,
-        (lat2y(lat22) - y) * tileSize - sinOmega2 * 5
-      );
-      context.lineTo(
-        (lon2x(lon2 + lon22) - x) * tileSize - cosOmega2 * 5,
-        (lat2y(lat22) - y) * tileSize + sinOmega2 * 5
-      );
-      context.moveTo(
-        (lon2x(lon2 - lon22) - x) * tileSize - cosOmega2 * 5,
-        (lat2y(lat22) - y) * tileSize - sinOmega2 * 5
-      );
-      context.lineTo(
-        (lon2x(lon2 - lon22) - x) * tileSize + cosOmega2 * 5,
-        (lat2y(lat22) - y) * tileSize + sinOmega2 * 5
-      );
-    }
-    context.stroke();
-    minLast = minArc;
-  }
-}
-
-// src/client/containers/overlay/markers.ts
-var drawMarkers = ({
-  context,
-  x,
-  y
-}) => {
-  position.markers.forEach((marker) => {
-    const markerX = (marker.x - x) * tileSize;
-    const markerY = (marker.y - y) * tileSize;
-    const from = 40;
-    const to = 10;
-    [
-      { color: "#000000", width: 3 },
-      { color: { navionics: "#00ff00", user: "#800000" }[marker.type], width: 1 }
-    ].forEach(({ color, width }) => {
-      context.beginPath();
-      context.strokeStyle = color;
-      context.lineWidth = width;
-      context.arc(
-        markerX,
-        markerY,
-        5,
-        2 * Math.PI,
-        0
-      );
-      context.moveTo(markerX + from, markerY);
-      context.lineTo(markerX + to, markerY);
-      context.moveTo(markerX - from, markerY);
-      context.lineTo(markerX - to, markerY);
-      context.moveTo(markerX, markerY + from);
-      context.lineTo(markerX, markerY + to);
-      context.moveTo(markerX, markerY - from);
-      context.lineTo(markerX, markerY - to);
-      context.stroke();
-    });
-  });
-};
-
-// src/client/utils/px2nm.ts
-function px2nm(lat2) {
-  const stretch = 1 / Math.cos(lat2);
-  return 360 * 60 / position.tiles / tileSize / stretch;
-}
-
-// src/client/utils/rad2string.ts
-var rad2ModuloDeg = (phi) => modulo(phi * 180 / Math.PI + 180, 360) - 180;
-var rad2stringFuncs = {
-  d: ({ axis = " -", pad: pad2 = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 1e5) / 1e5;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad2 + 6, "0")}\xB0`;
-  },
-  dm: ({ axis = " -", pad: pad2 = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 6e4) / 6e4;
-    const degrees = deg | 0;
-    const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}`;
-  },
-  dms: ({ axis = " -", pad: pad2 = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 36e4) / 36e4;
-    const degrees = deg | 0;
-    const min2 = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
-    const minutes = min2 | 0;
-    const seconds = (min2 - minutes) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}`;
-  }
-};
-function rad2string({ axis = " -", pad: pad2 = 0, phi }) {
-  return rad2stringFuncs[settings.units.coords]({ axis, pad: pad2, phi });
-}
-
-// src/client/containers/overlay/net.ts
-var scales = [
-  0.025,
-  0.05,
-  0.1,
-  0.2,
-  0.5,
-  1,
-  2,
-  5,
-  10,
-  15,
-  20,
-  30,
-  60,
-  2 * 60,
-  5 * 60,
-  10 * 60,
-  15 * 60,
-  20 * 60,
-  30 * 60,
-  45 * 60
-];
-var getScale = (lat2, minPx = 100) => {
-  const target = px2nm(lat2) * minPx;
-  return min2rad(scales.reduce((prev, curr) => {
-    return prev > target ? prev : curr;
-  }, scales[0]));
-};
-var drawNet = ({
-  context,
-  height,
-  width,
-  x,
-  y
-}) => {
-  const lat2 = y2lat(y);
-  const scaleX = getScale(0, context.measureText(rad2string({ axis: "EW", pad: 3, phi: 0 })).width);
-  const scaleY = getScale(lat2);
-  const left = x - width / 2 / tileSize;
-  const right = x + width / 2 / tileSize;
-  const top = y - height / 2 / tileSize;
-  const bottom = y + height / 2 / tileSize;
-  const strokeText = (text, x2, y2) => {
-    context.strokeText(text, x2, y2);
-    context.fillText(text, x2, y2);
-  };
-  const latTop = Math.floor(y2lat(top) / scaleY) * scaleY;
-  const latBottom = Math.ceil(y2lat(bottom) / scaleY) * scaleY;
-  const pointsY = [];
-  for (let ctr = 0; ctr < 1e3; ctr++) {
-    const latGrid = latTop - scaleY * ctr;
-    if (latGrid < latBottom)
-      break;
-    pointsY.push({
-      latGrid,
-      x1: (left - x) * tileSize,
-      x2: (right - x) * tileSize,
-      y1: (lat2y(latGrid) - y) * tileSize
-    });
-  }
-  const lonLeft = Math.floor(x2lon(left) / scaleX) * scaleX;
-  const lonRight = Math.ceil(x2lon(right) / scaleX) * scaleX;
-  const pointsX = [];
-  for (let ctr = 0; ctr < 1e3; ctr++) {
-    const lonGrid = lonLeft + scaleX * ctr;
-    if (lonGrid > lonRight)
-      break;
-    pointsX.push({
-      lonGrid,
-      x1: (lon2x(lonGrid) - x) * tileSize,
-      y1: (top - y) * tileSize,
-      y2: (bottom - y) * tileSize
-    });
-  }
-  context.beginPath();
-  context.strokeStyle = "#808080";
-  pointsY.forEach(({ x1, x2, y1 }) => {
-    context.moveTo(x1, y1);
-    context.lineTo(x2, y1);
-  });
-  pointsX.forEach(({ x1, y1, y2 }) => {
-    context.moveTo(x1, y1);
-    context.lineTo(x1, y2);
-  });
-  context.stroke();
-  context.beginPath();
-  context.strokeStyle = "#ffffff";
-  context.fillStyle = "#000000";
-  context.lineWidth = 3;
-  pointsY.forEach(({ latGrid, x1, y1 }) => {
-    strokeText(
-      rad2string({ axis: "NS", pad: 2, phi: latGrid }),
-      x1 + 3,
-      y1 - 3
-    );
-  });
-  pointsX.forEach(({ lonGrid, x1, y2 }) => {
-    strokeText(
-      rad2string({ axis: "EW", pad: 3, phi: lonGrid }),
-      x1 + 3,
-      y2 - 3
-    );
-  });
-  context.fill();
-  context.stroke();
-};
-
-// src/client/containers/overlayContainer.ts
-var OverlayContainer = class _OverlayContainer extends Container {
-  constructor() {
-    super(Container.from("div", {
-      id: _OverlayContainer.name,
-      style: containerStyle
-    }));
-  }
-  redraw() {
-    const { height, width } = this.html.getBoundingClientRect();
-    const canvas = Container.from("canvas", {
-      height,
-      style: {
-        height: "100%",
-        position: "absolute",
-        width: "100%"
-      },
-      width
-    });
-    const context = canvas.html.getContext("2d");
-    this.clear();
-    if (context) {
-      const { x, y } = position;
-      context.translate(width / 2, height / 2);
-      const props = { context, height, width, x, y };
-      drawCrosshair(props);
-      drawNet(props);
-      drawMarkers(props);
-      this.append(canvas);
-    }
-  }
-};
-var overlayContainer = new OverlayContainer();
 
 // src/client/containers/infoBox/navionicsDetails/accordionItem.ts
 var AccordionItem = class extends Container {

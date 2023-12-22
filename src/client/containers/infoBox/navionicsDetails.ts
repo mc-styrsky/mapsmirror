@@ -6,11 +6,11 @@ import { settings } from '../../globals/settings';
 import { tileSize } from '../../globals/tileSize';
 import { deg2rad } from '../../utils/deg2rad';
 import { Container } from '../../utils/htmlElements/container';
-import { Accordion } from './navionicsDetails/accordion';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
 import { px2nm } from '../../utils/px2nm';
 import { infoBox } from '../infoBox';
+import { Accordion } from './navionicsDetails/accordion';
 
 export type NavionicsDetail = {
   category_id: string,
