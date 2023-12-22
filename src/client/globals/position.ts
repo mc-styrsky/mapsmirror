@@ -5,10 +5,10 @@ import { zoomMax, zoomMin } from '../../common/layers';
 import { modulo } from '../../common/modulo';
 import { overlayContainer } from '../containers/overlayContainer';
 import { deg2rad } from '../utils/deg2rad';
+import { navionicsDetails } from '../utils/htmlElements/navionicsDetails';
 import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';
 import { mouse } from './mouse';
-import { navionicsDetails } from './navionicsDetails';
 
 
 class Position {

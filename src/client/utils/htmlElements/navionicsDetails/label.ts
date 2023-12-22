@@ -1,5 +1,5 @@
 import type { NavionicsDetail } from '../navionicsDetails';
-import { Container } from '../../utils/htmlElements/container';
+import { Container } from '../container';
 
 export class NavionicsItemLabel extends Container {
   constructor (item: NavionicsDetail) {

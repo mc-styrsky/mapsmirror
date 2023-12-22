@@ -1,5 +1,5 @@
 import type { NavionicsDetail, NavionicsDetails } from '../navionicsDetails';
-import { Container } from '../../utils/htmlElements/container';
+import { Container } from '../container';
 import { AccordionItem } from './accordionItem';
 
 export class Accordion extends Container {

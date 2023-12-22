@@ -1,8 +1,8 @@
 import type { NavionicsDetail, NavionicsDetails } from '../navionicsDetails';
-import { mapContainer } from '../../containers/mapContainer';
-import { Container } from '../../utils/htmlElements/container';
-import { Spinner } from '../../utils/htmlElements/spinner';
-import { Marker } from '../marker';
+import { mapContainer } from '../../../containers/mapContainer';
+import { Marker } from '../../../globals/marker';
+import { Container } from '../container';
+import { Spinner } from '../spinner';
 import { NavionicsGoto } from './goto';
 import { NavionicsIcon } from './icon';
 import { NavionicsItemDetails } from './itemDetails';

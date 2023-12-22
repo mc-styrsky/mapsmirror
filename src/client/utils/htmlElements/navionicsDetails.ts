@@ -1,16 +1,16 @@
-import type { Marker } from './marker';
-import type { XYZ } from '../../common/types/xyz';
+import type { XYZ } from '../../../common/types/xyz';
+import type { Marker } from '../../globals/marker';
 import { StyQueue } from '@mc-styrsky/queue';
-import { extractProperties } from '../../common/extractProperties';
-import { infoBox } from '../containers/infoBox';
-import { deg2rad } from '../utils/deg2rad';
-import { Container } from '../utils/htmlElements/container';
-import { lat2y } from '../utils/lat2y';
-import { lon2x } from '../utils/lon2x';
-import { px2nm } from '../utils/px2nm';
+import { extractProperties } from '../../../common/extractProperties';
+import { infoBox } from '../../containers/infoBox';
+import { settings } from '../../globals/settings';
+import { tileSize } from '../../globals/tileSize';
+import { deg2rad } from '../deg2rad';
+import { lat2y } from '../lat2y';
+import { lon2x } from '../lon2x';
+import { px2nm } from '../px2nm';
+import { Container } from './container';
 import { Accordion } from './navionicsDetails/accordion';
-import { settings } from './settings';
-import { tileSize } from './tileSize';
 
 export type NavionicsDetail = {
   category_id: string,
