@@ -1,5 +1,5 @@
 import type { NavionicsDetail, NavionicsDetails } from '../navionicsDetails';
-import { mapContainer } from '../../../containers/mapContainer';
+import { overlayContainer } from '../../../containers/overlayContainer';
 import { Marker } from '../../../globals/marker';
 import { Container } from '../container';
 import { Spinner } from '../spinner';
@@ -37,7 +37,7 @@ export class AccordionItem extends Container {
               id: item.id,
               type: 'navionics',
             });
-            mapContainer.redraw('set navionics marker');
+            overlayContainer.redraw();
           }
         },
       })

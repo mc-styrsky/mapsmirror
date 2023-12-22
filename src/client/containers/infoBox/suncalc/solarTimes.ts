@@ -14,45 +14,45 @@ class SolarTimes extends SolarTimesDurations {
       this.lat = rad2deg(y2lat(this.y));
       this.lon = rad2deg(x2lon(this.x));
       this.clear();
-    }
-    const date = new Date();
-    if (!this.html) {
+
+      const date = new Date();
       const durations = {
         stats: this.getDurationsStat({
           year: date.getFullYear(),
         }),
         today: this.getDurations({ date }),
       };
-      const zhilds = new ValueRow()
-      .add({
-        durations,
-        keys: ['day'],
-        label: 'Day',
-      })
-      .add({
-        durations,
-        keys: ['sunrise', 'sunset'],
-        label: 'Sunrise/set',
-      })
-      .add({
-        durations,
-        keys: ['civilDawn', 'civilDusk'],
-        label: 'Twilight',
-      })
-      .add({
-        durations,
-        keys: ['nauticalDawn', 'nauticalDusk'],
-        label: 'Naut. Twilight',
-      })
-      // .add({
-      //   durations,
-      //   keys: ['astronomicalDawn', 'astronomicalDusk'],
-      //   label: 'Astro. Twilight',
-      // })
-      .fill('Night', halfDay * 2)
-      .fillStats(durations, halfDay * 2)
-      .lines;
-      this.append(...zhilds);
+
+      this.append(
+        new ValueRow()
+        .add({
+          durations,
+          keys: ['day'],
+          label: 'Day',
+        })
+        .add({
+          durations,
+          keys: ['sunrise', 'sunset'],
+          label: 'Sunrise/set',
+        })
+        .add({
+          durations,
+          keys: ['civilDawn', 'civilDusk'],
+          label: 'Twilight',
+        })
+        .add({
+          durations,
+          keys: ['nauticalDawn', 'nauticalDusk'],
+          label: 'Naut. Twilight',
+        })
+        // .add({
+        //   durations,
+        //   keys: ['astronomicalDawn', 'astronomicalDusk'],
+        //   label: 'Astro. Twilight',
+        // })
+        .fill('Night', halfDay * 2)
+        .fillStats(durations, halfDay * 2),
+      );
     }
   };
 }

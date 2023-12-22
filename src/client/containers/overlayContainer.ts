@@ -2,6 +2,7 @@ import { containerStyle } from '../globals/containerStyle';
 import { position } from '../globals/position';
 import { Container } from '../utils/htmlElements/container';
 import { drawCrosshair } from './overlay/crosshairs';
+import { drawMarkers } from './overlay/markers';
 import { drawNet } from './overlay/net';
 
 class OverlayContainer extends Container {
@@ -28,8 +29,10 @@ class OverlayContainer extends Container {
     if (context) {
       const { x, y } = position;
       context.translate(width / 2, height / 2);
-      drawCrosshair({ context, height, width, x, y });
-      drawNet({ context, height, width, x, y });
+      const props = { context, height, width, x, y };
+      drawCrosshair(props);
+      drawNet(props);
+      drawMarkers(props);
       this.append(canvas);
     }
   }

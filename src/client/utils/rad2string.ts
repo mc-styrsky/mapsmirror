@@ -26,7 +26,7 @@ export const rad2stringFuncs: Record<typeof settings.units.coords, (params: Coor
       (deg < 0 ? - degrees : degrees).toFixed(0).padStart(pad, '0')
     }°${
       minutes.toFixed(3).padStart(6, '0')
-    }'`;
+    }`;
   },
   dms: ({ axis = ' -', pad = 0, phi }: CoordsParams) => {
     const deg = Math.round(rad2ModuloDeg(phi) * 360000) / 360000;
@@ -43,7 +43,7 @@ export const rad2stringFuncs: Record<typeof settings.units.coords, (params: Coor
       minutes.toFixed(0).padStart(2, '0')
     }'${
       seconds.toFixed(2).padStart(5, '0')
-    }"`;
+    }`;
   },
 };
 

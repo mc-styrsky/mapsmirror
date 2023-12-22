@@ -1,6 +1,4 @@
 import type { Overlay } from '../../../common/types/overlay';
-import type { Marker } from '../../globals/marker';
-import { position } from '../../globals/position';
 import { tileSize } from '../../globals/tileSize';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
@@ -121,54 +119,4 @@ export const drawNet = ({
   });
   context.fill();
   context.stroke();
-
-  position.markers.forEach(marker => {
-    const markerX = (marker.x - x) * tileSize;
-    const markerY = (marker.y - y) * tileSize;
-    const from = 40;
-    const to = 10;
-
-    context.beginPath();
-    context.strokeStyle = '#000000';
-    context.lineWidth = 3;
-    context.arc(
-      markerX,
-      markerY,
-      5,
-      2 * Math.PI,
-      0,
-    );
-    context.moveTo(markerX + from, markerY);
-    context.lineTo(markerX + to, markerY);
-    context.moveTo(markerX - from, markerY);
-    context.lineTo(markerX - to, markerY);
-    context.moveTo(markerX, markerY + from);
-    context.lineTo(markerX, markerY + to);
-    context.moveTo(markerX, markerY - from);
-    context.lineTo(markerX, markerY - to);
-    context.stroke();
-    context.beginPath();
-    const colors: Record<Marker['type'], string> = {
-      navionics: '#00ff00',
-      user: '#800000',
-    };
-    context.strokeStyle = colors[marker.type];
-    context.lineWidth = 1;
-    context.arc(
-      markerX,
-      markerY,
-      5,
-      2 * Math.PI,
-      0,
-    );
-    context.moveTo(markerX + from, markerY);
-    context.lineTo(markerX + to, markerY);
-    context.moveTo(markerX - from, markerY);
-    context.lineTo(markerX - to, markerY);
-    context.moveTo(markerX, markerY + from);
-    context.lineTo(markerX, markerY + to);
-    context.moveTo(markerX, markerY - from);
-    context.lineTo(markerX, markerY - to);
-    context.stroke();
-  });
 };

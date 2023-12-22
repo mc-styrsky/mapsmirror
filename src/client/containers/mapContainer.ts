@@ -23,11 +23,15 @@ export class MapContainer extends Container {
   }
   private mapTiles = new Map<string, MapTile>();
 
+  rebuild (type: string) {
+    this.mapTiles.clear();
+    this.redraw(type);
+  }
+
   set baselayer (baselayer: Baselayer) {
     settings.baselayer = baselayer;
     baselayerMenu.baselayerLabel = BaselayerMenu.baselayerLabel(baselayer);
-    this.mapTiles.clear();
-    mapContainer.redraw('changed baselayer');
+    this.rebuild('changed baselayer');
   }
 
   redraw (type: string) {
@@ -71,7 +75,7 @@ export class MapContainer extends Container {
       });
     }
 
-    this.html.innerHTML = '';
+    this.clear();
     const sortedTiles = [...tileIds.entries()]
     .sort(([, a], [, b]) => {
       if (a.z === b.z) return MapTile.distance(a, position) - MapTile.distance(b, position);

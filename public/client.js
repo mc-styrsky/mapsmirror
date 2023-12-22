@@ -1630,17 +1630,6 @@ var Size = class {
   }
 };
 
-// src/client/globals/mouse.ts
-var mouse = {
-  down: {
-    state: false,
-    x: 0,
-    y: 0
-  },
-  x: 0,
-  y: 0
-};
-
 // src/common/extractProperties.ts
 function extractProperties(obj, builder) {
   return Object.entries(builder).reduce((ret, entry) => {
@@ -1649,93 +1638,6 @@ function extractProperties(obj, builder) {
     return ret;
   }, {});
 }
-
-// src/common/layers.ts
-var zoomMax = 20;
-var zoomMin = 2;
-var min = zoomMin;
-var max = zoomMax;
-var layers = {
-  "": { label: "- none -", max, min },
-  bingsat: { label: "bSat", max, min },
-  gebco: { label: "Depth", max: 9, min },
-  googlehybrid: { label: "gHybrid", max, min },
-  googlesat: { label: "gSat", max, min },
-  googlestreet: { label: "gStreet", max, min },
-  navionics: { label: "Navionics", max: 17, min },
-  openseamap: { label: "oSea", max: 18, min },
-  opentopomap: { label: "oTopo", max: 17, min },
-  osm: { label: "oStreet", max: 19, min },
-  vfdensity: { label: "Density", max: 12, min: 3 },
-  worthit: { label: "Worthit", max, min }
-};
-
-// src/common/modulo.ts
-function modulo(val, mod) {
-  const ret = val % mod;
-  return ret < 0 ? ret + mod : ret;
-}
-
-// src/client/globals/containerStyle.ts
-var containerStyle = {
-  height: "100%",
-  left: "0px",
-  overflow: "hidden",
-  position: "absolute",
-  top: "0px",
-  width: "100%"
-};
-
-// src/common/fromEntriesTyped.ts
-function fromEntriesTyped(entries) {
-  return Object.fromEntries(entries);
-}
-function entriesTyped(o) {
-  return Object.entries(o);
-}
-
-// src/client/utils/htmlElements/container.ts
-var Container = class _Container {
-  static from(tag, props) {
-    const {
-      classes,
-      dataset,
-      style,
-      ...data
-    } = props ?? {};
-    const html = tag instanceof HTMLElement ? tag : document.createElement(tag);
-    entriesTyped(data).forEach(([k, v]) => html[k] = v);
-    if (classes)
-      classes.forEach((c) => {
-        if (typeof c === "string")
-          html.classList.add(...c.split(" "));
-      });
-    if (dataset)
-      entriesTyped(dataset).forEach(([k, v]) => html.dataset[k] = v);
-    if (style)
-      entriesTyped(style).forEach(([k, v]) => html.style[k] = v);
-    return new _Container(html);
-  }
-  constructor(html = _Container.from("div")) {
-    this.html = html instanceof _Container ? html.html : html;
-  }
-  html;
-  clear() {
-    this.html.innerHTML = "";
-  }
-  append(...items) {
-    items.forEach((item) => {
-      if (item instanceof _Container)
-        this.html.append(item.html);
-      else if (item)
-        this.html.append(item);
-    });
-    return this;
-  }
-  getBoundingClientRect() {
-    return this.html.getBoundingClientRect();
-  }
-};
 
 // src/client/utils/localStorageItem.ts
 var import_json_stable_stringify = __toESM(require_json_stable_stringify(), 1);
@@ -1811,17 +1713,142 @@ var Settings = class {
 };
 var settings = new Settings();
 
+// src/common/fromEntriesTyped.ts
+function fromEntriesTyped(entries) {
+  return Object.fromEntries(entries);
+}
+function entriesTyped(o) {
+  return Object.entries(o);
+}
+
+// src/client/utils/htmlElements/container.ts
+var Container = class _Container {
+  static from(tag, props) {
+    const {
+      classes,
+      dataset,
+      style,
+      ...data
+    } = props ?? {};
+    const html = tag instanceof HTMLElement ? tag : document.createElement(tag);
+    entriesTyped(data).forEach(([k, v]) => html[k] = v);
+    if (classes)
+      classes.forEach((c) => {
+        if (typeof c === "string")
+          html.classList.add(...c.split(" "));
+      });
+    if (dataset)
+      entriesTyped(dataset).forEach(([k, v]) => html.dataset[k] = v);
+    if (style)
+      entriesTyped(style).forEach(([k, v]) => html.style[k] = v);
+    return new _Container(html);
+  }
+  constructor(html = _Container.from("div")) {
+    this.html = html instanceof _Container ? html.html : html;
+  }
+  html;
+  clear() {
+    this.html.innerHTML = "";
+  }
+  append(...items) {
+    items.forEach((item) => {
+      if (item instanceof _Container)
+        this.html.append(item.html);
+      else if (item)
+        this.html.append(item);
+    });
+    return this;
+  }
+  getBoundingClientRect() {
+    return this.html.getBoundingClientRect();
+  }
+};
+
+// node_modules/@mc-styrsky/queue/lib/index.js
+var StyQueue = class {
+  constructor(defaultConcurrency = 5) {
+    this.defaultConcurrency = defaultConcurrency;
+    this.queue = [];
+    this.working = 0;
+  }
+  defaultConcurrency;
+  queue = [];
+  working;
+  queue2working = async () => {
+    if (this.working < this.queue[0]?.concurrency) {
+      const { args, func, resolve } = this.queue.shift();
+      this.working++;
+      resolve(await func(...args ?? []));
+      this.working--;
+      this.queue2working();
+    }
+  };
+  get length() {
+    return this.queue.length + this.working;
+  }
+  shift = () => this.queue.shift();
+  pop = () => this.queue.pop();
+  enqueue = (func, args, concurrency = this.defaultConcurrency) => {
+    const promise = new Promise((resolve) => {
+      this.queue.push({
+        args,
+        concurrency: concurrency < 1 ? 1 : concurrency,
+        func,
+        resolve
+      });
+    });
+    this.queue2working();
+    return promise;
+  };
+};
+
 // src/client/globals/tileSize.ts
 var tileSize = 256;
+
+// src/client/utils/deg2rad.ts
+function deg2rad(val) {
+  return Number(val) * Math.PI / 180;
+}
+
+// src/common/layers.ts
+var zoomMax = 20;
+var zoomMin = 2;
+var min = zoomMin;
+var max = zoomMax;
+var layers = {
+  "": { label: "- none -", max, min },
+  bingsat: { label: "bSat", max, min },
+  gebco: { label: "Depth", max: 9, min },
+  googlehybrid: { label: "gHybrid", max, min },
+  googlesat: { label: "gSat", max, min },
+  googlestreet: { label: "gStreet", max, min },
+  navionics: { label: "Navionics", max: 17, min },
+  openseamap: { label: "oSea", max: 18, min },
+  opentopomap: { label: "oTopo", max: 17, min },
+  osm: { label: "oStreet", max: 19, min },
+  vfdensity: { label: "Density", max: 12, min: 3 },
+  worthit: { label: "Worthit", max, min }
+};
+
+// src/common/modulo.ts
+function modulo(val, mod) {
+  const ret = val % mod;
+  return ret < 0 ? ret + mod : ret;
+}
+
+// src/client/globals/containerStyle.ts
+var containerStyle = {
+  height: "100%",
+  left: "0px",
+  overflow: "hidden",
+  position: "absolute",
+  top: "0px",
+  width: "100%"
+};
 
 // src/client/utils/frac.ts
 function frac(x) {
   return x - Math.floor(x);
-}
-
-// src/client/utils/lat2y.ts
-function lat2y(lat2, tiles = position.tiles) {
-  return (0.5 - Math.asinh(Math.tan(lat2)) / Math.PI / 2) * tiles;
 }
 
 // src/client/utils/lon2x.ts
@@ -1992,6 +2019,44 @@ function drawCrosshair({
   }
 }
 
+// src/client/containers/overlay/markers.ts
+var drawMarkers = ({
+  context,
+  x,
+  y
+}) => {
+  position.markers.forEach((marker) => {
+    const markerX = (marker.x - x) * tileSize;
+    const markerY = (marker.y - y) * tileSize;
+    const from = 40;
+    const to = 10;
+    [
+      { color: "#000000", width: 3 },
+      { color: { navionics: "#00ff00", user: "#800000" }[marker.type], width: 1 }
+    ].forEach(({ color, width }) => {
+      context.beginPath();
+      context.strokeStyle = color;
+      context.lineWidth = width;
+      context.arc(
+        markerX,
+        markerY,
+        5,
+        2 * Math.PI,
+        0
+      );
+      context.moveTo(markerX + from, markerY);
+      context.lineTo(markerX + to, markerY);
+      context.moveTo(markerX - from, markerY);
+      context.lineTo(markerX - to, markerY);
+      context.moveTo(markerX, markerY + from);
+      context.lineTo(markerX, markerY + to);
+      context.moveTo(markerX, markerY - from);
+      context.lineTo(markerX, markerY - to);
+      context.stroke();
+    });
+  });
+};
+
 // src/client/utils/px2nm.ts
 function px2nm(lat2) {
   const stretch = 1 / Math.cos(lat2);
@@ -2009,7 +2074,7 @@ var rad2stringFuncs = {
     const deg = Math.round(rad2ModuloDeg(phi) * 6e4) / 6e4;
     const degrees = deg | 0;
     const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}'`;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}`;
   },
   dms: ({ axis = " -", pad: pad2 = 0, phi }) => {
     const deg = Math.round(rad2ModuloDeg(phi) * 36e4) / 36e4;
@@ -2017,7 +2082,7 @@ var rad2stringFuncs = {
     const min2 = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
     const minutes = min2 | 0;
     const seconds = (min2 - minutes) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}"`;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}`;
   }
 };
 function rad2string({ axis = " -", pad: pad2 = 0, phi }) {
@@ -2130,54 +2195,6 @@ var drawNet = ({
   });
   context.fill();
   context.stroke();
-  position.markers.forEach((marker) => {
-    const markerX = (marker.x - x) * tileSize;
-    const markerY = (marker.y - y) * tileSize;
-    const from = 40;
-    const to = 10;
-    context.beginPath();
-    context.strokeStyle = "#000000";
-    context.lineWidth = 3;
-    context.arc(
-      markerX,
-      markerY,
-      5,
-      2 * Math.PI,
-      0
-    );
-    context.moveTo(markerX + from, markerY);
-    context.lineTo(markerX + to, markerY);
-    context.moveTo(markerX - from, markerY);
-    context.lineTo(markerX - to, markerY);
-    context.moveTo(markerX, markerY + from);
-    context.lineTo(markerX, markerY + to);
-    context.moveTo(markerX, markerY - from);
-    context.lineTo(markerX, markerY - to);
-    context.stroke();
-    context.beginPath();
-    const colors = {
-      navionics: "#00ff00",
-      user: "#800000"
-    };
-    context.strokeStyle = colors[marker.type];
-    context.lineWidth = 1;
-    context.arc(
-      markerX,
-      markerY,
-      5,
-      2 * Math.PI,
-      0
-    );
-    context.moveTo(markerX + from, markerY);
-    context.lineTo(markerX + to, markerY);
-    context.moveTo(markerX - from, markerY);
-    context.lineTo(markerX - to, markerY);
-    context.moveTo(markerX, markerY + from);
-    context.lineTo(markerX, markerY + to);
-    context.moveTo(markerX, markerY - from);
-    context.lineTo(markerX, markerY - to);
-    context.stroke();
-  });
 };
 
 // src/client/containers/overlayContainer.ts
@@ -2204,55 +2221,165 @@ var OverlayContainer = class _OverlayContainer extends Container {
     if (context) {
       const { x, y } = position;
       context.translate(width / 2, height / 2);
-      drawCrosshair({ context, height, width, x, y });
-      drawNet({ context, height, width, x, y });
+      const props = { context, height, width, x, y };
+      drawCrosshair(props);
+      drawNet(props);
+      drawMarkers(props);
       this.append(canvas);
     }
   }
 };
 var overlayContainer = new OverlayContainer();
 
-// src/client/utils/deg2rad.ts
-function deg2rad(val) {
-  return Number(val) * Math.PI / 180;
+// src/client/globals/mouse.ts
+var mouse = {
+  down: {
+    state: false,
+    x: 0,
+    y: 0
+  },
+  x: 0,
+  y: 0
+};
+
+// src/client/globals/position.ts
+var Position = class {
+  constructor({ ttl: ttl2, x, y, z: z2 }) {
+    this.xyz = { x, y, z: z2 };
+    this._ttl = ttl2;
+    this.map = { x, y, z: z2 };
+  }
+  set ttl(val) {
+    this._ttl = val;
+  }
+  get ttl() {
+    return this._ttl;
+  }
+  get x() {
+    return this._x;
+  }
+  get y() {
+    return this._y;
+  }
+  get z() {
+    return this._z;
+  }
+  set xyz({ x = this._x, y = this._y, z: z2 = this._z }) {
+    this._z = z2;
+    this._tiles = 1 << z2;
+    this._x = modulo(x, this._tiles);
+    this._y = Math.max(0, Math.min(y, this._tiles));
+    setTimeout(() => overlayContainer.redraw(), 1);
+    if (!mouse.down.state)
+      setTimeout(() => navionicsDetails.fetch(this), 100);
+  }
+  get xyz() {
+    return {
+      x: this._x,
+      y: this._y,
+      z: this._z
+    };
+  }
+  get tiles() {
+    return this._tiles;
+  }
+  zoomIn = () => {
+    if (this._z < zoomMax) {
+      this.xyz = {
+        x: this._x * 2,
+        y: this._y * 2,
+        z: this._z + 1
+      };
+      return true;
+    }
+    return false;
+  };
+  zoomOut = () => {
+    if (this.z > zoomMin) {
+      this.xyz = {
+        x: this._x /= 2,
+        y: this._y /= 2,
+        z: this._z - 1
+      };
+      return true;
+    }
+    return false;
+  };
+  map;
+  markers = /* @__PURE__ */ new Map();
+  user = {
+    accuracy: 0,
+    latitude: 0,
+    longitude: 0,
+    timestamp: 0
+  };
+  _ttl;
+  _x = 0;
+  _y = 0;
+  _z = 0;
+  _tiles = 0;
+};
+var searchParams = Object.fromEntries(new URL(window.location.href).searchParams.entries());
+var { lat, lon, ttl, z } = extractProperties(searchParams, {
+  lat: (val) => Number(val) ? deg2rad(parseFloat(val)) : 0,
+  lon: (val) => Number(val) ? deg2rad(parseFloat(val)) : 0,
+  ttl: (val) => Number(val) ? parseInt(val) : 0,
+  z: (val) => Number(val) ? parseInt(val) : 2
+});
+var position = new Position({
+  ttl,
+  x: lon2x(lon, 1 << z),
+  y: lat2y(lat, 1 << z),
+  z
+});
+
+// src/client/utils/lat2y.ts
+function lat2y(lat2, tiles = position.tiles) {
+  return (0.5 - Math.asinh(Math.tan(lat2)) / Math.PI / 2) * tiles;
 }
 
-// node_modules/@mc-styrsky/queue/lib/index.js
-var StyQueue = class {
-  constructor(defaultConcurrency = 5) {
-    this.defaultConcurrency = defaultConcurrency;
-    this.queue = [];
-    this.working = 0;
+// src/client/globals/marker.ts
+var Marker = class {
+  constructor({ id = "", lat: lat2, lon: lon2, type }) {
+    this.lat = lat2;
+    this.lon = lon2;
+    this.type = type;
+    this.id = id;
+    position.markers.set(type, this);
   }
-  defaultConcurrency;
-  queue = [];
-  working;
-  queue2working = async () => {
-    if (this.working < this.queue[0]?.concurrency) {
-      const { args, func, resolve } = this.queue.shift();
-      this.working++;
-      resolve(await func(...args ?? []));
-      this.working--;
-      this.queue2working();
-    }
-  };
-  get length() {
-    return this.queue.length + this.working;
+  lat;
+  lon;
+  id;
+  get x() {
+    return lon2x(this.lon);
   }
-  shift = () => this.queue.shift();
-  pop = () => this.queue.pop();
-  enqueue = (func, args, concurrency = this.defaultConcurrency) => {
-    const promise = new Promise((resolve) => {
-      this.queue.push({
-        args,
-        concurrency: concurrency < 1 ? 1 : concurrency,
-        func,
-        resolve
-      });
-    });
-    this.queue2working();
-    return promise;
-  };
+  get y() {
+    return lat2y(this.lat);
+  }
+  type;
+  delete() {
+    position.markers.delete(this.type);
+  }
+};
+
+// src/client/utils/htmlElements/spinner.ts
+var Spinner = class extends Container {
+  constructor() {
+    super(Container.from("div", {
+      classes: ["d-flex"]
+    }));
+    this.append(
+      Container.from("div", {
+        classes: [
+          "spinner-border",
+          "spinner-border-sm"
+        ],
+        style: {
+          margin: "auto"
+        }
+      })
+    );
+  }
 };
 
 // src/client/utils/rad2deg.ts
@@ -2611,11 +2738,14 @@ var MapContainer = class _MapContainer extends Container {
     }));
   }
   mapTiles = /* @__PURE__ */ new Map();
+  rebuild(type) {
+    this.mapTiles.clear();
+    this.redraw(type);
+  }
   set baselayer(baselayer) {
     settings.baselayer = baselayer;
     baselayerMenu.baselayerLabel = BaselayerMenu.baselayerLabel(baselayer);
-    this.mapTiles.clear();
-    mapContainer.redraw("changed baselayer");
+    this.rebuild("changed baselayer");
   }
   redraw(type) {
     const { height, width } = boundingRect;
@@ -2653,7 +2783,7 @@ var MapContainer = class _MapContainer extends Container {
         });
       });
     }
-    this.html.innerHTML = "";
+    this.clear();
     const sortedTiles = [...tileIds.entries()].sort(([, a], [, b]) => {
       if (a.z === b.z)
         return MapTile.distance(a, position) - MapTile.distance(b, position);
@@ -2691,50 +2821,6 @@ var MapContainer = class _MapContainer extends Container {
   }
 };
 var mapContainer = new MapContainer();
-
-// src/client/globals/marker.ts
-var Marker = class {
-  constructor({ id = "", lat: lat2, lon: lon2, type }) {
-    this.lat = lat2;
-    this.lon = lon2;
-    this.type = type;
-    this.id = id;
-    position.markers.set(type, this);
-  }
-  lat;
-  lon;
-  id;
-  get x() {
-    return lon2x(this.lon);
-  }
-  get y() {
-    return lat2y(this.lat);
-  }
-  type;
-  delete() {
-    position.markers.delete(this.type);
-  }
-};
-
-// src/client/utils/htmlElements/spinner.ts
-var Spinner = class extends Container {
-  constructor() {
-    super(Container.from("div", {
-      classes: ["d-flex"]
-    }));
-    this.append(
-      Container.from("div", {
-        classes: [
-          "spinner-border",
-          "spinner-border-sm"
-        ],
-        style: {
-          margin: "auto"
-        }
-      })
-    );
-  }
-};
 
 // src/client/utils/htmlElements/iconButton.ts
 var BootstrapIcon = class extends Container {
@@ -2899,7 +2985,7 @@ var AccordionItem = class extends Container {
               id: item.id,
               type: "navionics"
             });
-            mapContainer.redraw("set navionics marker");
+            overlayContainer.redraw();
           }
         }
       }).append(
@@ -3185,96 +3271,52 @@ var NavionicsDetails = class extends Container {
 };
 var navionicsDetails = new NavionicsDetails();
 
-// src/client/globals/position.ts
-var Position = class {
-  constructor({ ttl: ttl2, x, y, z: z2 }) {
-    this.xyz = { x, y, z: z2 };
-    this._ttl = ttl2;
-    this.map = { x, y, z: z2 };
+// src/client/containers/infoBox/InfoBoxCoords.ts
+var InfoBoxCoords = class extends Container {
+  constructor() {
+    super();
+    const { height, width } = boundingRect;
+    const { x, y } = position;
+    const lat2 = y2lat(y);
+    const lon2 = x2lon(x);
+    const latMouse = y2lat(y + (mouse.y - height / 2) / tileSize);
+    const lonMouse = x2lon(x + (mouse.x - width / 2) / tileSize);
+    const scale = (() => {
+      let nm = px2nm(lat2);
+      let px = 1;
+      if (nm >= 1)
+        return `${px2nm(lat2).toPrecision(3)}nm/px`;
+      while (nm < 1) {
+        nm *= 10;
+        px *= 10;
+      }
+      return `${nm.toPrecision(3)}nm/${px.toFixed(0)}px`;
+    })();
+    this.row("Scale", `${scale} (Zoom ${position.z})`);
+    this.row("Lat/Lon", `${rad2string({ axis: "NS", pad: 2, phi: lat2 })} ${rad2string({ axis: "EW", pad: 3, phi: lon2 })}`);
+    this.row("Mouse", `${rad2string({ axis: "NS", pad: 2, phi: latMouse })} ${rad2string({ axis: "EW", pad: 3, phi: lonMouse })}`);
+    this.row(
+      "User",
+      `${rad2string({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2string({ axis: "EW", pad: 3, phi: position.user.longitude })}`
+    );
   }
-  set ttl(val) {
-    this._ttl = val;
+  row(a, b) {
+    this.append(
+      Container.from("div", {
+        classes: [
+          "d-flex"
+          // 'text-end',
+        ],
+        style: {
+          width: "100%"
+        }
+      }).append(
+        Container.from("div", { style: { marginRight: "auto" } }).append(a),
+        Container.from("div", { style: { marginLeft: "auto" } }).append(b)
+      )
+    );
   }
-  get ttl() {
-    return this._ttl;
-  }
-  get x() {
-    return this._x;
-  }
-  get y() {
-    return this._y;
-  }
-  get z() {
-    return this._z;
-  }
-  set xyz({ x = this._x, y = this._y, z: z2 = this._z }) {
-    this._z = z2;
-    this._tiles = 1 << z2;
-    this._x = modulo(x, this._tiles);
-    this._y = Math.max(0, Math.min(y, this._tiles));
-    setTimeout(() => overlayContainer.redraw(), 1);
-    if (!mouse.down.state)
-      setTimeout(() => navionicsDetails.fetch(this), 100);
-  }
-  get xyz() {
-    return {
-      x: this._x,
-      y: this._y,
-      z: this._z
-    };
-  }
-  get tiles() {
-    return this._tiles;
-  }
-  zoomIn = () => {
-    if (this._z < zoomMax) {
-      this.xyz = {
-        x: this._x * 2,
-        y: this._y * 2,
-        z: this._z + 1
-      };
-      return true;
-    }
-    return false;
-  };
-  zoomOut = () => {
-    if (this.z > zoomMin) {
-      this.xyz = {
-        x: this._x /= 2,
-        y: this._y /= 2,
-        z: this._z - 1
-      };
-      return true;
-    }
-    return false;
-  };
-  map;
-  markers = /* @__PURE__ */ new Map();
-  user = {
-    accuracy: 0,
-    latitude: 0,
-    longitude: 0,
-    timestamp: 0
-  };
-  _ttl;
-  _x = 0;
-  _y = 0;
-  _z = 0;
-  _tiles = 0;
 };
-var searchParams = Object.fromEntries(new URL(window.location.href).searchParams.entries());
-var { lat, lon, ttl, z } = extractProperties(searchParams, {
-  lat: (val) => Number(val) ? deg2rad(parseFloat(val)) : 0,
-  lon: (val) => Number(val) ? deg2rad(parseFloat(val)) : 0,
-  ttl: (val) => Number(val) ? parseInt(val) : 0,
-  z: (val) => Number(val) ? parseInt(val) : 2
-});
-var position = new Position({
-  ttl,
-  x: lon2x(lon, 1 << z),
-  y: lat2y(lat, 1 << z),
-  z
-});
 
 // src/client/globals/halfDay.ts
 var halfDay = 12 * 3600 * 1e3;
@@ -4878,6 +4920,7 @@ function intervalValueOf({ end: endDate, solarNoon: noonDate, start: startDate }
 var SolarTimesStatics = class extends Container {
   constructor() {
     super();
+    this.html.id = "SolarTimes";
   }
   lat = 0;
   lon = 0;
@@ -4983,8 +5026,10 @@ var SolarTimesStatsCanvas = class extends Container {
 };
 
 // src/client/containers/infoBox/suncalc/valueRow.ts
-var ValueRow = class {
-  lines = [];
+var ValueRow = class extends Container {
+  constructor() {
+    super();
+  }
   total = 0;
   totalKeys = [];
   fill = (label, sum) => this.add({
@@ -5024,7 +5069,7 @@ var ValueRow = class {
         style: { width: "5em" }
       }).append(...col3)
     ];
-    this.lines.push(Container.from("div", {
+    this.append(Container.from("div", {
       classes: ["d-flex"]
     }).append(...row));
     return this;
@@ -5079,33 +5124,32 @@ var SolarTimes = class extends SolarTimesDurations {
       this.lat = rad2deg(y2lat(this.y));
       this.lon = rad2deg(x2lon(this.x));
       this.clear();
-    }
-    const date = /* @__PURE__ */ new Date();
-    if (!this.html) {
+      const date = /* @__PURE__ */ new Date();
       const durations = {
         stats: this.getDurationsStat({
           year: date.getFullYear()
         }),
         today: this.getDurations({ date })
       };
-      const zhilds = new ValueRow().add({
-        durations,
-        keys: ["day"],
-        label: "Day"
-      }).add({
-        durations,
-        keys: ["sunrise", "sunset"],
-        label: "Sunrise/set"
-      }).add({
-        durations,
-        keys: ["civilDawn", "civilDusk"],
-        label: "Twilight"
-      }).add({
-        durations,
-        keys: ["nauticalDawn", "nauticalDusk"],
-        label: "Naut. Twilight"
-      }).fill("Night", halfDay * 2).fillStats(durations, halfDay * 2).lines;
-      this.append(...zhilds);
+      this.append(
+        new ValueRow().add({
+          durations,
+          keys: ["day"],
+          label: "Day"
+        }).add({
+          durations,
+          keys: ["sunrise", "sunset"],
+          label: "Sunrise/set"
+        }).add({
+          durations,
+          keys: ["civilDawn", "civilDusk"],
+          label: "Twilight"
+        }).add({
+          durations,
+          keys: ["nauticalDawn", "nauticalDusk"],
+          label: "Naut. Twilight"
+        }).fill("Night", halfDay * 2).fillStats(durations, halfDay * 2)
+      );
     }
   };
 };
@@ -5120,17 +5164,17 @@ var InfoBox = class extends Container {
         backgroundColor: "#aaaa",
         borderBottomLeftRadius: "var(--bs-border-radius)",
         borderTopLeftRadius: "var(--bs-border-radius)",
-        minWidth: "20rem",
         position: "absolute",
-        right: "0"
+        right: "0",
+        width: "20rem"
       }
     }));
   }
   update() {
     this.clear();
-    this.append(coordinates());
+    this.append(new InfoBoxCoords());
     if (settings.show.navionicsDetails)
-      this.append(navionicsDetails.html);
+      this.append(navionicsDetails);
     if (settings.show.suncalc) {
       solarTimes.refresh();
       this.append(solarTimes);
@@ -5138,42 +5182,6 @@ var InfoBox = class extends Container {
     imagesToFetch.refresh();
     this.append(imagesToFetch);
   }
-};
-var coordinates = () => {
-  const { height, width } = boundingRect;
-  const { x, y } = position;
-  const lat2 = y2lat(y);
-  const lon2 = x2lon(x);
-  const latMouse = y2lat(y + (mouse.y - height / 2) / tileSize);
-  const lonMouse = x2lon(x + (mouse.x - width / 2) / tileSize);
-  const scale = (() => {
-    let nm = px2nm(lat2);
-    let px = 1;
-    if (nm >= 1)
-      return `${px2nm(lat2).toPrecision(3)}nm/px`;
-    while (nm < 1) {
-      nm *= 10;
-      px *= 10;
-    }
-    return `${nm.toPrecision(3)}nm/${px.toFixed(0)}px`;
-  })();
-  return Container.from("div", {
-    classes: [
-      "float-end",
-      "text-end"
-    ],
-    style: {
-      width: "fit-content"
-    }
-  }).append(
-    `Scale: ${scale} (Zoom ${position.z})`,
-    Container.from("br"),
-    `Lat/Lon: ${rad2string({ axis: "NS", pad: 2, phi: lat2 })} ${rad2string({ axis: "EW", pad: 3, phi: lon2 })}`,
-    Container.from("br"),
-    `Mouse: ${rad2string({ axis: "NS", pad: 2, phi: latMouse })} ${rad2string({ axis: "EW", pad: 3, phi: lonMouse })}`,
-    Container.from("br"),
-    `User: ${rad2string({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2string({ axis: "EW", pad: 3, phi: position.user.longitude })}`
-  );
 };
 var infoBox = new InfoBox();
 
@@ -5546,7 +5554,7 @@ var OverlayToggle = class extends IconButton {
       active: () => Boolean(settings.show[source]),
       onclick: () => {
         settings.show[source] = !settings.show[source];
-        mapContainer.redraw(`overlay ${source} toggle`);
+        mapContainer.rebuild(`overlay ${source} toggle`);
       },
       src: `icons/${source}.svg`
     });
@@ -5767,7 +5775,7 @@ function mouseInput(event) {
   mouse.x = x;
   mouse.y = y;
   if (position.markers.delete("navionics"))
-    mapContainer.redraw("delete navionics marker");
+    overlayContainer.redraw();
   infoBox.update();
 }
 
@@ -5806,7 +5814,7 @@ window.addEventListener("resize", () => {
   boundingRect.refresh();
   mapContainer.redraw("resize");
 });
-mapContainer.redraw("initial");
+mapContainer.rebuild("initial");
 export {
   boundingRect
 };

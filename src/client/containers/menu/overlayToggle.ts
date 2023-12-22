@@ -9,7 +9,7 @@ export class OverlayToggle extends IconButton {
       active: () => Boolean(settings.show[source]),
       onclick: () => {
         settings.show[source] = !settings.show[source];
-        mapContainer.redraw(`overlay ${source} toggle`);
+        mapContainer.rebuild(`overlay ${source} toggle`);
       },
       src: `icons/${source}.svg`,
     });

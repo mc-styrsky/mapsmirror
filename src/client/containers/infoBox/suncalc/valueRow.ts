@@ -6,8 +6,10 @@ import { Container } from '../../../utils/htmlElements/container';
 import { SolarTimesStatics } from './solarTimes/statics';
 import { SolarTimesStatsCanvas } from './solarTimesStatsCanvas';
 
-export class ValueRow {
-  lines: Container[] = [];
+export class ValueRow extends Container {
+  constructor () {
+    super();
+  }
   total = 0;
   totalKeys: DurationKeys[] = [];
   fill = (label: string, sum: number) => this.add({
@@ -55,7 +57,7 @@ export class ValueRow {
         style: { width: '5em' },
       }).append(...col3),
     ];
-    this.lines.push(Container.from('div', {
+    this.append(Container.from('div', {
       classes: ['d-flex'],
     }).append(...row));
     return this;

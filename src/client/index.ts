@@ -29,4 +29,4 @@ window.addEventListener('resize', () => {
   mapContainer.redraw('resize');
 });
 
-mapContainer.redraw('initial');
+mapContainer.rebuild('initial');

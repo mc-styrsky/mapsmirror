@@ -23,6 +23,8 @@
     "src/server/index.ts",
     "src/client/index.ts",
     "src/common/types/overlay.ts",
+    "src/client/containers/infoBox/InfoBoxCoords.ts",
+    "src/client/containers/overlay/markers.ts",
   ],
   "include": [
     "src"

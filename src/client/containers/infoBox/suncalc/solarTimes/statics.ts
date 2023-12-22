@@ -7,6 +7,7 @@ import { Container } from '../../../../utils/htmlElements/container';
 export class SolarTimesStatics extends Container {
   constructor () {
     super();
+    this.html.id = 'SolarTimes';
   }
   lat = 0;
   lon = 0;
