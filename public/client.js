@@ -1776,7 +1776,7 @@ var ImagesToFetch = class extends Container {
   add = ({ source, ...xyz }) => {
     this.getSet(source).add(this.xyz2string(xyz));
     this.total[source] = (this.total[source] ?? 0) + 1;
-    infoBox.update();
+    infoBox.refresh();
   };
   delete = ({ source, ...xyz }) => {
     this.getSet(source).delete(this.xyz2string(xyz));
@@ -1784,7 +1784,7 @@ var ImagesToFetch = class extends Container {
       delete this.data[source];
       delete this.total[source];
     }
-    infoBox.update();
+    infoBox.refresh();
   };
   refresh = () => {
     this.clear();
@@ -1875,6 +1875,80 @@ var StyQueue = class {
 // src/client/globals/tileSize.ts
 var tileSize = 256;
 
+// src/client/containers/infoBox/navionicsDetails/accordion.ts
+var Accordion = class _Accordion extends Container {
+  constructor({ items, offset, parent }) {
+    const accordionId = `navionicsDetailsList${offset ?? ""}`;
+    super(Container.from("div", {
+      classes: ["accordion"],
+      id: accordionId
+    }));
+    if (items.length <= 10)
+      items.forEach((item) => {
+        this.append(item);
+        item.refresh();
+      });
+    else {
+      for (let i = 0; i < items.length; i += 10) {
+        const itemId = `navionicsDetailsItemList${i}`;
+        const itemsSlice = items.slice(i, i + 10);
+        this.append(
+          Container.from("div", {
+            classes: [
+              "accordion-item",
+              "mm-menu-text"
+            ]
+          }).append(
+            Container.from("div", {
+              classes: [
+                "accordion-header",
+                "mm-menu-text"
+              ]
+            }).append(
+              Container.from("div", {
+                classes: [
+                  "accordion-button",
+                  i === 0 ? null : "collapsed",
+                  "px-2",
+                  "py-0",
+                  "mm-menu-text"
+                ],
+                dataset: {
+                  bsTarget: `#${itemId}`,
+                  bsToggle: "collapse"
+                }
+              }).append(
+                Container.from("div", {
+                  classes: ["d-flex"],
+                  style: {
+                    width: "100%"
+                  }
+                }).append(
+                  itemsSlice.length === 1 ? `${i + 1}` : `${i + 1}-${i + itemsSlice.length}`
+                )
+              )
+            )
+          ).append(
+            Container.from("div", {
+              classes: [
+                "accordion-collapse",
+                "collapse",
+                "ps-2",
+                "pe-0",
+                i === 0 ? "show" : null
+              ],
+              dataset: {
+                bsParent: `#${accordionId}`
+              },
+              id: itemId
+            }).append(new _Accordion({ items: itemsSlice, offset: i, parent }))
+          )
+        );
+      }
+    }
+  }
+};
+
 // src/client/utils/deg2rad.ts
 function deg2rad(val) {
   return Number(val) * Math.PI / 180;
@@ -1895,6 +1969,602 @@ function px2nm(lat2) {
   const stretch = 1 / Math.cos(lat2);
   return 360 * 60 / position.tiles / tileSize / stretch;
 }
+
+// src/client/globals/containerStyle.ts
+var containerStyle = {
+  height: "100%",
+  left: "0px",
+  overflow: "hidden",
+  position: "absolute",
+  top: "0px",
+  width: "100%"
+};
+
+// src/client/utils/rad2deg.ts
+function rad2deg(val) {
+  return Number(val) * 180 / Math.PI;
+}
+
+// src/common/x2lon.ts
+function x2lonCommon(x, tiles) {
+  return (x / tiles - 0.5) * Math.PI * 2;
+}
+
+// src/client/utils/x2lon.ts
+function x2lon(x, tiles = position.tiles) {
+  return x2lonCommon(x, tiles);
+}
+
+// src/common/y2lat.ts
+function y2latCommon(y, tiles) {
+  return Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
+}
+
+// src/client/utils/y2lat.ts
+function y2lat(y, tiles = position.tiles) {
+  return y2latCommon(y, tiles);
+}
+
+// src/client/containers/map/drawImage.ts
+function drawImage({
+  context,
+  source,
+  ttl: ttl2,
+  x,
+  y,
+  z: z2
+}) {
+  if (z2 < layers[source].min)
+    return Promise.resolve(false);
+  const src = `/tile/${source}/${[
+    z2,
+    x.toString(16),
+    y.toString(16)
+  ].join("/")}?ttl=${ttl2}`;
+  imagesToFetch.add({ source, x, y, z: z2 });
+  return new Promise((resolve) => {
+    const img = new Image();
+    const onload = () => {
+      context.drawImage(img, 0, 0);
+      imagesToFetch.delete({ source, x, y, z: z2 });
+      resolve(true);
+    };
+    const onerror = async () => {
+      console.log("fallback", { source, x, y, z: z2 });
+      const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
+      const workerContext = workerCanvas.getContext("2d");
+      if (workerContext) {
+        const draw = await drawCachedImage({
+          alpha: 1,
+          context: workerContext,
+          source,
+          ttl: ttl2,
+          x: Math.floor(x / 2),
+          y: Math.floor(y / 2),
+          z: z2 - 1
+        });
+        const success = draw();
+        if (success)
+          context.drawImage(
+            workerCanvas,
+            (x & 1) * tileSize / 2,
+            (y & 1) * tileSize / 2,
+            tileSize / 2,
+            tileSize / 2,
+            0,
+            0,
+            tileSize,
+            tileSize
+          );
+        imagesToFetch.delete({ source, x, y, z: z2 });
+        resolve(success);
+      } else {
+        imagesToFetch.delete({ source, x, y, z: z2 });
+        resolve(false);
+      }
+    };
+    if (z2 > layers[source].max)
+      onerror();
+    else {
+      img.src = src;
+      img.onload = onload;
+      img.onerror = onerror;
+    }
+  });
+}
+
+// src/client/containers/map/navionicsWatermark.ts
+var navionicsWatermark = (async () => {
+  const img = new Image();
+  img.src = "/navionicsWatermark.png";
+  const cnvs = new OffscreenCanvas(tileSize, tileSize);
+  const ctx = cnvs.getContext("2d");
+  if (!ctx)
+    return null;
+  return new Promise((resolve) => {
+    img.onload = () => {
+      ctx.drawImage(img, 0, 0);
+      resolve(ctx.getImageData(0, 0, tileSize, tileSize).data);
+    };
+    img.onerror = () => {
+      ctx.beginPath();
+      ctx.fillStyle = "#f8f8f8f8";
+      ctx.strokeStyle = "#f8f8f8f8";
+      ctx.fillRect(0, 0, tileSize, tileSize);
+      ctx.fill();
+      ctx.stroke();
+      resolve(ctx.getImageData(0, 0, tileSize, tileSize).data);
+    };
+  });
+})().then((watermark) => {
+  if (!watermark)
+    return null;
+  const ret = new Uint8ClampedArray(tileSize * tileSize);
+  for (let i = 0; i < ret.length; i++) {
+    ret[i] = watermark[i * 4];
+  }
+  return ret;
+});
+
+// src/client/containers/map/drawNavionics.ts
+var backgroundColors = [
+  2142456,
+  // 0x38b8f8,
+  // 0x48c0f8,
+  // 0x50c0f8,
+  // 0x58c0f8,
+  // 0x58c8f8,
+  // 0x60c8f8,
+  // 0x68c8f8,
+  // 0x70c8f8,
+  // 0x78d0f8,
+  // 0x80d0f8,
+  // 0x88d0f8,
+  // 0x88d8f8,
+  // 0x90d8f8,
+  // 0x98d8f8,
+  // 0xa0d8f8,
+  // 0xa8e0f8,
+  // 0xb0e0f8,
+  // 0xb8e0f8,
+  // 0xc0e8f8,
+  16316664,
+  10012672
+].reduce((arr, val) => {
+  const r = val >> 16;
+  const g = val >> 8 & 255;
+  const b = val & 255;
+  const diff = 1;
+  const alpha = val === 10012672 ? 64 : 0;
+  for (let dr = -diff; dr <= diff; dr++) {
+    for (let dg = -diff; dg <= diff; dg++) {
+      for (let db = -diff; db <= diff; db++) {
+        arr.set((r + dr << 16) + (g + dg << 8) + b + db, alpha);
+      }
+    }
+  }
+  return arr;
+}, /* @__PURE__ */ new Map());
+async function drawNavionics({ context, source, ttl: ttl2, x, y, z: z2 }) {
+  const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
+  const workerContext = workerCanvas.getContext("2d");
+  const watermark = await navionicsWatermark;
+  if (!workerContext || !watermark)
+    return false;
+  const drawProm = drawImage({ context: workerContext, source, ttl: ttl2, x, y, z: z2 });
+  const draw = await drawProm;
+  if (!draw)
+    return false;
+  imagesToFetch.add({ source: "transparent", x, y, z: z2 });
+  const img = workerContext.getImageData(0, 0, tileSize, tileSize);
+  const { data } = img;
+  for (let i = 0; i < watermark.length; i++) {
+    const mask = watermark[i];
+    const subData = data.subarray(i * 4, i * 4 + 4);
+    const [r, g, b, a] = subData.map((v) => v * 248 / mask);
+    const color = (r << 16) + (g << 8) + b;
+    subData[0] = r;
+    subData[1] = g;
+    subData[2] = b;
+    subData[3] = backgroundColors.get(color) ?? a;
+  }
+  workerContext.putImageData(img, 0, 0);
+  imagesToFetch.delete({ source: "transparent", x, y, z: z2 });
+  context.drawImage(workerCanvas, 0, 0);
+  return true;
+}
+
+// src/client/containers/map/drawCachedImage.ts
+var imagesMap = {};
+async function drawCachedImage({
+  alpha,
+  context,
+  source,
+  ttl: ttl2,
+  x,
+  y,
+  z: z2
+}) {
+  const isNavionics = source === "navionics";
+  const src = `/${source}/${[
+    z2,
+    modulo(x, position.tiles).toString(16),
+    modulo(y, position.tiles).toString(16)
+  ].join("/")}`;
+  const drawCanvas = (cnvs) => {
+    context.globalAlpha = alpha;
+    context.drawImage(cnvs, 0, 0);
+  };
+  const cachedCanvas = await imagesMap[src];
+  if (cachedCanvas)
+    return () => {
+      drawCanvas(cachedCanvas);
+      return true;
+    };
+  const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
+  const workerContext = workerCanvas.getContext("2d");
+  if (!workerContext)
+    return () => true;
+  const successProm = isNavionics ? drawNavionics({ context: workerContext, source, ttl: ttl2, x, y, z: z2 }) : drawImage({ context: workerContext, source, ttl: ttl2, x, y, z: z2 });
+  imagesMap[src] = successProm.then((success2) => success2 ? workerCanvas : null);
+  const success = await successProm;
+  return () => {
+    if (success)
+      drawCanvas(workerCanvas);
+    return true;
+  };
+}
+
+// src/client/containers/map/mapTile.ts
+var pad = (1 << zoomMax).toString().length + 1;
+var MapTile = class _MapTile extends Container {
+  static id({ x, y, z: z2 }) {
+    return `z:${z2.toFixed(0).padStart(2, " ")}, x:${x.toFixed(0).padStart(pad, " ")}, y:${y.toFixed(0).padStart(pad, " ")}`;
+  }
+  static distance({ x, y, z: z2 }, ref) {
+    const scale = (1 << ref.z) / (1 << z2);
+    const dx = (x + 0.5) * scale - ref.x;
+    const dy = (y + 0.5) * scale - ref.y;
+    return Math.sqrt(dx * dx + dy * dy);
+  }
+  constructor({ x, y, z: z2 }) {
+    const width = tileSize;
+    const height = tileSize;
+    const ttl2 = Math.max(Math.min(17, z2 + Math.max(0, position.ttl)) - z2, 0);
+    super(Container.from("canvas", {
+      dataset: {
+        x: x.toFixed(0),
+        y: y.toFixed(0),
+        z: z2.toFixed(0)
+      },
+      style: {
+        height: `${height}px`,
+        left: "50%",
+        position: "absolute",
+        top: "50%",
+        width: `${width}px`
+      }
+    }));
+    this.x = x;
+    this.y = y;
+    this.z = z2;
+    this.id = _MapTile.id({ x, y, z: z2 });
+    this.html.width = width;
+    this.html.height = height;
+    const context = this.html.getContext("2d");
+    if (context) {
+      Promise.all(settings.tiles.map(async (entry) => {
+        const { alpha, source } = entry;
+        return await drawCachedImage({ alpha, context, source, ttl: ttl2, x, y, z: z2 });
+      })).then((draws) => draws.reduce(
+        (prom, draw) => prom.then(() => draw()),
+        Promise.resolve(true)
+      ));
+    }
+  }
+  x;
+  y;
+  z;
+  moveTo({ x, y, z: z2 }) {
+    const scaleZ = z2 >= this.z ? 1 << z2 - this.z : 1 / (1 << this.z - z2);
+    const size = tileSize * scaleZ;
+    this.html.style.height = `${size}px`;
+    this.html.style.width = `${size}px`;
+    this.html.style.transform = `translate(${Math.floor((this.x * scaleZ - x) * tileSize)}px, ${Math.floor((this.y * scaleZ - y) * tileSize)}px)`;
+  }
+  id;
+};
+
+// src/client/containers/menu/baselayerMenu.ts
+var BaselayerMenu = class _BaselayerMenu extends Container {
+  static baselayerLabel = (source) => `${layers[source].label} (${baselayers.indexOf(source)})`;
+  constructor() {
+    super(Container.from("div", {
+      classes: ["dropdown"]
+    }));
+    this.append(
+      this.baselayerMenuButton,
+      Container.from("ul", {
+        classes: ["dropdown-menu"]
+      }).append(
+        Container.from("li").append(
+          ...baselayers.map((source) => {
+            return Container.from("a", {
+              classes: ["dropdown-item"],
+              onclick: () => mapContainer.baselayer = source
+            }).append(_BaselayerMenu.baselayerLabel(source));
+          })
+        )
+      )
+    );
+  }
+  set baselayerLabel(val) {
+    this.baselayerMenuButton.html.innerText = val;
+  }
+  baselayerMenuButton = Container.from("a", {
+    classes: ["btn", "btn-secondary", "dropdown-toggle"],
+    dataset: {
+      bsToggle: "dropdown"
+    },
+    role: "button"
+  }).append(_BaselayerMenu.baselayerLabel(settings.baselayer));
+};
+var baselayerMenu = new BaselayerMenu();
+
+// src/client/containers/mapContainer.ts
+var MapContainer = class _MapContainer extends Container {
+  constructor() {
+    super(Container.from("div", {
+      id: _MapContainer.name,
+      style: containerStyle
+    }));
+  }
+  mapTiles = /* @__PURE__ */ new Map();
+  rebuild(type) {
+    this.mapTiles.clear();
+    this.redraw(type);
+  }
+  set baselayer(baselayer) {
+    settings.baselayer = baselayer;
+    baselayerMenu.baselayerLabel = BaselayerMenu.baselayerLabel(baselayer);
+    this.rebuild("changed baselayer");
+  }
+  redraw(type) {
+    const { height, width } = boundingRect;
+    const { tiles, ttl: ttl2, x, y, z: z2 } = position;
+    infoBox.refresh();
+    console.log(`${type} redraw@${(/* @__PURE__ */ new Date()).toISOString()}`);
+    const maxdx = Math.ceil(x + width / 2 / tileSize);
+    const maxdy = Math.ceil(y + height / 2 / tileSize);
+    const mindx = Math.floor(x - width / 2 / tileSize);
+    const mindy = Math.floor(y - height / 2 / tileSize);
+    const txArray = [];
+    for (let tx = mindx; tx < maxdx; tx++) {
+      txArray.push(tx);
+      if (tx < 0)
+        txArray.push(tx + tiles);
+      if (tx > tiles)
+        txArray.push(tx - tiles);
+    }
+    const tyArray = [];
+    for (let ty = mindy; ty < maxdy; ty++) {
+      if (ty >= 0 && ty < tiles)
+        tyArray.push(ty);
+    }
+    const tileIds = /* @__PURE__ */ new Map();
+    for (let tz = zoomMin; tz <= z2; tz++) {
+      txArray.forEach((tx) => {
+        tyArray.forEach((ty) => {
+          const xyz = {
+            x: tx >> z2 - tz,
+            y: ty >> z2 - tz,
+            z: tz
+          };
+          const id = MapTile.id(xyz);
+          tileIds.set(id, xyz);
+        });
+      });
+    }
+    this.clear();
+    const sortedTiles = [...tileIds.entries()].sort(([, a], [, b]) => {
+      if (a.z === b.z)
+        return MapTile.distance(a, position) - MapTile.distance(b, position);
+      if (a.z === z2)
+        return 1;
+      if (b.z === z2)
+        return -1;
+      if (a.z > z2 && b.z > z2)
+        return b.z - a.z;
+      return a.z - b.z;
+    });
+    sortedTiles.forEach(([id, xyz]) => {
+      const tile = this.mapTiles.get(id) ?? (() => {
+        const t = new MapTile(xyz);
+        this.mapTiles.set(t.id, t);
+        return t;
+      })();
+      this.append(tile);
+      tile.moveTo({ x, y, z: z2 });
+    });
+    (() => {
+      const { origin, pathname, search } = window.location;
+      const newsearch = `?${[
+        ["z", z2],
+        ["ttl", ttl2],
+        ["lat", rad2deg(y2lat(y)).toFixed(5)],
+        ["lon", rad2deg(x2lon(x)).toFixed(5)]
+      ].map(([k, v]) => `${k}=${v}`).join("&")}`;
+      if (newsearch !== search) {
+        const newlocation = `${origin}${pathname}${newsearch}`;
+        window.history.pushState({ path: newlocation }, "", newlocation);
+      }
+      new LocalStorageItem("settings").set(settings);
+    })();
+  }
+};
+var mapContainer = new MapContainer();
+
+// src/client/utils/htmlElements/iconButton.ts
+var BootstrapIcon = class extends Container {
+  constructor({ fontSize = "175%", icon }) {
+    super(Container.from("i", {
+      classes: [`bi-${icon}`],
+      style: { fontSize }
+    }));
+  }
+};
+var IconButton = class extends Container {
+  constructor({
+    active = () => false,
+    fontSize,
+    icon,
+    onclick = () => void 0,
+    src,
+    style
+  }) {
+    super(Container.from("a", {
+      classes: ["btn", active() ? "btn-success" : "btn-secondary"],
+      role: "button",
+      style: {
+        padding: "0.25rem",
+        ...style
+      }
+    }));
+    this.append(
+      icon ? new BootstrapIcon({ fontSize, icon }) : Container.from("img", {
+        src,
+        style: {
+          height: "1.75rem"
+        }
+      })
+    );
+    this.html.onclick = () => {
+      onclick();
+      if (active()) {
+        this.html.classList.add("btn-success");
+        this.html.classList.remove("btn-secondary");
+      } else {
+        this.html.classList.add("btn-secondary");
+        this.html.classList.remove("btn-success");
+      }
+      mapContainer.clear();
+      mapContainer.redraw("icon clicked");
+    };
+  }
+};
+
+// src/client/containers/infoBox/navionicsDetails/accordionItem/goto.ts
+var NavionicsGoto = class extends Container {
+  constructor(item) {
+    super(Container.from("a", {
+      onclick: (event) => {
+        const { lat: lat2, lon: lon2 } = item.position;
+        position.xyz = {
+          x: lon2x(lon2),
+          y: lat2y(lat2)
+        };
+        mapContainer.redraw("goto");
+        event.stopPropagation();
+      },
+      style: {
+        marginLeft: "auto",
+        padding: "0.25rem"
+      }
+    }));
+    this.append(new BootstrapIcon({ icon: "arrow-right-circle" }));
+  }
+};
+
+// src/client/containers/infoBox/navionicsDetails/accordionItem/icon.ts
+var NavionicsIcon = class extends Container {
+  constructor(item) {
+    super(Container.from("div", {
+      classes: ["d-flex"],
+      style: {
+        height: "2em",
+        width: "2em"
+      }
+    }));
+    this.append(
+      Container.from("div", {
+        style: {
+          margin: "auto"
+        }
+      }).append(
+        Container.from("img", {
+          src: `/navionics/icon/${encodeURIComponent(item.iconId)}`,
+          style: {
+            maxHeight: "1.5em",
+            maxWidth: "1.5em"
+          }
+        })
+      )
+    );
+  }
+};
+
+// src/client/containers/infoBox/navionicsDetails/accordionItem/itemDetails.ts
+var NavionicsItemDetails = class extends Container {
+  constructor(item) {
+    super(Container.from("div", {
+      classes: ["accordion-collapse", "collapse", "px-2"],
+      dataset: {
+        // bsParent: `#${item.accordionId}`,
+      },
+      id: `navionicsItem${item.itemId}`
+    }));
+    this.append("fetching...");
+    fetch(`/navionics/objectinfo/${item.itemId}`).then(async (res) => res.ok ? await res.json() : {}).catch(() => ({})).then((body) => {
+      const { label, properties } = extractProperties(
+        body,
+        {
+          label: String,
+          properties: (val) => val?.map(({ label: label2 }) => String(label2))?.filter(Boolean)
+        }
+      );
+      item.label = label, item.properties = properties;
+      this.clear();
+      if (properties)
+        properties.forEach((prop) => {
+          this.append(Container.from("p").append(prop));
+        });
+      item.refresh();
+    });
+  }
+};
+
+// src/client/containers/infoBox/navionicsDetails/accordionItem/label.ts
+var NavionicsItemLabel = class extends Container {
+  constructor(item) {
+    super(Container.from("div", {
+      classes: ["d-flex"]
+    }));
+    this.append(
+      Container.from("div", {
+        style: {
+          margin: "auto"
+        }
+      }).append(item.itemName).append(
+        Container.from("div", {
+          style: {
+            fontSize: "70%",
+            marginLeft: "0.5rem"
+          }
+        }).append(this.distance)
+      )
+    );
+  }
+  distance = Container.from("div", {
+    style: {
+      fontSize: "70%",
+      marginLeft: "0.5rem"
+    }
+  });
+  refresh({ item }) {
+    this.distance.clear();
+    this.distance.append(item.distance.toFixed(3), "nm");
+  }
+};
 
 // src/client/globals/marker.ts
 var Marker = class {
@@ -1920,36 +2590,6 @@ var Marker = class {
   }
 };
 
-// src/client/utils/htmlElements/spinner.ts
-var Spinner = class extends Container {
-  constructor() {
-    super(Container.from("div", {
-      classes: ["d-flex"]
-    }));
-    this.append(
-      Container.from("div", {
-        classes: [
-          "spinner-border",
-          "spinner-border-sm"
-        ],
-        style: {
-          margin: "auto"
-        }
-      })
-    );
-  }
-};
-
-// src/client/globals/containerStyle.ts
-var containerStyle = {
-  height: "100%",
-  left: "0px",
-  overflow: "hidden",
-  position: "absolute",
-  top: "0px",
-  width: "100%"
-};
-
 // src/client/utils/frac.ts
 function frac(x) {
   return x - Math.floor(x);
@@ -1964,26 +2604,6 @@ function min2rad(min2) {
 function nm2px(lat2) {
   const stretch = 1 / Math.cos(lat2);
   return position.tiles * tileSize / 360 / 60 * stretch;
-}
-
-// src/common/x2lon.ts
-function x2lonCommon(x, tiles) {
-  return (x / tiles - 0.5) * Math.PI * 2;
-}
-
-// src/client/utils/x2lon.ts
-function x2lon(x, tiles = position.tiles) {
-  return x2lonCommon(x, tiles);
-}
-
-// src/common/y2lat.ts
-function y2latCommon(y, tiles) {
-  return Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
-}
-
-// src/client/utils/y2lat.ts
-function y2lat(y, tiles = position.tiles) {
-  return y2latCommon(y, tiles);
 }
 
 // src/client/containers/overlay/sphericCircle.ts
@@ -2324,688 +2944,159 @@ var OverlayContainer = class _OverlayContainer extends Container {
 };
 var overlayContainer = new OverlayContainer();
 
-// src/client/utils/rad2deg.ts
-function rad2deg(val) {
-  return Number(val) * 180 / Math.PI;
-}
-
-// src/client/containers/map/drawImage.ts
-function drawImage({
-  context,
-  source,
-  ttl: ttl2,
-  x,
-  y,
-  z: z2
-}) {
-  if (z2 < layers[source].min)
-    return Promise.resolve(false);
-  const src = `/tile/${source}/${[
-    z2,
-    x.toString(16),
-    y.toString(16)
-  ].join("/")}?ttl=${ttl2}`;
-  imagesToFetch.add({ source, x, y, z: z2 });
-  return new Promise((resolve) => {
-    const img = new Image();
-    const onload = () => {
-      context.drawImage(img, 0, 0);
-      imagesToFetch.delete({ source, x, y, z: z2 });
-      resolve(true);
-    };
-    const onerror = async () => {
-      console.log("fallback", { source, x, y, z: z2 });
-      const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
-      const workerContext = workerCanvas.getContext("2d");
-      if (workerContext) {
-        const draw = await drawCachedImage({
-          alpha: 1,
-          context: workerContext,
-          source,
-          ttl: ttl2,
-          x: Math.floor(x / 2),
-          y: Math.floor(y / 2),
-          z: z2 - 1
-        });
-        const success = draw();
-        if (success)
-          context.drawImage(
-            workerCanvas,
-            (x & 1) * tileSize / 2,
-            (y & 1) * tileSize / 2,
-            tileSize / 2,
-            tileSize / 2,
-            0,
-            0,
-            tileSize,
-            tileSize
-          );
-        imagesToFetch.delete({ source, x, y, z: z2 });
-        resolve(success);
-      } else {
-        imagesToFetch.delete({ source, x, y, z: z2 });
-        resolve(false);
-      }
-    };
-    if (z2 > layers[source].max)
-      onerror();
-    else {
-      img.src = src;
-      img.onload = onload;
-      img.onerror = onerror;
-    }
-  });
-}
-
-// src/client/containers/map/navionicsWatermark.ts
-var navionicsWatermark = (async () => {
-  const img = new Image();
-  img.src = "/navionicsWatermark.png";
-  const cnvs = new OffscreenCanvas(tileSize, tileSize);
-  const ctx = cnvs.getContext("2d");
-  if (!ctx)
-    return null;
-  return new Promise((resolve) => {
-    img.onload = () => {
-      ctx.drawImage(img, 0, 0);
-      resolve(ctx.getImageData(0, 0, tileSize, tileSize).data);
-    };
-    img.onerror = () => {
-      ctx.beginPath();
-      ctx.fillStyle = "#f8f8f8f8";
-      ctx.strokeStyle = "#f8f8f8f8";
-      ctx.fillRect(0, 0, tileSize, tileSize);
-      ctx.fill();
-      ctx.stroke();
-      resolve(ctx.getImageData(0, 0, tileSize, tileSize).data);
-    };
-  });
-})().then((watermark) => {
-  if (!watermark)
-    return null;
-  const ret = new Uint8ClampedArray(tileSize * tileSize);
-  for (let i = 0; i < ret.length; i++) {
-    ret[i] = watermark[i * 4];
-  }
-  return ret;
-});
-
-// src/client/containers/map/drawNavionics.ts
-var backgroundColors = [
-  2142456,
-  // 0x38b8f8,
-  // 0x48c0f8,
-  // 0x50c0f8,
-  // 0x58c0f8,
-  // 0x58c8f8,
-  // 0x60c8f8,
-  // 0x68c8f8,
-  // 0x70c8f8,
-  // 0x78d0f8,
-  // 0x80d0f8,
-  // 0x88d0f8,
-  // 0x88d8f8,
-  // 0x90d8f8,
-  // 0x98d8f8,
-  // 0xa0d8f8,
-  // 0xa8e0f8,
-  // 0xb0e0f8,
-  // 0xb8e0f8,
-  // 0xc0e8f8,
-  16316664,
-  10012672
-].reduce((arr, val) => {
-  const r = val >> 16;
-  const g = val >> 8 & 255;
-  const b = val & 255;
-  const diff = 1;
-  const alpha = val === 10012672 ? 64 : 0;
-  for (let dr = -diff; dr <= diff; dr++) {
-    for (let dg = -diff; dg <= diff; dg++) {
-      for (let db = -diff; db <= diff; db++) {
-        arr.set((r + dr << 16) + (g + dg << 8) + b + db, alpha);
-      }
-    }
-  }
-  return arr;
-}, /* @__PURE__ */ new Map());
-async function drawNavionics({ context, source, ttl: ttl2, x, y, z: z2 }) {
-  const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
-  const workerContext = workerCanvas.getContext("2d");
-  const watermark = await navionicsWatermark;
-  if (!workerContext || !watermark)
-    return false;
-  const drawProm = drawImage({ context: workerContext, source, ttl: ttl2, x, y, z: z2 });
-  const draw = await drawProm;
-  if (!draw)
-    return false;
-  imagesToFetch.add({ source: "transparent", x, y, z: z2 });
-  const img = workerContext.getImageData(0, 0, tileSize, tileSize);
-  const { data } = img;
-  for (let i = 0; i < watermark.length; i++) {
-    const mask = watermark[i];
-    const subData = data.subarray(i * 4, i * 4 + 4);
-    const [r, g, b, a] = subData.map((v) => v * 248 / mask);
-    const color = (r << 16) + (g << 8) + b;
-    subData[0] = r;
-    subData[1] = g;
-    subData[2] = b;
-    subData[3] = backgroundColors.get(color) ?? a;
-  }
-  workerContext.putImageData(img, 0, 0);
-  imagesToFetch.delete({ source: "transparent", x, y, z: z2 });
-  context.drawImage(workerCanvas, 0, 0);
-  return true;
-}
-
-// src/client/containers/map/drawCachedImage.ts
-var imagesMap = {};
-async function drawCachedImage({
-  alpha,
-  context,
-  source,
-  ttl: ttl2,
-  x,
-  y,
-  z: z2
-}) {
-  const isNavionics = source === "navionics";
-  const src = `/${source}/${[
-    z2,
-    modulo(x, position.tiles).toString(16),
-    modulo(y, position.tiles).toString(16)
-  ].join("/")}`;
-  const drawCanvas = (cnvs) => {
-    context.globalAlpha = alpha;
-    context.drawImage(cnvs, 0, 0);
-  };
-  const cachedCanvas = await imagesMap[src];
-  if (cachedCanvas)
-    return () => {
-      drawCanvas(cachedCanvas);
-      return true;
-    };
-  const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
-  const workerContext = workerCanvas.getContext("2d");
-  if (!workerContext)
-    return () => true;
-  const successProm = isNavionics ? drawNavionics({ context: workerContext, source, ttl: ttl2, x, y, z: z2 }) : drawImage({ context: workerContext, source, ttl: ttl2, x, y, z: z2 });
-  imagesMap[src] = successProm.then((success2) => success2 ? workerCanvas : null);
-  const success = await successProm;
-  return () => {
-    if (success)
-      drawCanvas(workerCanvas);
-    return true;
-  };
-}
-
-// src/client/containers/map/mapTile.ts
-var pad = (1 << zoomMax).toString().length + 1;
-var MapTile = class _MapTile extends Container {
-  static id({ x, y, z: z2 }) {
-    return `z:${z2.toFixed(0).padStart(2, " ")}, x:${x.toFixed(0).padStart(pad, " ")}, y:${y.toFixed(0).padStart(pad, " ")}`;
-  }
-  static distance({ x, y, z: z2 }, ref) {
-    const scale = (1 << ref.z) / (1 << z2);
-    const dx = (x + 0.5) * scale - ref.x;
-    const dy = (y + 0.5) * scale - ref.y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }
-  constructor({ x, y, z: z2 }) {
-    const width = tileSize;
-    const height = tileSize;
-    const ttl2 = Math.max(Math.min(17, z2 + Math.max(0, position.ttl)) - z2, 0);
-    super(Container.from("canvas", {
-      dataset: {
-        x: x.toFixed(0),
-        y: y.toFixed(0),
-        z: z2.toFixed(0)
-      },
-      style: {
-        height: `${height}px`,
-        left: "50%",
-        position: "absolute",
-        top: "50%",
-        width: `${width}px`
-      }
-    }));
-    this.x = x;
-    this.y = y;
-    this.z = z2;
-    this.id = _MapTile.id({ x, y, z: z2 });
-    this.html.width = width;
-    this.html.height = height;
-    const context = this.html.getContext("2d");
-    if (context) {
-      Promise.all(settings.tiles.map(async (entry) => {
-        const { alpha, source } = entry;
-        return await drawCachedImage({ alpha, context, source, ttl: ttl2, x, y, z: z2 });
-      })).then((draws) => draws.reduce(
-        (prom, draw) => prom.then(() => draw()),
-        Promise.resolve(true)
-      ));
-    }
-  }
-  x;
-  y;
-  z;
-  moveTo({ x, y, z: z2 }) {
-    const scaleZ = z2 >= this.z ? 1 << z2 - this.z : 1 / (1 << this.z - z2);
-    const size = tileSize * scaleZ;
-    this.html.style.height = `${size}px`;
-    this.html.style.width = `${size}px`;
-    this.html.style.transform = `translate(${Math.floor((this.x * scaleZ - x) * tileSize)}px, ${Math.floor((this.y * scaleZ - y) * tileSize)}px)`;
-  }
-  id;
-};
-
-// src/client/containers/menu/baselayerMenu.ts
-var BaselayerMenu = class _BaselayerMenu extends Container {
-  static baselayerLabel = (source) => `${layers[source].label} (${baselayers.indexOf(source)})`;
-  constructor() {
-    super(Container.from("div", {
-      classes: ["dropdown"]
-    }));
-    this.append(
-      this.baselayerMenuButton,
-      Container.from("ul", {
-        classes: ["dropdown-menu"]
-      }).append(
-        Container.from("li").append(
-          ...baselayers.map((source) => {
-            return Container.from("a", {
-              classes: ["dropdown-item"],
-              onclick: () => mapContainer.baselayer = source
-            }).append(_BaselayerMenu.baselayerLabel(source));
-          })
-        )
-      )
-    );
-  }
-  set baselayerLabel(val) {
-    this.baselayerMenuButton.html.innerText = val;
-  }
-  baselayerMenuButton = Container.from("a", {
-    classes: ["btn", "btn-secondary", "dropdown-toggle"],
-    dataset: {
-      bsToggle: "dropdown"
-    },
-    role: "button"
-  }).append(_BaselayerMenu.baselayerLabel(settings.baselayer));
-};
-var baselayerMenu = new BaselayerMenu();
-
-// src/client/containers/mapContainer.ts
-var MapContainer = class _MapContainer extends Container {
-  constructor() {
-    super(Container.from("div", {
-      id: _MapContainer.name,
-      style: containerStyle
-    }));
-  }
-  mapTiles = /* @__PURE__ */ new Map();
-  rebuild(type) {
-    this.mapTiles.clear();
-    this.redraw(type);
-  }
-  set baselayer(baselayer) {
-    settings.baselayer = baselayer;
-    baselayerMenu.baselayerLabel = BaselayerMenu.baselayerLabel(baselayer);
-    this.rebuild("changed baselayer");
-  }
-  redraw(type) {
-    const { height, width } = boundingRect;
-    const { tiles, ttl: ttl2, x, y, z: z2 } = position;
-    infoBox.update();
-    console.log(`${type} redraw@${(/* @__PURE__ */ new Date()).toISOString()}`);
-    const maxdx = Math.ceil(x + width / 2 / tileSize);
-    const maxdy = Math.ceil(y + height / 2 / tileSize);
-    const mindx = Math.floor(x - width / 2 / tileSize);
-    const mindy = Math.floor(y - height / 2 / tileSize);
-    const txArray = [];
-    for (let tx = mindx; tx < maxdx; tx++) {
-      txArray.push(tx);
-      if (tx < 0)
-        txArray.push(tx + tiles);
-      if (tx > tiles)
-        txArray.push(tx - tiles);
-    }
-    const tyArray = [];
-    for (let ty = mindy; ty < maxdy; ty++) {
-      if (ty >= 0 && ty < tiles)
-        tyArray.push(ty);
-    }
-    const tileIds = /* @__PURE__ */ new Map();
-    for (let tz = zoomMin; tz <= z2; tz++) {
-      txArray.forEach((tx) => {
-        tyArray.forEach((ty) => {
-          const xyz = {
-            x: tx >> z2 - tz,
-            y: ty >> z2 - tz,
-            z: tz
-          };
-          const id = MapTile.id(xyz);
-          tileIds.set(id, xyz);
-        });
-      });
-    }
-    this.clear();
-    const sortedTiles = [...tileIds.entries()].sort(([, a], [, b]) => {
-      if (a.z === b.z)
-        return MapTile.distance(a, position) - MapTile.distance(b, position);
-      if (a.z === z2)
-        return 1;
-      if (b.z === z2)
-        return -1;
-      if (a.z > z2 && b.z > z2)
-        return b.z - a.z;
-      return a.z - b.z;
-    });
-    sortedTiles.forEach(([id, xyz]) => {
-      const tile = this.mapTiles.get(id) ?? (() => {
-        const t = new MapTile(xyz);
-        this.mapTiles.set(t.id, t);
-        return t;
-      })();
-      this.append(tile);
-      tile.moveTo({ x, y, z: z2 });
-    });
-    (() => {
-      const { origin, pathname, search } = window.location;
-      const newsearch = `?${[
-        ["z", z2],
-        ["ttl", ttl2],
-        ["lat", rad2deg(y2lat(y)).toFixed(5)],
-        ["lon", rad2deg(x2lon(x)).toFixed(5)]
-      ].map(([k, v]) => `${k}=${v}`).join("&")}`;
-      if (newsearch !== search) {
-        const newlocation = `${origin}${pathname}${newsearch}`;
-        window.history.pushState({ path: newlocation }, "", newlocation);
-      }
-      new LocalStorageItem("settings").set(settings);
-    })();
-  }
-};
-var mapContainer = new MapContainer();
-
-// src/client/utils/htmlElements/iconButton.ts
-var BootstrapIcon = class extends Container {
-  constructor({ fontSize = "175%", icon }) {
-    super(Container.from("i", {
-      classes: [`bi-${icon}`],
-      style: { fontSize }
-    }));
-  }
-};
-var IconButton = class extends Container {
-  constructor({
-    active = () => false,
-    fontSize,
-    icon,
-    onclick = () => void 0,
-    src,
-    style
-  }) {
-    super(Container.from("a", {
-      classes: ["btn", active() ? "btn-success" : "btn-secondary"],
-      role: "button",
-      style: {
-        padding: "0.25rem",
-        ...style
-      }
-    }));
-    this.append(
-      icon ? new BootstrapIcon({ fontSize, icon }) : Container.from("img", {
-        src,
-        style: {
-          height: "1.75rem"
-        }
-      })
-    );
-    this.html.onclick = () => {
-      onclick();
-      if (active()) {
-        this.html.classList.add("btn-success");
-        this.html.classList.remove("btn-secondary");
-      } else {
-        this.html.classList.add("btn-secondary");
-        this.html.classList.remove("btn-success");
-      }
-      mapContainer.clear();
-      mapContainer.redraw("icon clicked");
-    };
-  }
-};
-
-// src/client/containers/infoBox/navionicsDetails/goto.ts
-var NavionicsGoto = class extends Container {
+// src/client/containers/infoBox/navionicsDetails/accordionItem/navionicsHead.ts
+var NavionicsHead = class extends Container {
   constructor(item) {
-    super(Container.from("a", {
-      onclick: (event) => {
-        const { lat: lat2, lon: lon2 } = item.position;
-        position.xyz = {
-          x: lon2x(lon2),
-          y: lat2y(lat2)
-        };
-        mapContainer.redraw("goto");
+    super(Container.from("div", {
+      classes: [
+        ...item.details ? [
+          "accordion-button",
+          "collapsed"
+        ] : ["d-flex"],
+        "px-2",
+        "py-0",
+        "mm-menu-text"
+      ],
+      dataset: {
+        bsTarget: `#navionicsItem${item.itemId}`,
+        bsToggle: "collapse",
+        details: String(item.details)
+      },
+      onmousemove: (event) => {
         event.stopPropagation();
-      },
-      style: {
-        marginLeft: "auto",
-        padding: "0.25rem"
+        navionicsDetails.marker = new Marker({
+          ...item.position,
+          id: item.itemId,
+          type: "navionics"
+        });
+        overlayContainer.redraw();
       }
     }));
-    this.append(new BootstrapIcon({ icon: "arrow-right-circle" }));
   }
 };
 
-// src/client/containers/infoBox/navionicsDetails/icon.ts
-var NavionicsIcon = class extends Container {
-  constructor(item) {
-    super(Container.from("div", {
-      classes: ["d-flex"],
-      style: {
-        height: "2em",
-        width: "2em"
-      }
-    }));
-    this.append(
-      Container.from("div", {
-        style: {
-          margin: "auto"
-        }
-      }).append(
-        Container.from("img", {
-          src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
-          style: {
-            maxHeight: "1.5em",
-            maxWidth: "1.5em"
-          }
-        })
-      )
-    );
-  }
-};
-
-// src/client/containers/infoBox/navionicsDetails/itemDetails.ts
-var NavionicsItemDetails = class extends Container {
-  constructor(item, itemId, accordionId) {
-    super(Container.from("div", {
-      classes: ["accordion-collapse", "collapse", "px-2"],
-      dataset: {
-        bsParent: `#${accordionId}`
-      },
-      id: itemId
-    }));
-    if (item.properties)
-      item.properties.forEach((prop) => {
-        this.append(Container.from("p").append(prop));
-      });
-  }
-};
-
-// src/client/containers/infoBox/navionicsDetails/label.ts
-var NavionicsItemLabel = class extends Container {
-  constructor(item) {
+// src/client/containers/infoBox/navionicsDetails/accordionItem/spinner.ts
+var NavionicsItemSpinner = class extends Container {
+  constructor() {
     super(Container.from("div", {
       classes: ["d-flex"]
     }));
-    this.append(
-      Container.from("div", {
-        style: {
-          margin: "auto"
-        }
-      }).append(item.name).append(
-        Container.from("div", {
-          style: {
-            fontSize: "70%",
-            marginLeft: "0.5rem"
-          }
-        }).append(item.distance.toFixed(3), "nm")
-      )
-    );
+  }
+  visible;
+  refresh({ item }) {
+    if (this.visible !== Boolean(item.properties)) {
+      const visible = Boolean(item.properties);
+      if (visible)
+        this.clear();
+      else
+        this.append(
+          Container.from("div", {
+            classes: [
+              "spinner-border",
+              "spinner-border-sm"
+            ],
+            style: {
+              margin: "auto"
+            }
+          })
+        );
+      this.visible = visible;
+    }
   }
 };
 
 // src/client/containers/infoBox/navionicsDetails/accordionItem.ts
 var AccordionItem = class extends Container {
-  constructor({ accordionId, idx, item, parent }) {
-    const itemId = `navionicsDetailsItem${idx}`;
+  constructor(item) {
     super(Container.from("div", {
       classes: [
         "accordion-item",
         "mm-menu-text"
       ]
     }));
+    const {
+      category_id: categoryId,
+      details,
+      icon_id: iconId,
+      id: itemId,
+      name: itemName,
+      position: position2
+    } = extractProperties(item, {
+      category_id: String,
+      details: Boolean,
+      icon_id: String,
+      id: String,
+      name: String,
+      position: ({ lat: lat2, lon: lon2 }) => ({
+        lat: deg2rad(lat2),
+        lon: deg2rad(lon2),
+        x: lon2x(deg2rad(lon2)),
+        y: lat2y(deg2rad(lat2))
+      })
+    });
+    this.categoryId = categoryId;
+    this.details = details;
+    this.iconId = iconId;
+    this.itemId = itemId;
+    this.itemName = itemName;
+    this.position = position2;
+    this.distance = 0;
     this.append(
       Container.from("div", {
         classes: [
           "accordion-header",
           "mm-menu-text"
-        ],
-        onmousemove: (event) => {
-          event.stopPropagation();
-          if (parent.marker?.id !== item.id) {
-            parent.marker = new Marker({
-              ...item.position,
-              id: item.id,
-              type: "navionics"
-            });
-            overlayContainer.redraw();
-          }
-        }
+        ]
       }).append(
-        Container.from("div", {
-          classes: [
-            ...item.properties ? ["accordion-button", "collapsed"] : ["d-flex"],
-            "px-2",
-            "py-0",
-            "mm-menu-text"
-          ],
-          dataset: item.properties ? {
-            bsTarget: `#${itemId}`,
-            bsToggle: "collapse"
-          } : {}
-        }).append(
+        this.nodes.add(new NavionicsHead(this)).append(
           Container.from("div", {
             classes: ["d-flex"],
             style: {
               width: "100%"
             }
           }).append(
-            new NavionicsIcon(item),
-            new NavionicsItemLabel(item),
-            item.position ? new NavionicsGoto(item) : null,
-            item.details ? null : Container.from("div", {
+            this.nodes.add(new NavionicsIcon(this)),
+            this.nodes.add(new NavionicsItemLabel(this)),
+            item.position ? new NavionicsGoto(this) : null,
+            item.details ? this.nodes.add(new NavionicsItemSpinner()) : Container.from("div", {
               style: {
                 width: "var(--bs-accordion-btn-icon-width)"
               }
-            }),
-            item.details && !item.properties ? new Spinner() : null
+            })
           )
         )
       )
     );
-    if (item.properties)
-      this.append(new NavionicsItemDetails(item, itemId, accordionId));
+    if (item.details)
+      this.append(this.nodes.add(new NavionicsItemDetails(this)));
+  }
+  categoryId;
+  label;
+  properties;
+  details;
+  distance;
+  iconId;
+  itemId;
+  itemName;
+  position;
+  nodes = new NavionicsItemNodes();
+  setReference({ x, y }) {
+    const pdx = this.position.x - x;
+    const pdy = this.position.y - y;
+    this.distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(this.position.lat);
+  }
+  refresh() {
+    this.nodes.refresh({ item: this });
   }
 };
-
-// src/client/containers/infoBox/navionicsDetails/accordion.ts
-var Accordion = class _Accordion extends Container {
-  constructor({ items, offset, parent }) {
-    const accordionId = `navionicsDetailsList${offset ?? ""}`;
-    super(Container.from("div", {
-      classes: ["accordion"],
-      id: accordionId
-    }));
-    if (items.length <= 10)
-      items.forEach((item, idx) => {
-        this.append(new AccordionItem({
-          accordionId,
-          idx: idx + (offset ?? 0),
-          item,
-          parent
-        }));
-      });
-    else {
-      for (let i = 0; i < items.length; i += 10) {
-        const itemId = `navionicsDetailsItemList${i}`;
-        const itemsSlice = items.slice(i, i + 10);
-        this.append(
-          Container.from("div", {
-            classes: [
-              "accordion-item",
-              "mm-menu-text"
-            ]
-          }).append(
-            Container.from("div", {
-              classes: [
-                "accordion-header",
-                "mm-menu-text"
-              ]
-            }).append(
-              Container.from("div", {
-                classes: [
-                  "accordion-button",
-                  "collapsed",
-                  "px-2",
-                  "py-0",
-                  "mm-menu-text"
-                ],
-                dataset: {
-                  bsTarget: `#${itemId}`,
-                  bsToggle: "collapse"
-                }
-              }).append(
-                Container.from("div", {
-                  classes: ["d-flex"],
-                  style: {
-                    width: "100%"
-                  }
-                }).append(
-                  itemsSlice.length === 1 ? `${i + 1}` : `${i + 1}-${i + itemsSlice.length}`
-                )
-              )
-            )
-          ).append(
-            Container.from("div", {
-              classes: [
-                "accordion-collapse",
-                "collapse",
-                "ps-2",
-                "pe-0",
-                i === 0 ? "show" : null
-              ],
-              dataset: {
-                bsParent: `#${accordionId}`
-              },
-              id: itemId
-            }).append(new _Accordion({ items: itemsSlice, offset: i, parent }))
-          )
-        );
-      }
-    }
+var NavionicsItemNodes = class {
+  nodes = /* @__PURE__ */ new Set();
+  add(node) {
+    this.nodes.add(node);
+    return node;
+  }
+  refresh(params) {
+    this.nodes.forEach((node) => node.refresh?.(params));
   }
 };
 
@@ -3016,74 +3107,67 @@ var NavionicsDetails = class extends Container {
     this.queue.enqueue(() => new Promise((r) => setInterval(r, 1)));
   }
   isFetch = false;
-  fetchProgress = "";
-  list = /* @__PURE__ */ new Map();
+  fetchProgress = Container.from("div", { classes: ["d-flex"] });
+  items = /* @__PURE__ */ new Map();
+  itemsCache = /* @__PURE__ */ new Map();
   marker;
   queue = new StyQueue(1);
   abortControllers = /* @__PURE__ */ new Set();
+  spinner = Container.from("div", {
+    classes: [
+      "accordion-item",
+      "mm-menu-text"
+    ]
+  }).append(
+    Container.from("div", {
+      classes: [
+        "accordion-header",
+        "mm-menu-text"
+      ]
+    }).append(
+      Container.from("div", {
+        classes: [
+          "d-flex",
+          "mm-menu-text"
+        ]
+      }).append(
+        this.fetchProgress,
+        Container.from("div", {
+          classes: [
+            "spinner-border",
+            "spinner-border-sm"
+          ],
+          style: {
+            margin: "auto"
+          }
+        })
+      )
+    )
+  );
   add = (item) => {
-    this.list.set(item.id, item);
-    this.refresh();
-  };
-  delete = (item) => {
-    this.list.delete(item.id);
+    this.items.set(item.itemId, item);
     this.refresh();
   };
   refresh = () => {
     this.clear();
     this.append(new Accordion({
-      items: [...this.list.values()].sort((a, b) => a.distance - b.distance),
+      items: [...this.items.values()].sort((a, b) => a.distance - b.distance),
       parent: this
     }));
     if (this.isFetch)
-      this.append(
-        Container.from("div", {
-          classes: [
-            "accordion-item",
-            "mm-menu-text"
-          ]
-        }).append(
-          Container.from("div", {
-            classes: [
-              "accordion-header",
-              "mm-menu-text"
-            ]
-          }).append(
-            Container.from("div", {
-              classes: [
-                "d-flex",
-                "mm-menu-text"
-              ]
-            }).append(
-              this.fetchProgress,
-              Container.from("div", {
-                classes: [
-                  "spinner-border",
-                  "spinner-border-sm"
-                ],
-                style: {
-                  margin: "auto"
-                }
-              })
-            )
-          )
-        )
-      );
-    infoBox.update();
+      this.append(this.spinner);
   };
   async fetch({ x, y, z: z2 }) {
     while (this.queue.shift())
       /* @__PURE__ */ (() => void 0)();
     this.abortControllers.forEach((ac) => {
       ac.abort();
-      this.abortControllers.delete(ac);
     });
     if (!settings.show.navionicsDetails)
       return;
-    const listMap = /* @__PURE__ */ new Map();
     await this.queue.enqueue(async () => {
       this.isFetch = true;
-      this.list.clear();
+      this.items.clear();
       this.refresh();
       const abortController = new AbortController();
       this.abortControllers.add(abortController);
@@ -3109,75 +3193,28 @@ var NavionicsDetails = class extends Container {
           if (!res.ok)
             return;
           const body = await res.json();
-          await Promise.all((body.items ?? []).map(async (item) => {
-            if (listMap.has(item.id))
+          await Promise.all((body.items ?? []).map(async (itemRemote) => {
+            const cachedItem = this.itemsCache.get(itemRemote.id);
+            if (cachedItem) {
+              cachedItem.setReference({ x, y });
+              this.add(cachedItem);
               return;
-            if ([
+            } else if (![
               "depth_area",
               "depth_contour"
-            ].includes(item.category_id))
-              return;
-            listMap.set(item.id, item);
-            const {
-              category_id,
-              details,
-              icon_id,
-              id,
-              name,
-              position: position2
-            } = extractProperties(item, {
-              category_id: String,
-              details: Boolean,
-              icon_id: String,
-              id: String,
-              name: String,
-              position: ({ lat: lat2, lon: lon2 }) => ({
-                lat: deg2rad(lat2),
-                lon: deg2rad(lon2),
-                x: lon2x(deg2rad(lon2)),
-                y: lat2y(deg2rad(lat2))
-              })
-            });
-            const pdx = position2.x - x;
-            const pdy = position2.y - y;
-            const distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(position2.lat);
-            this.add({
-              category_id,
-              details,
-              distance,
-              icon_id,
-              id,
-              name,
-              position: position2
-            });
-            if (item.details) {
-              const { label, properties } = extractProperties(
-                await fetch(`/navionics/objectinfo/${item.id}`, { signal }).then(async (res2) => res2.ok ? await res2.json() : {}).catch(() => {
-                }),
-                {
-                  label: String,
-                  properties: (val) => val?.map(({ label: label2 }) => label2)?.filter(Boolean)
-                }
-              );
-              this.add({
-                category_id,
-                details,
-                distance,
-                icon_id,
-                id,
-                label,
-                name,
-                position: position2,
-                properties
-              });
+            ].includes(itemRemote.category_id)) {
+              const item = new AccordionItem(itemRemote);
+              item.setReference({ x, y });
+              this.itemsCache.set(item.itemId, item);
+              this.add(item);
             }
           }));
         }).catch((rej) => console.error(rej));
         await ret;
         done++;
-        this.fetchProgress = `${done}/${points.length}`;
+        this.fetchProgress.clear();
+        this.fetchProgress.append(`${done}/${points.length}`);
         this.refresh();
-        infoBox.update();
         return prom;
       }, Promise.resolve());
       this.abortControllers.delete(abortController);
@@ -5178,7 +5215,7 @@ var InfoBox = class extends Container {
       }
     }));
   }
-  update() {
+  refresh() {
     this.clear();
     this.append(new InfoBoxCoords());
     if (settings.show.navionicsDetails)
@@ -5655,7 +5692,7 @@ async function updateUserLocation() {
       geolocationBlocked = true;
     console.warn(`ERROR(${err.code}): ${err.message}`);
   });
-  infoBox.update();
+  infoBox.refresh();
   return position.user;
 }
 
@@ -5784,7 +5821,7 @@ function mouseInput(event) {
   mouse.y = y;
   if (position.markers.delete("navionics"))
     overlayContainer.redraw();
-  infoBox.update();
+  infoBox.refresh();
 }
 
 // src/client/containers/mouseContainer.ts

@@ -44,5 +44,5 @@ export function mouseInput (event: MouseEvent | WheelEvent) {
   mouse.x = x;
   mouse.y = y;
   if (position.markers.delete('navionics')) overlayContainer.redraw();
-  infoBox.update();
+  infoBox.refresh();
 }

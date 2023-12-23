@@ -19,7 +19,7 @@ class InfoBox extends Container {
       },
     }));
   }
-  update () {
+  refresh () {
     this.clear();
     this.append(new InfoBoxCoords());
     if (settings.show.navionicsDetails) this.append(navionicsDetails);

@@ -1,10 +1,10 @@
-import type { NavionicsDetail, NavionicsDetails } from '../navionicsDetails';
+import type { AccordionItem } from './accordionItem';
+import type { NavionicsDetails } from '../navionicsDetails';
 import { Container } from '../../../utils/htmlElements/container';
-import { AccordionItem } from './accordionItem';
 
 export class Accordion extends Container {
   constructor ({ items, offset, parent }: {
-    items: NavionicsDetail[];
+    items: AccordionItem[];
     parent: NavionicsDetails;
     offset?: number;
   }) {
@@ -14,13 +14,9 @@ export class Accordion extends Container {
       id: accordionId,
     }));
 
-    if (items.length <= 10) items.forEach((item, idx) => {
-      this.append(new AccordionItem({
-        accordionId,
-        idx: idx + (offset ?? 0),
-        item,
-        parent,
-      }));
+    if (items.length <= 10) items.forEach(item => {
+      this.append(item);
+      item.refresh();
     });
     else {
       for (let i = 0; i < items.length; i += 10) {
@@ -44,7 +40,7 @@ export class Accordion extends Container {
               Container.from('div', {
                 classes: [
                   'accordion-button',
-                  'collapsed',
+                  i === 0 ? null : 'collapsed',
                   'px-2',
                   'py-0',
                   'mm-menu-text',
@@ -67,7 +63,6 @@ export class Accordion extends Container {
                     `${i + 1}-${i + itemsSlice.length}`,
                 ),
               ),
-
             ),
           )
           .append(

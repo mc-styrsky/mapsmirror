@@ -1,13 +1,13 @@
-import type { NavionicsDetail } from '../navionicsDetails';
-import { position } from '../../../globals/position';
-import { Container } from '../../../utils/htmlElements/container';
-import { BootstrapIcon } from '../../../utils/htmlElements/iconButton';
-import { lat2y } from '../../../utils/lat2y';
-import { lon2x } from '../../../utils/lon2x';
-import { mapContainer } from '../../mapContainer';
+import type { AccordionItem } from '../accordionItem';
+import { position } from '../../../../globals/position';
+import { Container } from '../../../../utils/htmlElements/container';
+import { BootstrapIcon } from '../../../../utils/htmlElements/iconButton';
+import { lat2y } from '../../../../utils/lat2y';
+import { lon2x } from '../../../../utils/lon2x';
+import { mapContainer } from '../../../mapContainer';
 
 export class NavionicsGoto extends Container {
-  constructor (item: NavionicsDetail) {
+  constructor (item: AccordionItem) {
     super(Container.from('a', {
       onclick: (event) => {
         const { lat, lon } = item.position;

@@ -38,7 +38,7 @@ export class MapContainer extends Container {
     const { height, width } = boundingRect;
     const { tiles, ttl, x, y, z } = position;
 
-    infoBox.update();
+    infoBox.refresh();
 
     console.log(`${type} redraw@${new Date().toISOString()}`);
 

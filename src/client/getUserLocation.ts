@@ -36,6 +36,6 @@ export async function updateUserLocation () {
     console.warn(`ERROR(${err.code}): ${err.message}`);
   });
 
-  infoBox.update();
+  infoBox.refresh();
   return position.user;
 }

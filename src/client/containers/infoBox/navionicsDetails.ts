@@ -1,31 +1,13 @@
+import type { NavionicsDetailConstructor } from './navionicsDetails/accordionItem';
 import type { XYZ } from '../../../common/types/xyz';
 import type { Marker } from '../../globals/marker';
 import { StyQueue } from '@mc-styrsky/queue';
-import { extractProperties } from '../../../common/extractProperties';
 import { settings } from '../../globals/settings';
 import { tileSize } from '../../globals/tileSize';
-import { deg2rad } from '../../utils/deg2rad';
 import { Container } from '../../utils/htmlElements/container';
-import { lat2y } from '../../utils/lat2y';
-import { lon2x } from '../../utils/lon2x';
-import { px2nm } from '../../utils/px2nm';
-import { infoBox } from '../infoBox';
 import { Accordion } from './navionicsDetails/accordion';
+import { AccordionItem } from './navionicsDetails/accordionItem';
 
-export type NavionicsDetail = {
-  category_id: string,
-  label?: string,
-  properties?: string[],
-  details: boolean,
-  distance: number,
-  icon_id: string,
-  id: string,
-  name: string,
-  position: {
-    lat: number,
-    lon: number,
-  },
-};
 
 export class NavionicsDetails extends Container {
   constructor () {
@@ -33,64 +15,58 @@ export class NavionicsDetails extends Container {
     this.queue.enqueue(() => new Promise(r => setInterval(r, 1)));
   }
   private isFetch = false;
-  private fetchProgress = '';
-  readonly list: Map<string, NavionicsDetail> = new Map();
+  private readonly fetchProgress = Container.from('div', { classes: ['d-flex'] });
+  readonly items: Map<string, AccordionItem> = new Map();
+  readonly itemsCache: Map<string, AccordionItem> = new Map();
   marker: Marker | undefined;
-  private queue = new StyQueue(1);
-  private abortControllers: Set<AbortController> = new Set();
-
-
-  private add = (item: NavionicsDetail) => {
-    this.list.set(item.id, item);
-    this.refresh();
-  };
-  delete = (item: NavionicsDetail) => {
-    this.list.delete(item.id);
-    this.refresh();
-  };
-  private refresh = () => {
-    this.clear();
-    this.append(new Accordion({
-      items: [...this.list.values()].sort((a, b) => a.distance - b.distance),
-      parent: this,
-    }));
-    if (this.isFetch) this.append(
+  private readonly queue = new StyQueue(1);
+  private readonly abortControllers: Set<AbortController> = new Set();
+  private readonly spinner = Container.from('div', {
+    classes: [
+      'accordion-item',
+      'mm-menu-text',
+    ],
+  })
+  .append(
+    Container.from('div', {
+      classes: [
+        'accordion-header',
+        'mm-menu-text',
+      ],
+    })
+    .append(
       Container.from('div', {
         classes: [
-          'accordion-item',
+          'd-flex',
           'mm-menu-text',
         ],
       })
       .append(
+        this.fetchProgress,
         Container.from('div', {
           classes: [
-            'accordion-header',
-            'mm-menu-text',
+            'spinner-border',
+            'spinner-border-sm',
           ],
-        })
-        .append(
-          Container.from('div', {
-            classes: [
-              'd-flex',
-              'mm-menu-text',
-            ],
-          })
-          .append(
-            this.fetchProgress,
-            Container.from('div', {
-              classes: [
-                'spinner-border',
-                'spinner-border-sm',
-              ],
-              style: {
-                margin: 'auto',
-              },
-            }),
-          ),
-        ),
+          style: {
+            margin: 'auto',
+          },
+        }),
       ),
-    );
-    infoBox.update();
+    ),
+  );
+
+  private add = (item: AccordionItem) => {
+    this.items.set(item.itemId, item);
+    this.refresh();
+  };
+  refresh = () => {
+    this.clear();
+    this.append(new Accordion({
+      items: [...this.items.values()].sort((a, b) => a.distance - b.distance),
+      parent: this,
+    }));
+    if (this.isFetch) this.append(this.spinner);
   };
 
   async fetch (
@@ -99,13 +75,11 @@ export class NavionicsDetails extends Container {
     while (this.queue.shift()) (() => void 0)();
     this.abortControllers.forEach(ac => {
       ac.abort();
-      this.abortControllers.delete(ac);
     });
     if (!settings.show.navionicsDetails) return;
-    const listMap: Map<string, any> = new Map();
     await this.queue.enqueue(async () => {
       this.isFetch = true;
-      this.list.clear();
+      this.items.clear();
       this.refresh();
       const abortController = new AbortController();
       this.abortControllers.add(abortController);
@@ -133,70 +107,31 @@ export class NavionicsDetails extends Container {
         .then(async (res) => {
           if (!res.ok) return;
           const body = await res.json();
-          await Promise.all((body.items ?? []).map(async (item: Record<string, any>) => {
-            if (listMap.has(item.id)) return;
-            if ([
+          await Promise.all((body.items ?? [])
+          .map(async (itemRemote: NavionicsDetailConstructor) => {
+            const cachedItem = this.itemsCache.get(itemRemote.id);
+            if (cachedItem) {
+              cachedItem.setReference({ x, y });
+              this.add(cachedItem);
+              return;
+            }
+            else if (![
               'depth_area',
               'depth_contour',
-            ].includes(item.category_id)) return;
-            listMap.set(item.id, item);
-            const {
-              category_id, details, icon_id, id, name, position,
-            } = extractProperties(item, {
-              category_id: String,
-              details: Boolean,
-              icon_id: String,
-              id: String,
-              name: String,
-              position: ({ lat, lon }) => ({
-                lat: deg2rad(lat),
-                lon: deg2rad(lon),
-                x: lon2x(deg2rad(lon)),
-                y: lat2y(deg2rad(lat)),
-              }),
-            });
-            const pdx = position.x - x;
-            const pdy = position.y - y;
-            const distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(position.lat);
-            this.add({
-              category_id,
-              details,
-              distance,
-              icon_id,
-              id,
-              name,
-              position,
-            });
-            if (item.details) {
-              const { label, properties } = extractProperties(
-                await fetch(`/navionics/objectinfo/${item.id}`, { signal })
-                .then(async (res) => res.ok ? await res.json() : {})
-                .catch(() => { }),
-                {
-                  label: String,
-                  properties: (val) => val?.map(({ label }) => label)?.filter(Boolean),
-                },
-              );
-              this.add({
-                category_id,
-                details,
-                distance,
-                icon_id,
-                id,
-                label,
-                name,
-                position,
-                properties,
-              });
+            ].includes(itemRemote.category_id)) {
+              const item = new AccordionItem(itemRemote);
+              item.setReference({ x, y });
+              this.itemsCache.set(item.itemId, item);
+              this.add(item);
             }
           }));
         })
         .catch(rej => console.error(rej));
         await ret;
         done++;
-        this.fetchProgress = `${done}/${points.length}`;
+        this.fetchProgress.clear();
+        this.fetchProgress.append(`${done}/${points.length}`);
         this.refresh();
-        infoBox.update();
         return prom;
       }, Promise.resolve());
       this.abortControllers.delete(abortController);

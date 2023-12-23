@@ -1,9 +1,10 @@
-import type { NavionicsDetail } from '../navionicsDetails';
-import { Container } from '../../../utils/htmlElements/container';
+import type { NavionicsItemNode } from './navionicsItemNode';
+import type { AccordionItem } from '../accordionItem';
+import { Container } from '../../../../utils/htmlElements/container';
 
 
-export class NavionicsIcon extends Container {
-  constructor (item: NavionicsDetail) {
+export class NavionicsIcon extends Container implements NavionicsItemNode {
+  constructor (item: AccordionItem) {
     super(Container.from('div', {
       classes: ['d-flex'],
       style: {
@@ -20,7 +21,7 @@ export class NavionicsIcon extends Container {
       })
       .append(
         Container.from('img', {
-          src: `/navionics/icon/${encodeURIComponent(item.icon_id)}`,
+          src: `/navionics/icon/${encodeURIComponent(item.iconId)}`,
           style: {
             maxHeight: '1.5em',
             maxWidth: '1.5em',

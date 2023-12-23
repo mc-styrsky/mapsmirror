@@ -25,6 +25,9 @@
     "src/common/types/overlay.ts",
     "src/client/containers/infoBox/infoBoxCoords.ts",
     "src/client/containers/overlay/markers.ts",
+    "src/client/containers/infoBox/navionicsDetails/accordionItem.ts",
+    "src/client/containers/infoBox/navionicsDetails/accordionItem/navionicsItemNode.ts",
+    "src/client/containers/infoBox/navionicsDetails/accordionItem/navionicsHead.ts",
   ],
   "include": [
     "src"

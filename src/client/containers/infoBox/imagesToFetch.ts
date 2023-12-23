@@ -17,7 +17,7 @@ class ImagesToFetch extends Container {
   add = ({ source, ...xyz }: XYZ & {source: VirtLayer}) => {
     this.getSet(source).add(this.xyz2string(xyz));
     this.total[source] = (this.total[source] ?? 0) + 1;
-    infoBox.update();
+    infoBox.refresh();
   };
   delete = ({ source, ...xyz }: XYZ & {source: VirtLayer}) => {
     this.getSet(source).delete(this.xyz2string(xyz));
@@ -25,7 +25,7 @@ class ImagesToFetch extends Container {
       delete this.data[source];
       delete this.total[source];
     }
-    infoBox.update();
+    infoBox.refresh();
   };
 
   refresh = () => {
