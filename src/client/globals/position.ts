@@ -1,6 +1,6 @@
 import type { Marker } from './marker';
 import type { XYZ } from '../../common/types/xyz';
-import { extractProperties } from '../../common/extractProperties';
+import { castObject } from '../../common/extractProperties';
 import { zoomMax, zoomMin } from '../../common/layers';
 import { modulo } from '../../common/modulo';
 import { navionicsDetails } from '../containers/infoBox/navionicsDetails';
@@ -91,7 +91,7 @@ class Position {
 }
 
 const searchParams = Object.fromEntries(new URL(window.location.href).searchParams.entries());
-const { lat, lon, ttl, z } = extractProperties(searchParams, {
+const { lat, lon, ttl, z } = castObject(searchParams, {
   lat: val => Number(val) ? deg2rad(parseFloat(val)) : 0,
   lon: val => Number(val) ? deg2rad(parseFloat(val)) : 0,
   ttl: val => Number(val) ? parseInt(val) : 0,

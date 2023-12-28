@@ -1,9 +1,7 @@
-import type { INavionicsItemRefresh, NavionicsItemNode } from './navionicsItemNode';
-import type { AccordionItem } from '../accordionItem';
 import { Container } from '../../../../utils/htmlElements/container';
 
-export class NavionicsItemLabel extends Container implements NavionicsItemNode {
-  constructor (item: AccordionItem) {
+export class NavionicsItemLabel extends Container {
+  constructor (itemName: string) {
     super(Container.from('div', {
       classes: ['d-flex'],
     }));
@@ -13,7 +11,7 @@ export class NavionicsItemLabel extends Container implements NavionicsItemNode {
           margin: 'auto',
         },
       })
-      .append(item.itemName)
+      .append(itemName)
       .append(
         Container.from('div', {
           style: {
@@ -21,19 +19,23 @@ export class NavionicsItemLabel extends Container implements NavionicsItemNode {
             marginLeft: '0.5rem',
           },
         })
-        .append(this.distance),
+        .append(this.distanceContainer),
       ),
     );
   }
-  distance = Container.from('div', {
+  distanceContainer = Container.from('div', {
     style: {
       fontSize: '70%',
       marginLeft: '0.5rem',
     },
   });
+  distance: string = 'NaN';
 
-  refresh ({ item }: INavionicsItemRefresh) {
-    this.distance.clear();
-    this.distance.append(item.distance.toFixed(3), 'nm');
+  setDistance (distance: string) {
+    if (distance !== this.distance) {
+      this.distance = distance;
+      this.distanceContainer.clear();
+      this.distanceContainer.append(distance);
+    }
   }
 }

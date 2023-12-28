@@ -22,12 +22,8 @@
   "files": [
     "src/server/index.ts",
     "src/client/index.ts",
-    "src/common/types/overlay.ts",
-    "src/client/containers/infoBox/infoBoxCoords.ts",
-    "src/client/containers/overlay/markers.ts",
-    "src/client/containers/infoBox/navionicsDetails/accordionItem.ts",
-    "src/client/containers/infoBox/navionicsDetails/accordionItem/navionicsItemNode.ts",
-    "src/client/containers/infoBox/navionicsDetails/accordionItem/navionicsHead.ts",
+    "src/server/utils/objectinfoQueue.ts",
+    "./src/server/utils/navionicsQueue.ts",
   ],
   "include": [
     "src"

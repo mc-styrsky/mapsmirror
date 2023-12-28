@@ -1,5 +1,5 @@
 import type express from 'express';
-import { extractProperties } from '../../common/extractProperties';
+import { castObject } from '../../common/extractProperties';
 
 export const getNavionicsIcon = async (
   req: express.Request<{
@@ -7,7 +7,7 @@ export const getNavionicsIcon = async (
   }, any, any, Record<string, any>, Record<string, any>>,
   res: express.Response | null,
 ) => {
-  const { iconId } = extractProperties(req.params, {
+  const { iconId } = castObject(req.params, {
     iconId: String,
   });
   try {

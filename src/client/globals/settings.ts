@@ -1,5 +1,5 @@
 import type { Baselayer, LayerSettings, Overlay } from '../../common/types/layer';
-import { extractProperties } from '../../common/extractProperties';
+import { castObject } from '../../common/extractProperties';
 import { LocalStorageItem } from '../utils/localStorageItem';
 import { baselayers } from './baselayers';
 
@@ -13,7 +13,7 @@ class Settings {
     const baselayer = localStorageSettings?.baselayer ?? 'osm';
     this.baselayer = baselayers.includes(baselayer) ? baselayer : 'osm';
 
-    this.show = extractProperties(localStorageSettings?.show, {
+    this.show = castObject(localStorageSettings?.show, {
       crosshair: val => Boolean(val ?? true),
       navionics: Boolean,
       navionicsDetails: Boolean,
@@ -21,7 +21,7 @@ class Settings {
       suncalc: Boolean,
       vfdensity: Boolean,
     });
-    this.units = extractProperties(localStorageSettings?.units, {
+    this.units = castObject(localStorageSettings?.units, {
       coords: (val) => ['d', 'dm', 'dms'].includes(val) ? val : 'dm',
     });
   }

@@ -1,6 +1,6 @@
 import type express from 'express';
 import { StyQueue } from '@mc-styrsky/queue';
-import { extractProperties } from '../../common/extractProperties';
+import { castObject } from '../../common/extractProperties';
 import { modulo } from '../../common/modulo';
 import { queues } from '../index';
 import { XYZ2UrlBingsat } from '../urls/bingsat';
@@ -28,19 +28,19 @@ export const getTile = async (
   res: express.Response | null,
 ): Promise<boolean | null> => {
   try {
-    const { zoom } = extractProperties(req.params, {
+    const { zoom } = castObject(req.params, {
       zoom: val => parseInt(String(val)),
     });
     if (zoom > getMaxzoom()) setMaxzoom(zoom);
     const parsePosition = (val: any) => {
       return modulo(parseInt(String(val), 16), 1 << zoom);
     };
-    const { provider, x, y } = extractProperties(req.params, {
+    const { provider, x, y } = castObject(req.params, {
       provider: String,
       x: parsePosition,
       y: parsePosition,
     });
-    const { quiet, ttl } = extractProperties(req.query, {
+    const { quiet, ttl } = castObject(req.query, {
       quiet: val => Boolean(parseInt(String(val ?? 0))),
       ttl: val => parseInt(String(val ?? 3)),
     });

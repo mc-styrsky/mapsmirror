@@ -1,5 +1,5 @@
 import { StyQueue } from '@mc-styrsky/queue';
-import { extractProperties } from '../../../../../common/extractProperties';
+import { castObject } from '../../../../../common/extractProperties';
 import { position } from '../../../../globals/position';
 import { deg2rad } from '../../../../utils/deg2rad';
 import { Container } from '../../../../utils/htmlElements/container';
@@ -35,7 +35,7 @@ export const addressInput = Container.from('input', {
             ...items
             .sort((a, b) => b.importance - a.importance)
             .map((item, idx) => {
-              const { boundingbox, display_name: displayName, lat, lon } = extractProperties(item, {
+              const { boundingbox, display_name: displayName, lat, lon } = castObject(item, {
                 boundingbox: (val) => Array.isArray(val) ? val.map(deg2rad) : [],
                 display_name: String,
                 lat: deg2rad,

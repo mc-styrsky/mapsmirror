@@ -1,6 +1,7 @@
 import type { AddDuration } from './types/addDuration';
 import type { AddIncrement } from './types/addIncrement';
 import type { DurationKeys } from './types/durationKeys';
+import type { Appendable } from '../../../globals/appendable';
 import { formatDateValue } from '../../../utils/formatDateValue';
 import { Container } from '../../../utils/htmlElements/container';
 import { SolarTimesStatics } from './solarTimes/statics';
@@ -41,9 +42,9 @@ export class ValueRow extends Container {
 
     return this;
   }
-  addRow ({ col1, col2, col3 }: Partial<Record<'col1'|'col2'|'col3', (string|Container<HTMLElement>)[]>>): ValueRow
-  addRow ({ row }: {row: (string|Container<HTMLElement>)[]}): ValueRow
-  addRow ({ col1 = [], col2 = [], col3 = [], row }: Partial<Record<'col1'|'col2'|'col3'|'row', (string|Container<HTMLElement>)[]>>) {
+  addRow ({ col1, col2, col3 }: Partial<Record<'col1'|'col2'|'col3', Appendable[]>>): ValueRow
+  addRow ({ row }: {row: Appendable[]}): ValueRow
+  addRow ({ col1 = [], col2 = [], col3 = [], row }: Partial<Record<'col1'|'col2'|'col3'|'row', Appendable[]>>) {
     row ??= [
       Container.from('div', {
         style: { marginRight: 'auto' },

@@ -1,13 +1,13 @@
 // src/server/index.ts
-import { StyQueue as StyQueue2 } from "../node_modules/@mc-styrsky/queue/lib/index.js";
+import { StyQueue as StyQueue3 } from "../node_modules/@mc-styrsky/queue/lib/index.js";
 import express from "../node_modules/express/index.js";
 
 // src/common/consts.ts
 var port = 3e3;
 
 // src/common/extractProperties.ts
-function extractProperties(obj, builder) {
-  return Object.entries(builder).reduce((ret, entry) => {
+function castObject(obj, transformer) {
+  return Object.entries(transformer).reduce((ret, entry) => {
     const [key, constructor] = entry;
     ret[key] = constructor(obj?.[key]);
     return ret;
@@ -16,7 +16,7 @@ function extractProperties(obj, builder) {
 
 // src/server/requestHandler/getNavionicsIcon.ts
 var getNavionicsIcon = async (req, res) => {
-  const { iconId } = extractProperties(req.params, {
+  const { iconId } = castObject(req.params, {
     iconId: String
   });
   try {
@@ -39,37 +39,42 @@ var getNavionicsIcon = async (req, res) => {
 };
 
 // src/server/requestHandler/getNavionicsObjectinfo.ts
+import { StyQueue } from "../node_modules/@mc-styrsky/queue/lib/index.js";
+var objectinfoQueue = new StyQueue(1);
 var objectinfoCache = /* @__PURE__ */ new Map();
 var getNavionicsObjectinfo = async (req, res) => {
-  try {
-    const { itemId } = extractProperties(req.params, {
-      itemId: String
-    });
-    const fromCache = objectinfoCache.get(itemId);
-    if (fromCache) {
-      console.log("[cached]", itemId);
-      res?.json(fromCache);
-    } else {
-      console.log("[fetch] ", itemId);
-      await fetch(`https://webapp.navionics.com/api/v2/objectinfo/marine/${itemId}`).then(
-        async (r) => {
-          if (r.ok) {
-            const toCache = await r.json();
-            objectinfoCache.set(itemId, toCache);
-            res?.json(toCache);
-          } else
-            res?.sendStatus(r.status);
-        },
-        () => {
-          res?.sendStatus(500);
-        }
-      );
+  await objectinfoQueue.enqueue(async () => {
+    await new Promise((r) => setTimeout(r, 1e3));
+    try {
+      const { itemId } = castObject(req.params, {
+        itemId: String
+      });
+      const fromCache = objectinfoCache.get(itemId);
+      if (fromCache) {
+        console.log("[cached]", itemId);
+        res?.json(fromCache);
+      } else {
+        console.log("[fetch] ", itemId);
+        await fetch(`https://webapp.navionics.com/api/v2/objectinfo/marine/${itemId}`).then(
+          async (r) => {
+            if (r.ok) {
+              const toCache = await r.json();
+              objectinfoCache.set(itemId, toCache);
+              res?.json(toCache);
+            } else
+              res?.sendStatus(r.status);
+          },
+          () => {
+            res?.sendStatus(500);
+          }
+        );
+      }
+    } catch (e) {
+      console.error(e);
+      res?.status(500).send("internal server error");
+      return;
     }
-  } catch (e) {
-    console.error(e);
-    res?.status(500).send("internal server error");
-    return;
-  }
+  });
 };
 
 // src/common/x2lon.ts
@@ -85,7 +90,7 @@ function y2latCommon(y, tiles) {
 // src/server/requestHandler/getNavionicsQuickinfo.ts
 var quickinfoCache = /* @__PURE__ */ new Map();
 var getNavionicsQuickinfo = async (req, res) => {
-  const { x, y, z } = extractProperties(req.params, {
+  const { x, y, z } = castObject(req.params, {
     x: Number,
     y: Number,
     z: Number
@@ -124,7 +129,7 @@ var getNavionicsQuickinfo = async (req, res) => {
 };
 
 // src/server/requestHandler/getTile.ts
-import { StyQueue } from "../node_modules/@mc-styrsky/queue/lib/index.js";
+import { StyQueue as StyQueue2 } from "../node_modules/@mc-styrsky/queue/lib/index.js";
 
 // src/common/modulo.ts
 function modulo(val, mod) {
@@ -664,7 +669,7 @@ var printStats = () => {
 // src/server/requestHandler/getTile.ts
 var getTile = async (req, res) => {
   try {
-    const { zoom } = extractProperties(req.params, {
+    const { zoom } = castObject(req.params, {
       zoom: (val) => parseInt(String(val))
     });
     if (zoom > getMaxzoom())
@@ -672,12 +677,12 @@ var getTile = async (req, res) => {
     const parsePosition = (val) => {
       return modulo(parseInt(String(val), 16), 1 << zoom);
     };
-    const { provider, x, y } = extractProperties(req.params, {
+    const { provider, x, y } = castObject(req.params, {
       provider: String,
       x: parsePosition,
       y: parsePosition
     });
-    const { quiet, ttl } = extractProperties(req.query, {
+    const { quiet, ttl } = castObject(req.query, {
       quiet: (val) => Boolean(parseInt(String(val ?? 0))),
       ttl: (val) => parseInt(String(val ?? 3))
     });
@@ -737,11 +742,11 @@ async function fetchChildTile({ dx, dy, provider, ttl, x, y, zoom }) {
 }
 async function pushToQueues({ provider, ttl, x, y, zoom }) {
   queues.childsCollapsed[zoom] ??= 0;
-  queues.childs[zoom] ??= new StyQueue(1e3);
+  queues.childs[zoom] ??= new StyQueue2(1e3);
   const childQueue = queues.childs[zoom];
   queues.childsCollapsed[zoom]++;
   while (childQueue.length > 100)
-    await (queues.childs[zoom - 1] ??= new StyQueue(1e3)).enqueue(() => new Promise((r) => setTimeout(r, childQueue.length / 1)));
+    await (queues.childs[zoom - 1] ??= new StyQueue2(1e3)).enqueue(() => new Promise((r) => setTimeout(r, childQueue.length / 1)));
   queues.childsCollapsed[zoom]--;
   childQueue.enqueue(() => fetchChildTile({ dx: 0, dy: 0, provider, ttl, x, y, zoom }));
   childQueue.enqueue(() => fetchChildTile({ dx: 0, dy: 1, provider, ttl, x, y, zoom }));
@@ -755,12 +760,12 @@ var queues = {
   checked: 0,
   childs: {},
   childsCollapsed: {},
-  fetch: new StyQueue2(10),
+  fetch: new StyQueue3(10),
   fetched: 0,
-  quiet: new StyQueue2(1e3),
+  quiet: new StyQueue3(1e3),
   stats: 0,
   statsCount: 0,
-  verbose: new StyQueue2(100),
+  verbose: new StyQueue3(100),
   worthit: 0,
   worthitCount: 0
 };

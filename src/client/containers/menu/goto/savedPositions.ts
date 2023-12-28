@@ -1,6 +1,6 @@
 import type { XYZ } from '../../../../common/types/xyz';
 import stringify from 'json-stable-stringify';
-import { extractProperties } from '../../../../common/extractProperties';
+import { castObject } from '../../../../common/extractProperties';
 import { position } from '../../../globals/position';
 import { tileSize } from '../../../globals/tileSize';
 import { Container } from '../../../utils/htmlElements/container';
@@ -27,7 +27,7 @@ class SavedPositions extends Container {
     this.clear();
     const list: XYZ[] = savedPositionsFromLocalStoreage();
     list.forEach(item => {
-      const { x, y, z } = extractProperties(item, {
+      const { x, y, z } = castObject(item, {
         x: val => Number(val) / tileSize,
         y: val => Number(val) / tileSize,
         z: Number,
