@@ -22,8 +22,6 @@
   "files": [
     "src/server/index.ts",
     "src/client/index.ts",
-    "src/server/utils/objectinfoQueue.ts",
-    "./src/server/utils/navionicsQueue.ts",
   ],
   "include": [
     "src"

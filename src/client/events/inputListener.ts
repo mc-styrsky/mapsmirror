@@ -1,4 +1,4 @@
-import { mapContainer } from '../containers/mapContainer';
+import { mapContainer } from '../containers/tilesContainer';
 import { coordsToggle } from '../containers/menu/coordsToggle';
 import { crosshairToggle } from '../containers/menu/crosshairToggle';
 import { navionicsDetailsToggle } from '../containers/menu/navionicsDetailsToggle';

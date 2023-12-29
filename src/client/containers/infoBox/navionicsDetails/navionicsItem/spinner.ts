@@ -10,10 +10,9 @@ export class NavionicsItemSpinner extends Container {
         classes: [
           'spinner-border',
           'spinner-border-sm',
+          'mxA',
+          'myA',
         ],
-        style: {
-          margin: 'auto',
-        },
       }),
     );
   }

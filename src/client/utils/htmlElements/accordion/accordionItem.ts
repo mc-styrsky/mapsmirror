@@ -13,7 +13,7 @@ export class AccordionItem extends Container {
     super(Container.from('div', {
       classes: [
         'accordion-item',
-        'mm-menu-text',
+        'AccordionLabel',
       ],
     }));
     const itemId = `item_${itemIdRaw.replace(/=*$/, '')}`;

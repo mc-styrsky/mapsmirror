@@ -1,4 +1,6 @@
 import type { XYZ } from '../../../../common/types/xyz';
+import { castObject } from '../../../../common/extractProperties';
+import { stylesheet } from '../../../globals/stylesheet';
 import { tileSize } from '../../../globals/tileSize';
 import { AccordionItem } from '../../../utils/htmlElements/accordion/accordionItem';
 import { Container } from '../../../utils/htmlElements/container';
@@ -7,7 +9,6 @@ import { NavionicsItemDetails } from './navionicsItem/details';
 import { NavionicsGoto } from './navionicsItem/goto';
 import { NavionicsIcon } from './navionicsItem/icon';
 import { NavionicsItemLabel } from './navionicsItem/label';
-import { NavionicsItemSpinner } from './navionicsItem/spinner';
 
 export interface NavionicsItemConstructor {
   // accordionId: string;
@@ -23,6 +24,16 @@ export interface NavionicsItemConstructor {
   };
 }
 
+stylesheet.addClass({
+  NavionicsItemSpacer: {
+    flexGrow: '0',
+    flexShrink: '0',
+    width: 'var(--bs-accordion-btn-icon-width)',
+  },
+});
+
+stylesheet.addClass({
+});
 
 export class NavionicsItem extends AccordionItem {
   constructor ({
@@ -32,8 +43,6 @@ export class NavionicsItem extends AccordionItem {
     itemName,
     position,
   }: NavionicsItemConstructor) {
-    const spinner = new NavionicsItemSpinner();
-
     const labelContainer = new NavionicsItemLabel(itemName);
     const headLabel = Container.from('div', {
       classes: ['d-flex', 'w-100'],
@@ -43,18 +52,37 @@ export class NavionicsItem extends AccordionItem {
       labelContainer,
       position ? new NavionicsGoto(position) : null,
       details ?
-        spinner :
+        void 0 :
         Container.from('div', {
-          style: {
-            width: 'var(--bs-accordion-btn-icon-width)',
-          },
+          classes: ['NavionicsItemSpacer'],
         }),
     );
-    const bodyLabel = details ? new NavionicsItemDetails(itemId, spinner) : void 0;
+    if (details) {
+      const bodyLabel = new NavionicsItemDetails();
+      super({ bodyLabel, headLabel, itemId });
 
-    super(
-      { bodyLabel, headLabel, itemId },
-    );
+      this.head.progress();
+      fetch(`/navionics/objectinfo/${itemId}`)
+      .then(async (res) => res.ok ? await res.json() : {})
+      .catch(() => ({}))
+      .then(body => {
+        const { properties } = castObject(body,
+          {
+            properties: (val) => Array.isArray(val) ?
+              val.map(({ label }) => String(label)) :
+              [],
+          },
+        );
+        bodyLabel.clear();
+        if (properties) properties.forEach(prop => {
+          if (prop) bodyLabel.append(Container.from('p').append(prop));
+        });
+        this.head.done();
+        this.hide();
+      });
+    }
+    else super({ headLabel, itemId });
+
 
     this.itemId = itemId;
     this.labelContainer = labelContainer;

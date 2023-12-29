@@ -50,15 +50,12 @@ export class InfoBoxCoords extends Container {
       Container.from('div', {
         classes: [
           'd-flex',
-        // 'text-end',
+          'w-100',
         ],
-        style: {
-          width: '100%',
-        },
       })
       .append(
-        Container.from('div', { style: { marginRight: 'auto' } }).append(left),
-        Container.from('div', { style: { marginLeft: 'auto' } }).append(right),
+        Container.from('div', { classes: ['mrA'] }).append(left),
+        Container.from('div', { classes: ['mlA'] }).append(right),
       ),
     );
   }

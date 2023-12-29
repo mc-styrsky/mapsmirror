@@ -2,11 +2,27 @@ import type { AddDuration } from './types/addDuration';
 import type { AddIncrement } from './types/addIncrement';
 import type { DurationKeys } from './types/durationKeys';
 import type { Appendable } from '../../../globals/appendable';
+import { stylesheet } from '../../../globals/stylesheet';
 import { formatDateValue } from '../../../utils/formatDateValue';
 import { Container } from '../../../utils/htmlElements/container';
 import { SolarTimesStatics } from './solarTimes/statics';
 import { SolarTimesStatsCanvas } from './solarTimesStatsCanvas';
 
+stylesheet.addClass({
+  SolarTimesStats: {
+    backgroundColor: '#ffffff',
+    borderColor: '#000000',
+    borderRight: '1px solid',
+    fontSize: '10px',
+    marginLeft: 'auto',
+    paddingLeft: '3px',
+    paddingRight: '3px',
+  },
+  ValueRowColRight: {
+    textAlign: 'right',
+    width: '5em',
+  },
+});
 export class ValueRow extends Container {
   constructor () {
     super();
@@ -47,15 +63,13 @@ export class ValueRow extends Container {
   addRow ({ col1 = [], col2 = [], col3 = [], row }: Partial<Record<'col1'|'col2'|'col3'|'row', Appendable[]>>) {
     row ??= [
       Container.from('div', {
-        style: { marginRight: 'auto' },
+        classes: ['mrA'],
       }).append(...col1),
       Container.from('div', {
-        classes: ['text-end'],
-        style: { width: '5em' },
+        classes: ['ValueRowColRight'],
       }).append(...col2),
       Container.from('div', {
-        classes: ['text-end'],
-        style: { width: '5em' },
+        classes: ['ValueRowColRight'],
       }).append(...col3),
     ];
     this.append(Container.from('div', {
@@ -68,33 +82,16 @@ export class ValueRow extends Container {
       height: 30,
       keys,
       map,
-      params: {
-        style: {
-          backgroundColor: '#ffffff',
-          height: '30px',
-          width: '15em',
-        },
-      },
       stats: durations.stats,
       width: 15 * 16,
     });
     const axis = [stats.max, stats.min].map(v => Container.from('div', {
       classes: ['text-end'],
-      style: {
-        fontSize: '10px',
-      },
     }).append(formatDateValue(v)));
     this.addRow({
       row: [
         Container.from('div', {
-          style: {
-            backgroundColor: '#ffffff',
-            borderColor: '#000000',
-            borderRight: '1px solid',
-            marginLeft: 'auto',
-            paddingLeft: '3px',
-            paddingRight: '3px',
-          },
+          classes: ['SolarTimesStats'],
         })
         .append(...axis),
         stats,

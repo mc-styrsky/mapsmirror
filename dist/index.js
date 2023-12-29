@@ -38,13 +38,14 @@ var getNavionicsIcon = async (req, res) => {
   }
 };
 
-// src/server/requestHandler/getNavionicsObjectinfo.ts
+// src/server/utils/navionicsQueue.ts
 import { StyQueue } from "../node_modules/@mc-styrsky/queue/lib/index.js";
-var objectinfoQueue = new StyQueue(1);
+var navionicsQueue = new StyQueue(10);
+
+// src/server/requestHandler/getNavionicsObjectinfo.ts
 var objectinfoCache = /* @__PURE__ */ new Map();
 var getNavionicsObjectinfo = async (req, res) => {
-  await objectinfoQueue.enqueue(async () => {
-    await new Promise((r) => setTimeout(r, 1e3));
+  await navionicsQueue.enqueue(async () => {
     try {
       const { itemId } = castObject(req.params, {
         itemId: String
@@ -90,42 +91,44 @@ function y2latCommon(y, tiles) {
 // src/server/requestHandler/getNavionicsQuickinfo.ts
 var quickinfoCache = /* @__PURE__ */ new Map();
 var getNavionicsQuickinfo = async (req, res) => {
-  const { x, y, z } = castObject(req.params, {
-    x: Number,
-    y: Number,
-    z: Number
-  });
-  try {
-    const { lat, lon } = {
-      lat: y2latCommon(y, 1 << z) * 180 / Math.PI,
-      lon: x2lonCommon(x, 1 << z) * 180 / Math.PI
-    };
-    const xyz = `${z}_${x}_${y}`;
-    const fromCache = quickinfoCache.get(xyz);
-    if (fromCache) {
-      console.log("[cached]", xyz);
-      res?.json(fromCache);
-    } else {
-      console.log("[fetch] ", xyz);
-      await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${Math.max(2, Math.min(Number(z), 17))}&ugc=true&lang=en`).then(
-        async (r) => {
-          if (r.ok) {
-            const toCache = await r.json();
-            quickinfoCache.set(xyz, toCache);
-            res?.json(toCache);
-          } else
-            res?.sendStatus(r.status);
-        },
-        () => {
-          res?.sendStatus(500);
-        }
-      );
+  await navionicsQueue.enqueue(async () => {
+    const { x, y, z } = castObject(req.params, {
+      x: Number,
+      y: Number,
+      z: Number
+    });
+    try {
+      const { lat, lon } = {
+        lat: y2latCommon(y, 1 << z) * 180 / Math.PI,
+        lon: x2lonCommon(x, 1 << z) * 180 / Math.PI
+      };
+      const xyz = `${z}_${x}_${y}`;
+      const fromCache = quickinfoCache.get(xyz);
+      if (fromCache) {
+        console.log("[cached]", xyz);
+        res?.json(fromCache);
+      } else {
+        console.log("[fetch] ", xyz);
+        await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${Math.max(2, Math.min(Number(z), 17))}&ugc=true&lang=en`).then(
+          async (r) => {
+            if (r.ok) {
+              const toCache = await r.json();
+              quickinfoCache.set(xyz, toCache);
+              res?.json(toCache);
+            } else
+              res?.sendStatus(r.status);
+          },
+          () => {
+            res?.sendStatus(500);
+          }
+        );
+      }
+    } catch (e) {
+      console.error(e);
+      res?.status(500).send("internal server error");
+      return;
     }
-  } catch (e) {
-    console.error(e);
-    res?.status(500).send("internal server error");
-    return;
-  }
+  });
 };
 
 // src/server/requestHandler/getTile.ts

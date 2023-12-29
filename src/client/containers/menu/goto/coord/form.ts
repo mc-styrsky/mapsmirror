@@ -4,7 +4,7 @@ import { deg2rad } from '../../../../utils/deg2rad';
 import { Container } from '../../../../utils/htmlElements/container';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
-import { mapContainer } from '../../../mapContainer';
+import { mapContainer } from '../../../tilesContainer';
 import { coordError } from './error';
 import { coordInfo } from './info';
 import { coordInput } from './input';
@@ -12,7 +12,7 @@ import { coordSubmit } from './submit';
 
 export const coordForm = Container.from('form', {
   action: 'javascript:void(0)',
-  classes: ['m-0'],
+  classes: ['GotoForm'],
   onsubmit: () => {
     const { lat: latDeg, lon: lonDeg } = parseDMS(coordInput.html.value) as { lat: number; lon: number; };
     const { lat, lon } = {
@@ -27,9 +27,6 @@ export const coordForm = Container.from('form', {
       };
     }
     mapContainer.redraw('goto');
-  },
-  style: {
-    minWidth: '20em',
   },
 });
 

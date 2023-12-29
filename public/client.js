@@ -1725,6 +1725,11 @@ function entriesTyped(o) {
   return Object.entries(o);
 }
 
+// src/client/utils/kebabify.ts
+var kebabify = (str) => str.replace(/[a-z][A-Z]/g, ($) => {
+  return $.split("").join("-");
+}).toLowerCase();
+
 // src/client/utils/htmlElements/container.ts
 var Container = class _Container {
   static from(tag, props) {
@@ -1739,7 +1744,7 @@ var Container = class _Container {
     if (classes)
       classes.forEach((c) => {
         if (typeof c === "string")
-          html.classList.add(...c.split(" "));
+          html.classList.add(...c.split(" ").map(kebabify));
       });
     if (dataset)
       entriesTyped(dataset).forEach(([k, v]) => html.dataset[k] = v);
@@ -1767,6 +1772,94 @@ var Container = class _Container {
     return this.html.getBoundingClientRect();
   }
 };
+
+// src/client/globals/stylesheet.ts
+var Stylesheet = class extends Container {
+  constructor() {
+    super(Container.from("style"));
+  }
+  keys = /* @__PURE__ */ new Set();
+  add(elements) {
+    entriesTyped(elements).map(([keyRaw, style]) => {
+      const key = kebabify(keyRaw);
+      if (this.keys.has(key))
+        throw Error(`"${key}" already defined`);
+      this.keys.add(key);
+      const rules = entriesTyped(style).map(([k, v]) => `${kebabify(k)}: ${v}`);
+      this.append(`${key} { ${rules.join("; ")} }
+`);
+    });
+  }
+  addClass(classes) {
+    this.add(fromEntriesTyped(
+      entriesTyped(classes).map(([className, style]) => [`.${className}`, style])
+    ));
+  }
+};
+var stylesheet = new Stylesheet();
+stylesheet.addClass({
+  AccordionLabel: {
+    backgroundColor: "#ffffff40 !important"
+  },
+  fetch: {
+    alignItems: "center",
+    backgroundColor: "var(--bs-accordion-btn-bg)",
+    border: "0",
+    borderRadius: "0",
+    color: "var(--bs-accordion-btn-color)",
+    display: "flex",
+    // fontSize: '1rem',
+    overflowAnchor: "none",
+    padding: "var(--bs-accordion-btn-padding-y) var(--bs-accordion-btn-padding-x)",
+    position: "relative",
+    textAlign: "left",
+    transition: "var(--bs-accordion-transition)",
+    width: "100%"
+  },
+  "fetch::after": {
+    "--bs-spinner-animation-name": "spinner-border",
+    "--bs-spinner-animation-speed": "0.75s",
+    "--bs-spinner-border-width": "0.2em",
+    animation: "var(--bs-spinner-animation-speed) linear infinite var(--bs-spinner-animation-name)",
+    border: "var(--bs-spinner-border-width) solid currentcolor",
+    borderRadius: "50%",
+    borderRightColor: "transparent",
+    content: '""',
+    flexShrink: "0",
+    height: "var(--bs-accordion-btn-icon-width)",
+    marginLeft: "auto",
+    transition: "var(--bs-accordion-btn-icon-transition)",
+    width: "var(--bs-accordion-btn-icon-width)"
+  },
+  MapContainerStyle: {
+    height: "100%",
+    left: "0px",
+    overflow: "hidden",
+    position: "absolute",
+    top: "0px",
+    width: "100%"
+  },
+  mbA: {
+    marginBottom: "auto"
+  },
+  mlA: {
+    marginLeft: "auto"
+  },
+  mrA: {
+    marginRight: "auto"
+  },
+  mtA: {
+    marginTop: "auto"
+  },
+  mxA: {
+    marginLeft: "auto",
+    marginRight: "auto"
+  },
+  myA: {
+    marginBottom: "auto",
+    marginTop: "auto"
+  }
+});
 
 // src/client/containers/infoBox/imagesToFetch.ts
 var ImagesToFetch = class extends Container {
@@ -7079,30 +7172,45 @@ var AccordionHead = class extends Container {
     super(Container.from("div", {
       classes: [
         "accordion-header",
-        "mm-menu-text"
+        "AccordionLabel"
       ]
     }));
+    this.hasBody = body;
     this.labelContainer = Container.from("div", {
       classes: [
         body ? "accordion-button" : "d-flex",
         "px-2",
         "py-0",
-        "mm-menu-text"
+        "AccordionLabel"
       ],
       dataset: {
         bsTarget: `#${itemId}`,
         bsToggle: "collapse"
       }
     });
+    this.done();
     this.append(this.labelContainer);
     this.label = label;
   }
+  hasBody;
   labelContainer;
   show() {
     this.labelContainer.html.classList.remove("collapsed");
   }
   hide() {
     this.labelContainer.html.classList.add("collapsed");
+  }
+  done() {
+    if (this.hasBody) {
+      this.labelContainer.html.classList.add("accordion-button");
+      this.labelContainer.html.classList.remove("fetch");
+    }
+  }
+  progress() {
+    if (this.hasBody) {
+      this.labelContainer.html.classList.remove("accordion-button");
+      this.labelContainer.html.classList.add("fetch");
+    }
   }
   set label(label) {
     this.labelContainer.clear();
@@ -7116,7 +7224,7 @@ var AccordionItem = class extends Container {
     super(Container.from("div", {
       classes: [
         "accordion-item",
-        "mm-menu-text"
+        "AccordionLabel"
       ]
     }));
     const itemId = `item_${itemIdRaw.replace(/=*$/, "")}`;
@@ -7169,35 +7277,10 @@ function px2nm(lat2) {
 
 // src/client/containers/infoBox/navionicsDetails/navionicsItem/details.ts
 var NavionicsItemDetails = class extends Container {
-  constructor(itemId, spinner) {
+  constructor() {
     super(Container.from("div", {}));
     this.append("fetching...");
-    fetch(`/navionics/objectinfo/${itemId}`).then(async (res) => res.ok ? await res.json() : {}).catch(() => ({})).then((body) => {
-      const { properties } = castObject(
-        body,
-        {
-          properties: (val) => Array.isArray(val) ? val.map(({ label }) => String(label)) : []
-        }
-      );
-      this.clear();
-      if (properties)
-        properties.forEach((prop) => {
-          if (prop)
-            this.append(Container.from("p").append(prop));
-        });
-      spinner.html.parentNode?.removeChild(spinner.html);
-    });
   }
-};
-
-// src/client/globals/containerStyle.ts
-var containerStyle = {
-  height: "100%",
-  left: "0px",
-  overflow: "hidden",
-  position: "absolute",
-  top: "0px",
-  width: "100%"
 };
 
 // src/client/utils/rad2deg.ts
@@ -7437,6 +7520,15 @@ async function drawCachedImage({
 
 // src/client/containers/map/mapTile.ts
 var pad = (1 << zoomMax).toString().length + 1;
+stylesheet.addClass({
+  MapTile: {
+    height: `${tileSize}px`,
+    left: "50%",
+    position: "absolute",
+    top: "50%",
+    width: `${tileSize}px`
+  }
+});
 var MapTile = class _MapTile extends Container {
   static id({ x, y, z: z2 }) {
     return `z:${z2.toFixed(0).padStart(2, " ")}, x:${x.toFixed(0).padStart(pad, " ")}, y:${y.toFixed(0).padStart(pad, " ")}`;
@@ -7452,17 +7544,11 @@ var MapTile = class _MapTile extends Container {
     const height = tileSize;
     const ttl2 = Math.max(Math.min(17, z2 + Math.max(0, position.ttl)) - z2, 0);
     super(Container.from("canvas", {
+      classes: ["MapTile"],
       dataset: {
         x: x.toFixed(0),
         y: y.toFixed(0),
         z: z2.toFixed(0)
-      },
-      style: {
-        height: `${height}px`,
-        left: "50%",
-        position: "absolute",
-        top: "50%",
-        width: `${width}px`
       }
     }));
     this.x = x;
@@ -7531,12 +7617,12 @@ var BaselayerMenu = class _BaselayerMenu extends Container {
 };
 var baselayerMenu = new BaselayerMenu();
 
-// src/client/containers/mapContainer.ts
-var MapContainer = class _MapContainer extends Container {
+// src/client/containers/tilesContainer.ts
+var TilesContainer = class _TilesContainer extends Container {
   constructor() {
     super(Container.from("div", {
-      id: _MapContainer.name,
-      style: containerStyle
+      classes: ["MapContainerStyle"],
+      id: _TilesContainer.name
     }));
   }
   mapTiles = /* @__PURE__ */ new Map();
@@ -7622,40 +7708,42 @@ var MapContainer = class _MapContainer extends Container {
     })();
   }
 };
-var mapContainer = new MapContainer();
+var mapContainer = new TilesContainer();
 
 // src/client/utils/htmlElements/iconButton.ts
+stylesheet.addClass({
+  BootstrapIcon: { fontSize: "175%" },
+  IconButton: {
+    flexGrow: "0",
+    flexShrink: "0",
+    padding: "0.25rem"
+  },
+  SvgIcon: {
+    height: "1.75rem"
+  }
+});
 var BootstrapIcon = class extends Container {
-  constructor({ fontSize = "175%", icon }) {
+  constructor({ icon }) {
     super(Container.from("i", {
-      classes: [`bi-${icon}`],
-      style: { fontSize }
+      classes: ["BootstrapIcon", `bi-${icon}`]
     }));
   }
 };
 var IconButton = class extends Container {
   constructor({
     active = () => false,
-    fontSize,
     icon,
     onclick = () => void 0,
-    src,
-    style
+    src
   }) {
     super(Container.from("a", {
-      classes: ["btn", active() ? "btn-success" : "btn-secondary"],
-      role: "button",
-      style: {
-        padding: "0.25rem",
-        ...style
-      }
+      classes: ["btn", active() ? "btn-success" : "btn-secondary", "IconButton"],
+      role: "button"
     }));
     this.append(
-      icon ? new BootstrapIcon({ fontSize, icon }) : Container.from("img", {
-        src,
-        style: {
-          height: "1.75rem"
-        }
+      icon ? new BootstrapIcon({ icon }) : Container.from("img", {
+        classes: ["SvgIcon"],
+        src
       })
     );
     this.html.onclick = () => {
@@ -7674,9 +7762,16 @@ var IconButton = class extends Container {
 };
 
 // src/client/containers/infoBox/navionicsDetails/navionicsItem/goto.ts
+stylesheet.addClass({
+  NavionicsGoto: {
+    margin: "auto 0",
+    padding: "0.25rem"
+  }
+});
 var NavionicsGoto = class extends Container {
   constructor({ lat: lat2, lon: lon2 }) {
-    super(Container.from("a", {
+    super(Container.from("div", {
+      classes: ["NavionicsGoto"],
       onclick: (event) => {
         position.xyz = {
           x: lon2x(lon2),
@@ -7684,10 +7779,6 @@ var NavionicsGoto = class extends Container {
         };
         mapContainer.redraw("goto");
         event.stopPropagation();
-      },
-      style: {
-        marginLeft: "auto",
-        padding: "0.25rem"
       }
     }));
     this.append(new BootstrapIcon({ icon: "arrow-right-circle" }));
@@ -7695,91 +7786,98 @@ var NavionicsGoto = class extends Container {
 };
 
 // src/client/containers/infoBox/navionicsDetails/navionicsItem/icon.ts
+stylesheet.addClass({
+  NavionicsIconDiv: {
+    display: "flex",
+    flexGrow: "0",
+    flexShrink: "0",
+    margin: "auto",
+    width: "2em"
+  },
+  NavionicsIconImg: {
+    display: "flex",
+    margin: "auto",
+    maxHeight: "1.5em",
+    maxWidth: "1.5em"
+  }
+});
 var NavionicsIcon = class extends Container {
   constructor(iconId) {
     super(Container.from("div", {
-      classes: ["d-flex"],
-      style: {
-        height: "2em",
-        width: "2em"
-      }
+      classes: ["NavionicsIconDiv"]
     }));
     this.append(
-      Container.from("div", {
-        style: {
-          margin: "auto"
-        }
-      }).append(
-        Container.from("img", {
-          src: `/navionics/icon/${encodeURIComponent(iconId)}`,
-          style: {
-            maxHeight: "1.5em",
-            maxWidth: "1.5em"
-          }
-        })
-      )
-    );
-  }
-};
-
-// src/client/containers/infoBox/navionicsDetails/navionicsItem/label.ts
-var NavionicsItemLabel = class extends Container {
-  constructor(itemName) {
-    super(Container.from("div", {
-      classes: ["d-flex"]
-    }));
-    this.append(
-      Container.from("div", {
-        style: {
-          margin: "auto"
-        }
-      }).append(itemName).append(
-        Container.from("div", {
-          style: {
-            fontSize: "70%",
-            marginLeft: "0.5rem"
-          }
-        }).append(this.distanceContainer)
-      )
-    );
-  }
-  distanceContainer = Container.from("div", {
-    style: {
-      fontSize: "70%",
-      marginLeft: "0.5rem"
-    }
-  });
-  distance = "NaN";
-  setDistance(distance) {
-    if (distance !== this.distance) {
-      this.distance = distance;
-      this.distanceContainer.clear();
-      this.distanceContainer.append(distance);
-    }
-  }
-};
-
-// src/client/containers/infoBox/navionicsDetails/navionicsItem/spinner.ts
-var NavionicsItemSpinner = class extends Container {
-  constructor() {
-    super(Container.from("div", {
-      classes: ["d-flex"]
-    }));
-    this.append(
-      Container.from("div", {
-        classes: [
-          "spinner-border",
-          "spinner-border-sm"
-        ],
-        style: {
-          margin: "auto"
-        }
+      Container.from("img", {
+        classes: ["NavionicsIconImg"],
+        src: `/navionics/icon/${encodeURIComponent(iconId)}`
       })
     );
   }
 };
 
+// src/client/containers/infoBox/navionicsDetails/navionicsItem/label.ts
+stylesheet.addClass({
+  NavionicsItemLabel: {
+    display: "flex",
+    flexGrow: "1",
+    position: "relative"
+  },
+  NavionicsItemLabelDistance: {
+    fontSize: "70%",
+    paddingLeft: "0.5rem"
+  },
+  NavionicsItemLabelDistanceHidden: {
+    display: "inline-block",
+    visibility: "hidden"
+  },
+  NavionicsItemLabelDistanceVisible: {
+    bottom: "0",
+    marginLeft: "auto",
+    paddingBottom: "0.11rem",
+    position: "absolute",
+    right: "0"
+  }
+});
+var NavionicsItemLabel = class extends Container {
+  constructor(itemName) {
+    super(Container.from("div", {
+      classes: ["NavionicsItemLabel"]
+    }));
+    this.append(
+      Container.from("div", { classes: ["myA"] }).append(
+        itemName,
+        this.distanceSpacer
+      ),
+      this.distanceContainer
+    );
+  }
+  distanceContainer = Container.from("span", {
+    classes: ["NavionicsItemLabelDistance", "NavionicsItemLabelDistanceVisible"]
+  });
+  distance = "NaN";
+  distanceSpacer = Container.from("div", {
+    classes: ["NavionicsItemLabelDistance", "NavionicsItemLabelDistanceHidden"]
+  });
+  setDistance(distance) {
+    if (distance !== this.distance) {
+      this.distance = distance;
+      this.distanceContainer.clear();
+      this.distanceContainer.append(distance);
+      this.distanceSpacer.clear();
+      this.distanceSpacer.append(distance);
+    }
+  }
+};
+
 // src/client/containers/infoBox/navionicsDetails/navionicsItem.ts
+stylesheet.addClass({
+  NavionicsItemSpacer: {
+    flexGrow: "0",
+    flexShrink: "0",
+    width: "var(--bs-accordion-btn-icon-width)"
+  }
+});
+stylesheet.addClass({});
 var NavionicsItem = class extends AccordionItem {
   constructor({
     details,
@@ -7788,7 +7886,6 @@ var NavionicsItem = class extends AccordionItem {
     itemName,
     position: position2
   }) {
-    const spinner = new NavionicsItemSpinner();
     const labelContainer = new NavionicsItemLabel(itemName);
     const headLabel = Container.from("div", {
       classes: ["d-flex", "w-100"]
@@ -7796,16 +7893,32 @@ var NavionicsItem = class extends AccordionItem {
       new NavionicsIcon(iconId),
       labelContainer,
       position2 ? new NavionicsGoto(position2) : null,
-      details ? spinner : Container.from("div", {
-        style: {
-          width: "var(--bs-accordion-btn-icon-width)"
-        }
+      details ? void 0 : Container.from("div", {
+        classes: ["NavionicsItemSpacer"]
       })
     );
-    const bodyLabel = details ? new NavionicsItemDetails(itemId, spinner) : void 0;
-    super(
-      { bodyLabel, headLabel, itemId }
-    );
+    if (details) {
+      const bodyLabel = new NavionicsItemDetails();
+      super({ bodyLabel, headLabel, itemId });
+      this.head.progress();
+      fetch(`/navionics/objectinfo/${itemId}`).then(async (res) => res.ok ? await res.json() : {}).catch(() => ({})).then((body) => {
+        const { properties } = castObject(
+          body,
+          {
+            properties: (val) => Array.isArray(val) ? val.map(({ label }) => String(label)) : []
+          }
+        );
+        bodyLabel.clear();
+        if (properties)
+          properties.forEach((prop) => {
+            if (prop)
+              bodyLabel.append(Container.from("p").append(prop));
+          });
+        this.head.done();
+        this.hide();
+      });
+    } else
+      super({ headLabel, itemId });
     this.itemId = itemId;
     this.labelContainer = labelContainer;
     this.position = position2;
@@ -7838,8 +7951,8 @@ var NavionicsDetails = class extends Container {
   marker;
   abortControllers = /* @__PURE__ */ new Set();
   accordionIdPrefix = "navionicsDetailsList";
-  accordions = /* @__PURE__ */ new Map();
-  fetchProgress = Container.from("div", { classes: ["d-flex"] });
+  accordions = /* @__PURE__ */ new Map([]);
+  fetchProgress = new AccordionItem({ headLabel: "", itemId: "fetchProgress" });
   items = /* @__PURE__ */ new Map();
   itemsCache = /* @__PURE__ */ new Map();
   mainAccordion;
@@ -7879,7 +7992,6 @@ var NavionicsDetails = class extends Container {
         itemKeys.delete(item.itemId);
       });
     }
-    console.log({ accordionKeys, itemKeys });
     itemKeys.forEach((key) => {
       const node = this.itemsCache.get(key)?.html;
       node?.parentNode?.removeChild(node);
@@ -7888,6 +8000,9 @@ var NavionicsDetails = class extends Container {
       const node = this.mainAccordionItems.get(key)?.html;
       node?.parentNode?.removeChild(node);
     });
+    this.fetchProgress.html.parentNode?.removeChild(this.fetchProgress.html);
+    if (this.queue.length > 0)
+      this.mainAccordion.append(this.fetchProgress);
   };
   async fetch({ x, y, z: z2 }) {
     while (this.queue.shift())
@@ -7969,8 +8084,7 @@ var NavionicsDetails = class extends Container {
         }).catch((rej) => console.error(rej));
         await ret;
         done++;
-        this.fetchProgress.clear();
-        this.fetchProgress.append(`${done}/${points.length}`);
+        this.fetchProgress.headLabel = `${done}/${points.length}`;
         this.refresh();
         return prom;
       }, Promise.resolve());
@@ -8302,22 +8416,25 @@ var drawNet = ({
 };
 
 // src/client/containers/overlayContainer.ts
+stylesheet.addClass({
+  OverlayContainerCanvas: {
+    height: "100%",
+    position: "absolute",
+    width: "100%"
+  }
+});
 var OverlayContainer = class _OverlayContainer extends Container {
   constructor() {
     super(Container.from("div", {
-      id: _OverlayContainer.name,
-      style: containerStyle
+      classes: ["MapContainerStyle"],
+      id: _OverlayContainer.name
     }));
   }
   redraw() {
     const { height, width } = this.html.getBoundingClientRect();
     const canvas = Container.from("canvas", {
+      classes: ["OverlayContainerCanvas"],
       height,
-      style: {
-        height: "100%",
-        position: "absolute",
-        width: "100%"
-      },
       width
     });
     const context = canvas.html.getContext("2d");
@@ -8459,15 +8576,12 @@ var InfoBoxCoords = class extends Container {
     this.append(
       Container.from("div", {
         classes: [
-          "d-flex"
-          // 'text-end',
-        ],
-        style: {
-          width: "100%"
-        }
+          "d-flex",
+          "w-100"
+        ]
       }).append(
-        Container.from("div", { style: { marginRight: "auto" } }).append(left2),
-        Container.from("div", { style: { marginLeft: "auto" } }).append(right2)
+        Container.from("div", { classes: ["mrA"] }).append(left2),
+        Container.from("div", { classes: ["mlA"] }).append(right2)
       )
     );
   }
@@ -10147,17 +10261,24 @@ function formatDateValue(val) {
 }
 
 // src/client/containers/infoBox/suncalc/solarTimesStatsCanvas.ts
+stylesheet.addClass({
+  SolarTimesStatsCanvas: {
+    backgroundColor: "#ffffff",
+    height: "30px",
+    width: "15em"
+  }
+});
 var SolarTimesStatsCanvas = class extends Container {
-  constructor({ height, keys, map = (val) => val, params = {}, stats, width }) {
+  constructor({ height, keys, map = (val) => val, stats, width }) {
     const values = stats.map((durations) => map(SolarTimesStatics.increment({ durations, keys })));
     const min3 = Math.min(...values);
     const max3 = Math.max(...values);
     const scaleY = (height - 1) / (max3 - min3);
     const scaleX = width / stats.length;
     super(Container.from("canvas", {
+      classes: ["SolarTimesStatsCanvas"],
       height,
-      width,
-      ...params
+      width
     }));
     const context = this.html.getContext("2d");
     if (context) {
@@ -10181,6 +10302,21 @@ var SolarTimesStatsCanvas = class extends Container {
 };
 
 // src/client/containers/infoBox/suncalc/valueRow.ts
+stylesheet.addClass({
+  SolarTimesStats: {
+    backgroundColor: "#ffffff",
+    borderColor: "#000000",
+    borderRight: "1px solid",
+    fontSize: "10px",
+    marginLeft: "auto",
+    paddingLeft: "3px",
+    paddingRight: "3px"
+  },
+  ValueRowColRight: {
+    textAlign: "right",
+    width: "5em"
+  }
+});
 var ValueRow = class extends Container {
   constructor() {
     super();
@@ -10213,15 +10349,13 @@ var ValueRow = class extends Container {
   addRow({ col1 = [], col2 = [], col3 = [], row }) {
     row ??= [
       Container.from("div", {
-        style: { marginRight: "auto" }
+        classes: ["mrA"]
       }).append(...col1),
       Container.from("div", {
-        classes: ["text-end"],
-        style: { width: "5em" }
+        classes: ["ValueRowColRight"]
       }).append(...col2),
       Container.from("div", {
-        classes: ["text-end"],
-        style: { width: "5em" }
+        classes: ["ValueRowColRight"]
       }).append(...col3)
     ];
     this.append(Container.from("div", {
@@ -10234,33 +10368,16 @@ var ValueRow = class extends Container {
       height: 30,
       keys,
       map,
-      params: {
-        style: {
-          backgroundColor: "#ffffff",
-          height: "30px",
-          width: "15em"
-        }
-      },
       stats: durations.stats,
       width: 15 * 16
     });
     const axis = [stats.max, stats.min].map((v) => Container.from("div", {
-      classes: ["text-end"],
-      style: {
-        fontSize: "10px"
-      }
+      classes: ["text-end"]
     }).append(formatDateValue(v)));
     this.addRow({
       row: [
         Container.from("div", {
-          style: {
-            backgroundColor: "#ffffff",
-            borderColor: "#000000",
-            borderRight: "1px solid",
-            marginLeft: "auto",
-            paddingLeft: "3px",
-            paddingRight: "3px"
-          }
+          classes: ["SolarTimesStats"]
         }).append(...axis),
         stats
       ]
@@ -10311,18 +10428,22 @@ var SolarTimes = class extends SolarTimesDurations {
 var solarTimes = new SolarTimes();
 
 // src/client/containers/infoBox.ts
+stylesheet.addClass(
+  {
+    InfoBox: {
+      backgroundColor: "#aaaa",
+      borderBottomLeftRadius: "var(--bs-border-radius)",
+      borderTopLeftRadius: "var(--bs-border-radius)",
+      position: "absolute",
+      right: "0",
+      width: "20rem"
+    }
+  }
+);
 var InfoBox = class extends Container {
   constructor() {
     super(Container.from("div", {
-      classes: ["p-2", "mt-2"],
-      style: {
-        backgroundColor: "#aaaa",
-        borderBottomLeftRadius: "var(--bs-border-radius)",
-        borderTopLeftRadius: "var(--bs-border-radius)",
-        position: "absolute",
-        right: "0",
-        width: "20rem"
-      }
+      classes: ["InfoBox", "p-2", "mt-2"]
     }));
   }
   refresh() {
@@ -10460,10 +10581,7 @@ var addressInput = Container.from("input", {
 // src/client/containers/menu/goto/address/form.ts
 var addressForm = Container.from("form", {
   action: "javascript:void(0)",
-  classes: ["m-0"],
-  style: {
-    minWidth: "20em"
-  }
+  classes: ["GotoForm"]
 });
 addressForm.append(addressInput);
 
@@ -10492,10 +10610,7 @@ var coordInfo = fromEntriesTyped(
   coordUnits.map((c) => [
     c,
     Container.from("div", {
-      classes: ["form-text"],
-      style: {
-        width: "max-content"
-      }
+      classes: ["form-text", "w-100"]
     })
   ])
 );
@@ -10549,7 +10664,7 @@ var coordInput = Container.from("input", {
 // src/client/containers/menu/goto/coord/form.ts
 var coordForm = Container.from("form", {
   action: "javascript:void(0)",
-  classes: ["m-0"],
+  classes: ["GotoForm"],
   onsubmit: () => {
     const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms2.default)(coordInput.html.value);
     const { lat: lat2, lon: lon2 } = {
@@ -10563,9 +10678,6 @@ var coordForm = Container.from("form", {
       };
     }
     mapContainer.redraw("goto");
-  },
-  style: {
-    minWidth: "20em"
   }
 });
 coordForm.append(
@@ -10645,9 +10757,6 @@ var SavedPositions = class extends Container {
             icon: "x",
             onclick: () => {
               this.delete({ x, y, z: z2 });
-            },
-            style: {
-              flexGrow: "0"
             }
           })
         )
@@ -10671,6 +10780,12 @@ function updateSavedPositionsList() {
 }
 
 // src/client/containers/menu/gotoMenu.ts
+stylesheet.addClass({
+  GotoForm: {
+    margin: "0",
+    minWidth: "20em"
+  }
+});
 var gotoMenu = Container.from("div", {
   classes: ["dropdown"]
 });
@@ -10962,12 +11077,12 @@ function mouseInput(event) {
 var MouseContainer = class extends Container {
   constructor() {
     super(Container.from("div", {
+      classes: ["MapContainerStyle"],
       id: "mouseContainer",
       onmousedown: mouseInput,
       onmousemove: mouseInput,
       onmouseup: mouseInput,
-      onwheel: mouseInput,
-      style: containerStyle
+      onwheel: mouseInput
     }));
   }
 };
@@ -10982,6 +11097,7 @@ var container = Container.from(document.getElementById(containerId) ?? Container
 var boundingRect = new Size(container);
 container.clear();
 container.append(
+  stylesheet,
   mapContainer,
   overlayContainer,
   mouseContainer,
@@ -10994,6 +11110,7 @@ window.addEventListener("resize", () => {
   mapContainer.redraw("resize");
 });
 mapContainer.rebuild("initial");
+console.log(stylesheet);
 export {
   boundingRect
 };

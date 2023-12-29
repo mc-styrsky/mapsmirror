@@ -3,7 +3,7 @@ import { layers } from '../../../common/layers';
 import { baselayers } from '../../globals/baselayers';
 import { settings } from '../../globals/settings';
 import { Container } from '../../utils/htmlElements/container';
-import { mapContainer } from '../mapContainer';
+import { mapContainer } from '../tilesContainer';
 
 export class BaselayerMenu extends Container {
   static baselayerLabel = (source: Baselayer) => `${layers[source].label} (${baselayers.indexOf(source)})`;

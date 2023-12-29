@@ -24,8 +24,8 @@ export class NavionicsDetails extends Container {
   marker: Marker | undefined;
   private readonly abortControllers: Set<AbortController> = new Set();
   private readonly accordionIdPrefix = 'navionicsDetailsList';
-  private readonly accordions = new Map<string, Accordion>();
-  private readonly fetchProgress = Container.from('div', { classes: ['d-flex'] });
+  private readonly accordions = new Map<string, Accordion>([]);
+  private readonly fetchProgress = new AccordionItem({ headLabel: '', itemId: 'fetchProgress' });
   private readonly items: Map<string, NavionicsItem> = new Map();
   private readonly itemsCache: Map<string, NavionicsItem> = new Map();
   private readonly mainAccordion: Accordion;
@@ -71,7 +71,6 @@ export class NavionicsDetails extends Container {
         itemKeys.delete(item.itemId);
       });
     }
-    console.log({ accordionKeys, itemKeys });
     itemKeys.forEach(key => {
       const node = this.itemsCache.get(key)?.html;
       node?.parentNode?.removeChild(node);
@@ -80,6 +79,8 @@ export class NavionicsDetails extends Container {
       const node = this.mainAccordionItems.get(key)?.html;
       node?.parentNode?.removeChild(node);
     });
+    this.fetchProgress.html.parentNode?.removeChild(this.fetchProgress.html);
+    if (this.queue.length > 0) this.mainAccordion.append(this.fetchProgress);
   };
 
   async fetch (
@@ -167,8 +168,7 @@ export class NavionicsDetails extends Container {
         .catch(rej => console.error(rej));
         await ret;
         done++;
-        this.fetchProgress.clear();
-        this.fetchProgress.append(`${done}/${points.length}`);
+        this.fetchProgress.headLabel = `${done}/${points.length}`;
         this.refresh();
         return prom;
       }, Promise.resolve());

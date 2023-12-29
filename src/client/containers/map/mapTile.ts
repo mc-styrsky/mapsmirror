@@ -2,11 +2,22 @@ import type { XYZ } from '../../../common/types/xyz';
 import { zoomMax } from '../../../common/layers';
 import { position } from '../../globals/position';
 import { settings } from '../../globals/settings';
+import { stylesheet } from '../../globals/stylesheet';
 import { tileSize } from '../../globals/tileSize';
 import { Container } from '../../utils/htmlElements/container';
 import { drawCachedImage } from './drawCachedImage';
 
 const pad = (1 << zoomMax).toString().length + 1;
+
+stylesheet.addClass({
+  MapTile: {
+    height: `${tileSize}px`,
+    left: '50%',
+    position: 'absolute',
+    top: '50%',
+    width: `${tileSize}px`,
+  },
+});
 export class MapTile extends Container<HTMLCanvasElement> {
   static id ({ x, y, z }: XYZ) {
     return `z:${
@@ -30,17 +41,11 @@ export class MapTile extends Container<HTMLCanvasElement> {
     const ttl = Math.max(Math.min(17, z + Math.max(0, position.ttl)) - z, 0);
 
     super(Container.from('canvas', {
+      classes: ['MapTile'],
       dataset: {
         x: x.toFixed(0),
         y: y.toFixed(0),
         z: z.toFixed(0),
-      },
-      style: {
-        height: `${height}px`,
-        left: '50%',
-        position: 'absolute',
-        top: '50%',
-        width: `${width}px`,
       },
     }));
 

@@ -5,7 +5,7 @@ import { deg2rad } from '../../../../utils/deg2rad';
 import { Container } from '../../../../utils/htmlElements/container';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
-import { mapContainer } from '../../../mapContainer';
+import { mapContainer } from '../../../tilesContainer';
 import { addressForm } from './form';
 import { addressSearchContainer } from './searchContainer';
 

@@ -1,51 +1,55 @@
 import type BootstrapIcons from 'bootstrap-icons/font/bootstrap-icons.json';
-import { mapContainer } from '../../containers/mapContainer';
+import { mapContainer } from '../../containers/tilesContainer';
+import { stylesheet } from '../../globals/stylesheet';
 import { Container } from './container';
 
 interface BsIcon {
-  fontSize?: string;
   icon: keyof(typeof BootstrapIcons);
   src?: undefined;
 }
 interface SvgIcon {
-  fontSize?: undefined;
   icon?: undefined;
   src: string;
 }
 
+stylesheet.addClass({
+  BootstrapIcon: { fontSize: '175%' },
+  IconButton: {
+    flexGrow: '0',
+    flexShrink: '0',
+    padding: '0.25rem',
+  },
+  SvgIcon: {
+    height: '1.75rem',
+  },
+});
+
 export class BootstrapIcon extends Container<HTMLElement> {
-  constructor ({ fontSize = '175%', icon }: BsIcon) {
+  constructor ({ icon }: BsIcon) {
     super(Container.from('i', {
-      classes: [`bi-${icon}`],
-      style: { fontSize },
+      classes: ['BootstrapIcon', `bi-${icon}`],
     }));
   }
 }
 
 export class IconButton extends Container<HTMLAnchorElement> {
   constructor ({
-    active = () => false, fontSize, icon, onclick = () => void 0, src, style,
+    active = () => false, icon, onclick = () => void 0, src,
   }: {
     active?: () => boolean,
     onclick?: () => void;
-    style?: Partial<HTMLAnchorElement['style']>;
+    // style?: Partial<HTMLAnchorElement['style']>;
   } & (BsIcon | SvgIcon)) {
     super(Container.from('a', {
-      classes: ['btn', active() ? 'btn-success' : 'btn-secondary'],
+      classes: ['btn', active() ? 'btn-success' : 'btn-secondary', 'IconButton'],
       role: 'button',
-      style: {
-        padding: '0.25rem',
-        ...style,
-      },
     }));
     this.append(
       icon ?
-        new BootstrapIcon({ fontSize, icon }) :
+        new BootstrapIcon({ icon }) :
         Container.from('img', {
+          classes: ['SvgIcon'],
           src,
-          style: {
-            height: '1.75rem',
-          },
         }),
     );
 

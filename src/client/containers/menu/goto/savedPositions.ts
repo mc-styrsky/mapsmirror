@@ -10,7 +10,7 @@ import { rad2string } from '../../../utils/rad2string';
 import { savedPositionsFromLocalStoreage } from '../../../utils/savedPositionsFromLocalStoreage';
 import { x2lon } from '../../../utils/x2lon';
 import { y2lat } from '../../../utils/y2lat';
-import { mapContainer } from '../../mapContainer';
+import { mapContainer } from '../../tilesContainer';
 
 class SavedPositions extends Container {
   constructor () {
@@ -56,9 +56,6 @@ class SavedPositions extends Container {
             icon: 'x',
             onclick: () => {
               this.delete({ x, y, z });
-            },
-            style: {
-              flexGrow: '0',
             },
           }),
         ),

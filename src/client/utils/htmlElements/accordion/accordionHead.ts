@@ -10,32 +10,47 @@ export class AccordionHead extends Container {
     super(Container.from('div', {
       classes: [
         'accordion-header',
-        'mm-menu-text',
+        'AccordionLabel',
       ],
     }));
+    this.hasBody = body;
     this.labelContainer = Container.from('div', {
       classes: [
         body ? 'accordion-button' : 'd-flex',
         'px-2',
         'py-0',
-        'mm-menu-text',
+        'AccordionLabel',
       ],
       dataset: {
         bsTarget: `#${itemId}`,
         bsToggle: 'collapse',
       },
     });
+    this.done();
     this.append(this.labelContainer);
     this.label = label;
   }
 
-  private labelContainer: Container;
+  private readonly hasBody: boolean;
+  private readonly labelContainer: Container;
 
   show () {
     this.labelContainer.html.classList.remove('collapsed');
   }
   hide () {
     this.labelContainer.html.classList.add('collapsed');
+  }
+  done () {
+    if (this.hasBody) {
+      this.labelContainer.html.classList.add('accordion-button');
+      this.labelContainer.html.classList.remove('fetch');
+    }
+  }
+  progress () {
+    if (this.hasBody) {
+      this.labelContainer.html.classList.remove('accordion-button');
+      this.labelContainer.html.classList.add('fetch');
+    }
   }
 
   set label (label: Appendable) {

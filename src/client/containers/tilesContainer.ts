@@ -1,6 +1,5 @@
 import type { Baselayer } from '../../common/types/layer';
 import { zoomMin } from '../../common/layers';
-import { containerStyle } from '../globals/containerStyle';
 import { position } from '../globals/position';
 import { settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
@@ -14,11 +13,11 @@ import { infoBox } from './infoBox';
 import { MapTile } from './map/mapTile';
 import { BaselayerMenu, baselayerMenu } from './menu/baselayerMenu';
 
-export class MapContainer extends Container {
+export class TilesContainer extends Container {
   constructor () {
     super(Container.from('div', {
-      id: MapContainer.name,
-      style: containerStyle,
+      classes: ['MapContainerStyle'],
+      id: TilesContainer.name,
     }));
   }
   private mapTiles = new Map<string, MapTile>();
@@ -114,4 +113,4 @@ export class MapContainer extends Container {
   }
 }
 
-export const mapContainer = new MapContainer();
+export const mapContainer = new TilesContainer();

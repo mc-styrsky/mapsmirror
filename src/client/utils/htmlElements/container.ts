@@ -1,4 +1,5 @@
 import { entriesTyped } from '../../../common/fromEntriesTyped';
+import { kebabify } from '../kebabify';
 
 type HtmlProps<E extends HTMLElement> = Partial<Omit<E, 'dataset' | 'style'>> & {
   classes?: (string | null | undefined)[];
@@ -24,13 +25,16 @@ export class Container<Selector extends HTMLElement = HTMLDivElement> {
     props: HtmlProps<T extends keyof HTMLElementTagNameMap ? HTMLElementTagNameMap[T] : T>,
   ) {
     const {
-      classes, dataset, style, ...data
+      classes,
+      dataset,
+      style,
+      ...data
     } = props ?? {};
     const html = tag instanceof HTMLElement ? tag : document.createElement(tag);
     entriesTyped(data).forEach(([k, v]) => html[k] = v);
 
     if (classes) classes.forEach(c => {
-      if (typeof c === 'string') html.classList.add(...c.split(' '));
+      if (typeof c === 'string') html.classList.add(...c.split(' ').map(kebabify));
     });
     if (dataset) entriesTyped(dataset).forEach(([k, v]) => html.dataset[k] = v);
     if (style) entriesTyped(style).forEach(([k, v]) => html.style[k] = v);

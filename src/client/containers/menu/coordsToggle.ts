@@ -1,6 +1,6 @@
 import { settings } from '../../globals/settings';
 import { Container } from '../../utils/htmlElements/container';
-import { mapContainer } from '../mapContainer';
+import { mapContainer } from '../tilesContainer';
 
 export const coordsToggle = Container.from('a', {
   classes: ['btn', 'btn-secondary'],

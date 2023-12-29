@@ -1,17 +1,21 @@
 import type { DurationKeys } from './types/durationKeys';
 import type { SolarDuration } from './types/solarDuration';
+import { stylesheet } from '../../../globals/stylesheet';
 import { Container } from '../../../utils/htmlElements/container';
 import { SolarTimesStatics } from './solarTimes/statics';
 
+stylesheet.addClass({
+  SolarTimesStatsCanvas: {
+    backgroundColor: '#ffffff',
+    height: '30px',
+    width: '15em',
+  },
+
+});
 export class SolarTimesStatsCanvas extends Container<HTMLCanvasElement> {
-  constructor ({ height, keys, map = (val) => val, params = {}, stats, width }: {
+  constructor ({ height, keys, map = (val) => val, stats, width }: {
     stats: SolarDuration[];
     keys: DurationKeys[];
-    params?: Partial<Omit<HTMLCanvasElement, 'dataset' | 'style' | 'width' | 'height'>> & {
-      classes?: (string | null | undefined)[];
-      dataset?: Partial<HTMLCanvasElement['dataset']>;
-      style?: Partial<HTMLCanvasElement['style']>;
-    };
     height: number;
     width: number;
     map?: (val: number) => number
@@ -22,9 +26,9 @@ export class SolarTimesStatsCanvas extends Container<HTMLCanvasElement> {
     const scaleY = (height - 1) / (max - min);
     const scaleX = width / stats.length;
     super(Container.from('canvas', {
+      classes: ['SolarTimesStatsCanvas'],
       height,
       width,
-      ...params,
     }));
     const context = this.html.getContext('2d');
     if (context) {

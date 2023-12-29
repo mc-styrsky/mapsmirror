@@ -7,10 +7,7 @@ export const coordInfo = fromEntriesTyped(
   coordUnits.map(c => [
     c,
     Container.from('div', {
-      classes: ['form-text'],
-      style: {
-        width: 'max-content',
-      },
+      classes: ['form-text', 'w-100'],
     }),
   ] as [CoordUnit, Container]),
 );

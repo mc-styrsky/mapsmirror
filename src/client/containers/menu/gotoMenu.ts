@@ -1,8 +1,15 @@
+import { stylesheet } from '../../globals/stylesheet';
 import { Container } from '../../utils/htmlElements/container';
 import { addressContainer } from './goto/address/container';
 import { coordForm } from './goto/coord/form';
 import { savedPositions } from './goto/savedPositions';
 
+stylesheet.addClass({
+  GotoForm: {
+    margin: '0',
+    minWidth: '20em',
+  },
+});
 
 export const gotoMenu = Container.from('div', {
   classes: ['dropdown'],

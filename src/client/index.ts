@@ -1,10 +1,11 @@
 import { Size } from './boundingRect';
 import { infoBox } from './containers/infoBox';
-import { mapContainer } from './containers/mapContainer';
 import { menuContainer } from './containers/menuContainer';
 import { mouseContainer } from './containers/mouseContainer';
 import { overlayContainer } from './containers/overlayContainer';
+import { mapContainer } from './containers/tilesContainer';
 import { inputListener } from './events/inputListener';
+import { stylesheet } from './globals/stylesheet';
 import { Container } from './utils/htmlElements/container';
 
 const {
@@ -16,6 +17,7 @@ export const boundingRect = new Size(container);
 
 container.clear();
 container.append(
+  stylesheet,
   mapContainer,
   overlayContainer,
   mouseContainer,
@@ -30,3 +32,5 @@ window.addEventListener('resize', () => {
 });
 
 mapContainer.rebuild('initial');
+
+console.log(stylesheet)
