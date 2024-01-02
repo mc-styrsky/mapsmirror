@@ -1,5 +1,6 @@
 import type express from 'express';
 import { castObject } from '../../common/extractProperties';
+import { PI, max, min } from '../../common/math';
 import { x2lonCommon } from '../../common/x2lon';
 import { y2latCommon } from '../../common/y2lat';
 import { navionicsQueue } from '../utils/navionicsQueue';
@@ -22,8 +23,8 @@ export const getNavionicsQuickinfo = async (
     });
     try {
       const { lat, lon } = {
-        lat: y2latCommon(y, 1 << z) * 180 / Math.PI,
-        lon: x2lonCommon(x, 1 << z) * 180 / Math.PI,
+        lat: y2latCommon(y, 1 << z) * 180 / PI,
+        lon: x2lonCommon(x, 1 << z) * 180 / PI,
       };
       const xyz = `${z}_${x}_${y}`;
       const fromCache = quickinfoCache.get(xyz);
@@ -34,7 +35,7 @@ export const getNavionicsQuickinfo = async (
       else {
         console.log('[fetch] ', xyz);
 
-        await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${Math.max(2, Math.min(Number(z), 17))}&ugc=true&lang=en`)
+        await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${max(2, min(Number(z), 17))}&ugc=true&lang=en`)
         .then(
           async r => {
             if (r.ok) {

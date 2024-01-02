@@ -7,6 +7,6 @@ export const crosshairToggle = new IconButton({
   icon: 'crosshair',
   onclick: () => {
     settings.show.crosshair = !settings.show.crosshair;
-    overlayContainer.redraw();
+    overlayContainer.refresh();
   },
 });

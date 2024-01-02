@@ -1,7 +1,9 @@
 import type { XYZ } from '../../../common/types/xyz';
-import type { Marker } from '../../globals/marker';
 import { StyQueue } from '@mc-styrsky/queue';
 import { castObject } from '../../../common/extractProperties';
+import { ceil, round, sqrt } from '../../../common/math';
+import { mouse } from '../../globals/mouse';
+import { position } from '../../globals/position';
 import { settings } from '../../globals/settings';
 import { tileSize } from '../../globals/tileSize';
 import { deg2rad } from '../../utils/deg2rad';
@@ -10,6 +12,7 @@ import { AccordionItem } from '../../utils/htmlElements/accordion/accordionItem'
 import { Container } from '../../utils/htmlElements/container';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
+import { xyz2latLon } from '../../utils/xyz2latLon';
 import { NavionicsItem } from './navionicsDetails/navionicsItem';
 
 
@@ -18,10 +21,12 @@ export class NavionicsDetails extends Container {
     super();
     this.mainAccordion = new Accordion({ accordionId: this.accordionIdPrefix });
     this.append(this.mainAccordion);
+    position.listeners.add(() => {
+      if (!mouse.down.state) this.fetch(position);
+    });
     this.queue.enqueue(() => new Promise(r => setInterval(r, 1)));
   }
 
-  marker: Marker | undefined;
   private readonly abortControllers: Set<AbortController> = new Set();
   private readonly accordionIdPrefix = 'navionicsDetailsList';
   private readonly accordions = new Map<string, Accordion>([]);
@@ -36,6 +41,7 @@ export class NavionicsDetails extends Container {
     this.items.set(itemId, item);
     this.refresh();
   };
+
   refresh = () => {
     const items = [...this.items.values()].sort((a, b) => a.distance - b.distance);
 
@@ -62,11 +68,9 @@ export class NavionicsDetails extends Container {
 
       accordionKeys.delete(accordionId);
 
-      mainAccordionItem.html.parentNode?.removeChild(mainAccordionItem.html);
       this.mainAccordion.append(mainAccordionItem);
 
       itemsSlice.forEach(item => {
-        item.html.parentNode?.removeChild(item.html);
         accordion.append(item);
         itemKeys.delete(item.itemId);
       });
@@ -79,8 +83,8 @@ export class NavionicsDetails extends Container {
       const node = this.mainAccordionItems.get(key)?.html;
       node?.parentNode?.removeChild(node);
     });
-    this.fetchProgress.html.parentNode?.removeChild(this.fetchProgress.html);
     if (this.queue.length > 0) this.mainAccordion.append(this.fetchProgress);
+    else this.fetchProgress.html.parentNode?.removeChild(this.fetchProgress.html);
   };
 
   async fetch (
@@ -92,6 +96,7 @@ export class NavionicsDetails extends Container {
     });
     if (!settings.show.navionicsDetails) return;
     await this.queue.enqueue(async () => {
+      const { lat, lon } = xyz2latLon({ x, y, z });
       this.items.clear();
       this.refresh();
       const abortController = new AbortController();
@@ -100,15 +105,15 @@ export class NavionicsDetails extends Container {
       const max = 4;
       const perTile = 20;
       const points: { dx: number; dy: number; radius: number; }[] = [{
-        dx: Math.round(x * tileSize) / tileSize,
-        dy: Math.round(y * tileSize) / tileSize,
+        dx: round(x * tileSize) / tileSize,
+        dy: round(y * tileSize) / tileSize,
         radius: 0,
       }];
       for (let iX = -max; iX < max; iX++) {
         for (let iY = -max; iY < max; iY++) {
-          const dx = Math.ceil(x * perTile + iX) / perTile;
-          const dy = Math.ceil(y * perTile + iY) / perTile;
-          const radius = Math.sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y));
+          const dx = ceil(x * perTile + iX) / perTile;
+          const dy = ceil(y * perTile + iY) / perTile;
+          const radius = sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y));
           points.push({ dx, dy, radius });
         }
       }
@@ -128,7 +133,7 @@ export class NavionicsDetails extends Container {
               icon_id: iconId,
               id: itemId,
               name: itemName,
-              position,
+              position: itemPosition,
             } = castObject(itemRemote, {
               category_id: String,
               details: Boolean,
@@ -144,7 +149,7 @@ export class NavionicsDetails extends Container {
             });
             const cachedItem = this.itemsCache.get(itemId);
             if (cachedItem) {
-              cachedItem.setReference({ x, y });
+              cachedItem.reference = { lat, lon };
               this.add(itemId, cachedItem);
               return;
             }
@@ -157,9 +162,9 @@ export class NavionicsDetails extends Container {
                 iconId,
                 itemId,
                 itemName,
-                position,
+                itemPosition,
               });
-              item.setReference({ x, y });
+              item.reference = { lat, lon };
               this.itemsCache.set(itemId, item);
               this.add(itemId, item);
             }

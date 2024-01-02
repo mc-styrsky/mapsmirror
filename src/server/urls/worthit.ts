@@ -2,6 +2,7 @@ import type { ConstructorParameters } from '../../common/types/constructorParame
 import sharp from 'sharp';
 import { tileSize } from '../../client/globals/tileSize';
 import { layers } from '../../common/layers';
+import { min } from '../../common/math';
 import { XYZ2Url } from './default';
 
 export class XYZ2UrlWorthit extends XYZ2Url {
@@ -16,10 +17,10 @@ export class XYZ2UrlWorthit extends XYZ2Url {
     const tile = new Uint8Array(3 * tileSize * tileSize);
     for (let zi = 0; zi <= 8; zi++) {
       const color = zi > 4 ?
-        [0, Math.min(0x20 << zi - 4, 0xff), 0] :
+        [0, min(0x20 << zi - 4, 0xff), 0] :
         zi > 0 ?
-          [0, 0, Math.min(0x20 << zi - 1, 0xff)] :
-          [Math.min(0x40 << zi, 0xff), 0, 0];
+          [0, 0, min(0x20 << zi - 1, 0xff)] :
+          [min(0x40 << zi, 0xff), 0, 0];
       for (let yi = 0; yi < 1 << zi; yi++) {
         const yiOffset = yi << 8 - zi;
         for (let xi = 0; xi < 1 << zi; xi++) {

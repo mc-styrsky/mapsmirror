@@ -1,11 +1,9 @@
-import { infoBox } from './containers/infoBox';
-import { Marker } from './globals/marker';
-import { position } from './globals/position';
+import { markers } from './globals/marker';
 import { deg2rad } from './utils/deg2rad';
 
 let geolocationBlocked = false;
 export async function updateUserLocation () {
-  if (geolocationBlocked) return position.user;
+  if (geolocationBlocked) return;
   await new Promise((resolve: PositionCallback, reject: PositionErrorCallback) => {
     return navigator.geolocation.getCurrentPosition(
       resolve,
@@ -17,17 +15,12 @@ export async function updateUserLocation () {
       },
     );
   })
-  .then((pos) => {
-    const { accuracy, latitude, longitude } = pos.coords;
-    position.user = {
+  .then(({ coords: { accuracy, latitude, longitude }, timestamp }) => {
+    markers.add({
       accuracy,
-      latitude: deg2rad(latitude),
-      longitude: deg2rad(longitude),
-      timestamp: pos.timestamp,
-    };
-    new Marker({
-      lat: latitude,
-      lon: longitude,
+      lat: deg2rad(latitude),
+      lon: deg2rad(longitude),
+      timestamp,
       type: 'user',
     });
   })
@@ -35,7 +28,4 @@ export async function updateUserLocation () {
     if (err.code === 1) geolocationBlocked = true;
     console.warn(`ERROR(${err.code}): ${err.message}`);
   });
-
-  infoBox.refresh();
-  return position.user;
 }

@@ -1,10 +1,9 @@
-import type { XYZ } from '../../../../common/types/xyz';
+import type { LatLon } from '../../../utils/spheric/latLon';
 import { castObject } from '../../../../common/extractProperties';
-import { stylesheet } from '../../../globals/stylesheet';
-import { tileSize } from '../../../globals/tileSize';
+import { markers } from '../../../globals/marker';
+import { position } from '../../../globals/position';
 import { AccordionItem } from '../../../utils/htmlElements/accordion/accordionItem';
 import { Container } from '../../../utils/htmlElements/container';
-import { px2nm } from '../../../utils/px2nm';
 import { NavionicsItemDetails } from './navionicsItem/details';
 import { NavionicsGoto } from './navionicsItem/goto';
 import { NavionicsIcon } from './navionicsItem/icon';
@@ -16,7 +15,7 @@ export interface NavionicsItemConstructor {
   iconId: string;
   itemId: string;
   itemName: string;
-  position: {
+  itemPosition: {
     lat: number;
     lon: number;
     x: number;
@@ -24,38 +23,21 @@ export interface NavionicsItemConstructor {
   };
 }
 
-stylesheet.addClass({
-  NavionicsItemSpacer: {
-    flexGrow: '0',
-    flexShrink: '0',
-    width: 'var(--bs-accordion-btn-icon-width)',
-  },
-});
-
-stylesheet.addClass({
-});
-
 export class NavionicsItem extends AccordionItem {
   constructor ({
     details,
     iconId,
     itemId,
     itemName,
-    position,
+    itemPosition,
   }: NavionicsItemConstructor) {
-    const labelContainer = new NavionicsItemLabel(itemName);
+    const labelContainer = new NavionicsItemLabel({ itemName, itemPosition });
     const headLabel = Container.from('div', {
       classes: ['d-flex', 'w-100'],
     })
     .append(
       new NavionicsIcon(iconId),
       labelContainer,
-      position ? new NavionicsGoto(position) : null,
-      details ?
-        void 0 :
-        Container.from('div', {
-          classes: ['NavionicsItemSpacer'],
-        }),
     );
     if (details) {
       const bodyLabel = new NavionicsItemDetails();
@@ -83,10 +65,18 @@ export class NavionicsItem extends AccordionItem {
     }
     else super({ headLabel, itemId });
 
+    this.head.append(new NavionicsGoto(itemPosition));
 
     this.itemId = itemId;
     this.labelContainer = labelContainer;
-    this.position = position;
+    this.head.html.onmousemove = () => {
+      markers.add({
+        lat: itemPosition.lat,
+        lon: itemPosition.lon,
+        type: 'navionics',
+      });
+    };
+    position.listeners.add(() => this.reference = position);
   }
 
   get distance () {
@@ -94,16 +84,11 @@ export class NavionicsItem extends AccordionItem {
   }
   readonly itemId: string;
   private _distance: number = NaN;
-  private readonly position: NavionicsItemConstructor['position'];
   readonly labelContainer: NavionicsItemLabel;
 
 
-  setReference ({ x, y }: Pick<XYZ, 'x'|'y'>) {
-    const pdx = this.position.x - x;
-    const pdy = this.position.y - y;
-    this._distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(this.position.lat);
-    this.labelContainer.setDistance(
-      `${this.distance.toFixed(3)}nm`,
-    );
+  set reference ({ lat, lon }: LatLon) {
+    this.labelContainer.distanceContainer.reference = { lat, lon };
+    this._distance = this.labelContainer.distanceContainer.radiusOmega.radius;
   }
 }

@@ -5,7 +5,7 @@ import type { Appendable } from '../../../globals/appendable';
 import { stylesheet } from '../../../globals/stylesheet';
 import { formatDateValue } from '../../../utils/formatDateValue';
 import { Container } from '../../../utils/htmlElements/container';
-import { SolarTimesStatics } from './solarTimes/statics';
+import { SolarTimes } from './solarTimes';
 import { SolarTimesStatsCanvas } from './solarTimesStatsCanvas';
 
 stylesheet.addClass({
@@ -41,7 +41,7 @@ export class ValueRow extends Container {
   add ({ durations, keys, label }: AddDuration): ValueRow
   add ({ increment, label }: AddIncrement): ValueRow
   add ({ durations, increment, keys, label }: AddDuration | AddIncrement): ValueRow {
-    increment ??= SolarTimesStatics.increment({
+    increment ??= SolarTimes.increment({
       durations: durations.today,
       keys,
     }),

@@ -1,8 +1,9 @@
 import type { DurationKeys } from './types/durationKeys';
 import type { SolarDuration } from './types/solarDuration';
+import { max, min } from '../../../../common/math';
 import { stylesheet } from '../../../globals/stylesheet';
 import { Container } from '../../../utils/htmlElements/container';
-import { SolarTimesStatics } from './solarTimes/statics';
+import { SolarTimes } from './solarTimes';
 
 stylesheet.addClass({
   SolarTimesStatsCanvas: {
@@ -20,10 +21,10 @@ export class SolarTimesStatsCanvas extends Container<HTMLCanvasElement> {
     width: number;
     map?: (val: number) => number
   }) {
-    const values = stats.map(durations => map(SolarTimesStatics.increment({ durations, keys })));
-    const min = Math.min(...values);
-    const max = Math.max(...values);
-    const scaleY = (height - 1) / (max - min);
+    const values = stats.map(durations => map(SolarTimes.increment({ durations, keys })));
+    const minValue = min(...values);
+    const maxValue = max(...values);
+    const scaleY = (height - 1) / (maxValue - minValue);
     const scaleX = width / stats.length;
     super(Container.from('canvas', {
       classes: ['SolarTimesStatsCanvas'],
@@ -36,14 +37,14 @@ export class SolarTimesStatsCanvas extends Container<HTMLCanvasElement> {
       context.strokeStyle = '#000000';
       values.forEach((val, idx) => {
         const x = idx * scaleX;
-        const y = (max - val) * scaleY + 0.5;
+        const y = (maxValue - val) * scaleY + 0.5;
         if (x === 0) context.moveTo(x, y);
         else context.lineTo(x, y);
       });
       context.stroke();
     }
-    this.max = max;
-    this.min = min;
+    this.max = maxValue;
+    this.min = minValue;
   }
   min: number;
   max: number;

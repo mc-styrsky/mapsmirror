@@ -2,7 +2,8 @@ import type { Overlay } from '../../../common/types/overlay';
 import { tileSize } from '../../globals/tileSize';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
-import { min2rad } from '../../utils/min2rad';
+import { ceil, floor } from '../../../common/math';
+import { nm2rad } from '../../utils/min2rad';
 import { px2nm } from '../../utils/px2nm';
 import { rad2string } from '../../utils/rad2string';
 import { x2lon } from '../../utils/x2lon';
@@ -32,7 +33,7 @@ const scales = [
 ];
 const getScale = (lat: number, minPx = 100) => {
   const target = px2nm(lat) * minPx;
-  return min2rad(scales.reduce((prev, curr) => {
+  return nm2rad(scales.reduce((prev, curr) => {
     return prev > target ?
       prev :
       curr;
@@ -60,8 +61,8 @@ export const drawNet = ({
     context.fillText(text, x, y);
   };
 
-  const latTop = Math.floor(y2lat(top) / scaleY) * scaleY;
-  const latBottom = Math.ceil(y2lat(bottom) / scaleY) * scaleY;
+  const latTop = floor(y2lat(top) / scaleY) * scaleY;
+  const latBottom = ceil(y2lat(bottom) / scaleY) * scaleY;
   const pointsY: {latGrid: number, x1: number, x2: number, y1: number}[] = [];
   for (let ctr = 0; ctr < 1000; ctr++) {
     const latGrid = latTop - scaleY * ctr;
@@ -73,8 +74,8 @@ export const drawNet = ({
       y1: (lat2y(latGrid) - y) * tileSize,
     });
   }
-  const lonLeft = Math.floor(x2lon(left) / scaleX) * scaleX;
-  const lonRight = Math.ceil(x2lon(right) / scaleX) * scaleX;
+  const lonLeft = floor(x2lon(left) / scaleX) * scaleX;
+  const lonRight = ceil(x2lon(right) / scaleX) * scaleX;
   const pointsX: {lonGrid: number, y1: number, y2: number, x1: number}[] = [];
   for (let ctr = 0; ctr < 1000; ctr++) {
     const lonGrid = lonLeft + scaleX * ctr;

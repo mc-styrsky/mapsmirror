@@ -1,3 +1,4 @@
+import { markers } from '../globals/marker';
 import { position } from '../globals/position';
 import { stylesheet } from '../globals/stylesheet';
 import { Container } from '../utils/htmlElements/container';
@@ -18,8 +19,12 @@ class OverlayContainer extends Container {
       classes: ['MapContainerStyle'],
       id: OverlayContainer.name,
     }));
+    position.listeners.add(() => this.refresh());
+    markers.listeners.add(() => this.refresh());
+    this.refresh();
   }
-  redraw () {
+
+  refresh () {
     const { height, width } = this.html.getBoundingClientRect();
     const canvas = Container.from('canvas', {
       classes: ['OverlayContainerCanvas'],

@@ -5,6 +5,7 @@ import { imagesToFetch } from './infoBox/imagesToFetch';
 import { InfoBoxCoords } from './infoBox/infoBoxCoords';
 import { navionicsDetails } from './infoBox/navionicsDetails';
 import { solarTimes } from './infoBox/suncalc/solarTimes';
+import { navionicsDetailsToggle } from './menu/navionicsDetailsToggle';
 
 stylesheet.addClass({
   InfoBox: {
@@ -22,16 +23,17 @@ class InfoBox extends Container {
     super(Container.from('div', {
       classes: ['InfoBox', 'p-2', 'mt-2'],
     }));
+    navionicsDetailsToggle.listeners.add(() => this.refresh);
+    this.infoBoxCoords = new InfoBoxCoords();
+    this.refresh();
   }
+  readonly infoBoxCoords: InfoBoxCoords;
   refresh () {
     this.clear();
-    this.append(new InfoBoxCoords());
+    this.append(this.infoBoxCoords);
     if (settings.show.navionicsDetails) this.append(navionicsDetails);
-    if (settings.show.suncalc) {
-      solarTimes.refresh();
-      this.append(solarTimes);
-    }
-    imagesToFetch.refresh();
+    if (settings.show.suncalc) this.append(solarTimes);
+
     this.append(imagesToFetch);
   }
 }

@@ -5,7 +5,7 @@ import { deg2rad } from '../../../../utils/deg2rad';
 import { Container } from '../../../../utils/htmlElements/container';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
-import { mapContainer } from '../../../tilesContainer';
+import { abs, ceil, log2, max, min } from '../../../../../common/math';
 import { addressForm } from './form';
 import { addressSearchContainer } from './searchContainer';
 
@@ -43,11 +43,11 @@ export const addressInput = Container.from('input', {
               });
               const [lat1 = lat, lat2 = lat, lon1 = lon, lon2 = lon] = boundingbox;
               const z = (() => {
-                if (Math.abs(lat2 - lat1) > 0 && Math.abs(lon2 - lon1) > 0) {
-                  const diffX = Math.abs(lon2x(lon2, 1) - lon2x(lon1, 1));
-                  const diffY = Math.abs(lat2y(lon2, 1) - lat2y(lon1, 1));
-                  const zoom = 1 / Math.max(diffX, diffY);
-                  return Math.max(2, Math.min(Math.ceil(Math.log2(zoom)), 17));
+                if (abs(lat2 - lat1) > 0 && abs(lon2 - lon1) > 0) {
+                  const diffX = abs(lon2x(lon2, 1) - lon2x(lon1, 1));
+                  const diffY = abs(lat2y(lon2, 1) - lat2y(lon1, 1));
+                  const zoom = 1 / max(diffX, diffY);
+                  return max(2, min(ceil(log2(zoom)), 17));
                 }
                 return position.z;
               })();
@@ -60,7 +60,6 @@ export const addressInput = Container.from('input', {
                   y: lat2y(lat, 1 << z),
                   z,
                 };
-                mapContainer.redraw('goto address');
               };
 
               if (idx === 0) addressForm.html.onsubmit = onclick;

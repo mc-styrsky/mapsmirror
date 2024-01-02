@@ -1,15 +1,15 @@
 import type { Baselayer } from '../../common/types/layer';
 import { zoomMin } from '../../common/layers';
+import { ceil, floor } from '../../common/math';
 import { position } from '../globals/position';
 import { settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
-import { boundingRect } from '../index';
+import { mainContainer } from '../mainContainer';
 import { Container } from '../utils/htmlElements/container';
 import { LocalStorageItem } from '../utils/localStorageItem';
 import { rad2deg } from '../utils/rad2deg';
 import { x2lon } from '../utils/x2lon';
 import { y2lat } from '../utils/y2lat';
-import { infoBox } from './infoBox';
 import { MapTile } from './map/mapTile';
 import { BaselayerMenu, baselayerMenu } from './menu/baselayerMenu';
 
@@ -19,12 +19,15 @@ export class TilesContainer extends Container {
       classes: ['MapContainerStyle'],
       id: TilesContainer.name,
     }));
+    window.addEventListener('resize', () => this.refresh('resize'));
+    position.listeners.add(() => this.refresh('position'));
+    this.rebuild('initial');
   }
   private mapTiles = new Map<string, MapTile>();
 
   rebuild (type: string) {
     this.mapTiles.clear();
-    this.redraw(type);
+    this.refresh(type);
   }
 
   set baselayer (baselayer: Baselayer) {
@@ -33,19 +36,16 @@ export class TilesContainer extends Container {
     this.rebuild('changed baselayer');
   }
 
-  redraw (type: string) {
-    const { height, width } = boundingRect;
-    const { tiles, ttl, x, y, z } = position;
-
-    infoBox.refresh();
-
+  refresh (type: string) {
     console.log(`${type} redraw@${new Date().toISOString()}`);
 
+    const { height, width } = mainContainer;
+    const { tiles, ttl, x, y, z } = position;
 
-    const maxdx = Math.ceil(x + width / 2 / tileSize);
-    const maxdy = Math.ceil(y + height / 2 / tileSize);
-    const mindx = Math.floor(x - width / 2 / tileSize);
-    const mindy = Math.floor(y - height / 2 / tileSize);
+    const maxdx = ceil(x + width / 2 / tileSize);
+    const maxdy = ceil(y + height / 2 / tileSize);
+    const mindx = floor(x - width / 2 / tileSize);
+    const mindy = floor(y - height / 2 / tileSize);
 
     const txArray: number[] = [];
     for (let tx = mindx; tx < maxdx; tx++) {

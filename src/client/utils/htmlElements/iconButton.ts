@@ -63,8 +63,7 @@ export class IconButton extends Container<HTMLAnchorElement> {
         this.html.classList.add('btn-secondary');
         this.html.classList.remove('btn-success');
       }
-      mapContainer.clear();
-      mapContainer.redraw('icon clicked');
+      mapContainer.refresh('icon clicked');
     };
   }
 }

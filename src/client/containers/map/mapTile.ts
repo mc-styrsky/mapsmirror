@@ -1,5 +1,6 @@
 import type { XYZ } from '../../../common/types/xyz';
 import { zoomMax } from '../../../common/layers';
+import { floor, max, min, sqrt } from '../../../common/math';
 import { position } from '../../globals/position';
 import { settings } from '../../globals/settings';
 import { stylesheet } from '../../globals/stylesheet';
@@ -32,13 +33,11 @@ export class MapTile extends Container<HTMLCanvasElement> {
     const scale = (1 << ref.z) / (1 << z);
     const dx = (x + 0.5) * scale - ref.x;
     const dy = (y + 0.5) * scale - ref.y;
-    return Math.sqrt(dx * dx + dy * dy);
+    return sqrt(dx * dx + dy * dy);
   }
 
   constructor ({ x, y, z }: XYZ) {
-    const width = tileSize;
-    const height = tileSize;
-    const ttl = Math.max(Math.min(17, z + Math.max(0, position.ttl)) - z, 0);
+    const ttl = max(min(17, z + max(0, position.ttl)) - z, 0);
 
     super(Container.from('canvas', {
       classes: ['MapTile'],
@@ -53,8 +52,8 @@ export class MapTile extends Container<HTMLCanvasElement> {
     this.y = y;
     this.z = z;
     this.id = MapTile.id({ x, y, z });
-    this.html.width = width;
-    this.html.height = height;
+    this.html.width = tileSize;
+    this.html.height = tileSize;
     const context = this.html.getContext('2d');
 
     if (context) {
@@ -82,9 +81,9 @@ export class MapTile extends Container<HTMLCanvasElement> {
     this.html.style.height = `${size}px`;
     this.html.style.width = `${size}px`;
     this.html.style.transform = `translate(${
-      Math.floor((this.x * scaleZ - x) * tileSize)
+      floor((this.x * scaleZ - x) * tileSize)
     }px, ${
-      Math.floor((this.y * scaleZ - y) * tileSize)
+      floor((this.y * scaleZ - y) * tileSize)
     }px)`;
   }
 

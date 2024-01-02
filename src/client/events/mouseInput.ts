@@ -1,11 +1,10 @@
-import { infoBox } from '../containers/infoBox';
 import { navionicsDetails } from '../containers/infoBox/navionicsDetails';
 import { mouseContainer } from '../containers/mouseContainer';
-import { overlayContainer } from '../containers/overlayContainer';
+import { markers } from '../globals/marker';
 import { mouse } from '../globals/mouse';
 import { position } from '../globals/position';
 import { tileSize } from '../globals/tileSize';
-import { boundingRect } from '../index';
+import { mainContainer } from '../mainContainer';
 import { inputListener } from './inputListener';
 
 export function mouseInput (event: MouseEvent | WheelEvent) {
@@ -29,7 +28,7 @@ export function mouseInput (event: MouseEvent | WheelEvent) {
   if (!isDown && mouse.down.state) {
     // onclick
     if (mouse.down.x === x && mouse.down.y === y) {
-      const { height, width } = boundingRect;
+      const { height, width } = mainContainer;
       const { x, y, z } = position;
       navionicsDetails.fetch({
         x: x + (mouse.x - width / 2) / tileSize,
@@ -43,6 +42,5 @@ export function mouseInput (event: MouseEvent | WheelEvent) {
   mouse.down.state = isDown;
   mouse.x = x;
   mouse.y = y;
-  if (position.markers.delete('navionics')) overlayContainer.redraw();
-  infoBox.refresh();
+  markers.delete('navionics');
 }

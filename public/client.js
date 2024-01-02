@@ -574,7 +574,7 @@ var require_implementation2 = __commonJS({
     "use strict";
     var ERROR_MESSAGE = "Function.prototype.bind called on incompatible ";
     var toStr = Object.prototype.toString;
-    var max3 = Math.max;
+    var max4 = Math.max;
     var funcType = "[object Function]";
     var concatty = function concatty2(a, b) {
       var arr = [];
@@ -626,7 +626,7 @@ var require_implementation2 = __commonJS({
           concatty(args, arguments)
         );
       };
-      var boundLength = max3(0, target.length - args.length);
+      var boundLength = max4(0, target.length - args.length);
       var boundArgs = [];
       for (var i = 0; i < boundLength; i++) {
         boundArgs[i] = "$" + i;
@@ -1346,7 +1346,7 @@ var require_suncalc = __commonJS({
   "node_modules/suncalc/suncalc.js"(exports, module) {
     (function() {
       "use strict";
-      var PI = Math.PI, sin = Math.sin, cos = Math.cos, tan = Math.tan, asin = Math.asin, atan = Math.atan2, acos = Math.acos, rad = PI / 180;
+      var PI3 = Math.PI, sin2 = Math.sin, cos2 = Math.cos, tan2 = Math.tan, asin2 = Math.asin, atan = Math.atan2, acos2 = Math.acos, rad = PI3 / 180;
       var dayMs = 1e3 * 60 * 60 * 24, J1970 = 2440588, J2000 = 2451545;
       function toJulian(date) {
         return date.valueOf() / dayMs - 0.5 + J1970;
@@ -1359,16 +1359,16 @@ var require_suncalc = __commonJS({
       }
       var e = rad * 23.4397;
       function rightAscension(l, b) {
-        return atan(sin(l) * cos(e) - tan(b) * sin(e), cos(l));
+        return atan(sin2(l) * cos2(e) - tan2(b) * sin2(e), cos2(l));
       }
       function declination(l, b) {
-        return asin(sin(b) * cos(e) + cos(b) * sin(e) * sin(l));
+        return asin2(sin2(b) * cos2(e) + cos2(b) * sin2(e) * sin2(l));
       }
       function azimuth(H, phi, dec) {
-        return atan(sin(H), cos(H) * sin(phi) - tan(dec) * cos(phi));
+        return atan(sin2(H), cos2(H) * sin2(phi) - tan2(dec) * cos2(phi));
       }
       function altitude(H, phi, dec) {
-        return asin(sin(phi) * sin(dec) + cos(phi) * cos(dec) * cos(H));
+        return asin2(sin2(phi) * sin2(dec) + cos2(phi) * cos2(dec) * cos2(H));
       }
       function siderealTime(d, lw) {
         return rad * (280.16 + 360.9856235 * d) - lw;
@@ -1382,8 +1382,8 @@ var require_suncalc = __commonJS({
         return rad * (357.5291 + 0.98560028 * d);
       }
       function eclipticLongitude(M) {
-        var C = rad * (1.9148 * sin(M) + 0.02 * sin(2 * M) + 3e-4 * sin(3 * M)), P = rad * 102.9372;
-        return M + C + P + PI;
+        var C = rad * (1.9148 * sin2(M) + 0.02 * sin2(2 * M) + 3e-4 * sin2(3 * M)), P = rad * 102.9372;
+        return M + C + P + PI3;
       }
       function sunCoords(d) {
         var M = solarMeanAnomaly(d), L = eclipticLongitude(M);
@@ -1413,16 +1413,16 @@ var require_suncalc = __commonJS({
       };
       var J0 = 9e-4;
       function julianCycle(d, lw) {
-        return Math.round(d - J0 - lw / (2 * PI));
+        return Math.round(d - J0 - lw / (2 * PI3));
       }
       function approxTransit(Ht, lw, n) {
-        return J0 + (Ht + lw) / (2 * PI) + n;
+        return J0 + (Ht + lw) / (2 * PI3) + n;
       }
       function solarTransitJ(ds, M, L) {
-        return J2000 + ds + 53e-4 * sin(M) - 69e-4 * sin(2 * L);
+        return J2000 + ds + 53e-4 * sin2(M) - 69e-4 * sin2(2 * L);
       }
       function hourAngle(h, phi, d) {
-        return acos((sin(h) - sin(phi) * sin(d)) / (cos(phi) * cos(d)));
+        return acos2((sin2(h) - sin2(phi) * sin2(d)) / (cos2(phi) * cos2(d)));
       }
       function observerAngle(height) {
         return -2.076 * Math.sqrt(height) / 60;
@@ -1449,7 +1449,7 @@ var require_suncalc = __commonJS({
         return result;
       };
       function moonCoords(d) {
-        var L = rad * (218.316 + 13.176396 * d), M = rad * (134.963 + 13.064993 * d), F = rad * (93.272 + 13.22935 * d), l = L + rad * 6.289 * sin(M), b = rad * 5.128 * sin(F), dt = 385001 - 20905 * cos(M);
+        var L = rad * (218.316 + 13.176396 * d), M = rad * (134.963 + 13.064993 * d), F = rad * (93.272 + 13.22935 * d), l = L + rad * 6.289 * sin2(M), b = rad * 5.128 * sin2(F), dt = 385001 - 20905 * cos2(M);
         return {
           ra: rightAscension(l, b),
           dec: declination(l, b),
@@ -1457,7 +1457,7 @@ var require_suncalc = __commonJS({
         };
       }
       SunCalc.getMoonPosition = function(date, lat2, lng) {
-        var lw = rad * -lng, phi = rad * lat2, d = toDays(date), c = moonCoords(d), H = siderealTime(d, lw) - c.ra, h = altitude(H, phi, c.dec), pa = atan(sin(H), tan(phi) * cos(c.dec) - sin(c.dec) * cos(H));
+        var lw = rad * -lng, phi = rad * lat2, d = toDays(date), c = moonCoords(d), H = siderealTime(d, lw) - c.ra, h = altitude(H, phi, c.dec), pa = atan(sin2(H), tan2(phi) * cos2(c.dec) - sin2(c.dec) * cos2(H));
         h = h + astroRefraction(h);
         return {
           azimuth: azimuth(H, phi, c.dec),
@@ -1467,9 +1467,9 @@ var require_suncalc = __commonJS({
         };
       };
       SunCalc.getMoonIllumination = function(date) {
-        var d = toDays(date || /* @__PURE__ */ new Date()), s = sunCoords(d), m = moonCoords(d), sdist = 149598e3, phi = acos(sin(s.dec) * sin(m.dec) + cos(s.dec) * cos(m.dec) * cos(s.ra - m.ra)), inc = atan(sdist * sin(phi), m.dist - sdist * cos(phi)), angle = atan(cos(s.dec) * sin(s.ra - m.ra), sin(s.dec) * cos(m.dec) - cos(s.dec) * sin(m.dec) * cos(s.ra - m.ra));
+        var d = toDays(date || /* @__PURE__ */ new Date()), s = sunCoords(d), m = moonCoords(d), sdist = 149598e3, phi = acos2(sin2(s.dec) * sin2(m.dec) + cos2(s.dec) * cos2(m.dec) * cos2(s.ra - m.ra)), inc = atan(sdist * sin2(phi), m.dist - sdist * cos2(phi)), angle = atan(cos2(s.dec) * sin2(s.ra - m.ra), sin2(s.dec) * cos2(m.dec) - cos2(s.dec) * sin2(m.dec) * cos2(s.ra - m.ra));
         return {
-          fraction: (1 + cos(inc)) / 2,
+          fraction: (1 + cos2(inc)) / 2,
           phase: 0.5 + 0.5 * inc * (angle < 0 ? -1 : 1) / Math.PI,
           angle
         };
@@ -1610,29 +1610,6 @@ var require_parse_dms = __commonJS({
     }
   }
 });
-
-// src/client/boundingRect.ts
-var Size = class {
-  constructor(container2) {
-    this.container = container2;
-    this.refresh();
-  }
-  refresh = () => {
-    const { height, width } = this.container.getBoundingClientRect();
-    console.log("new bounding rect", { height, width });
-    this._height = height;
-    this._width = width;
-  };
-  container;
-  _height = 0;
-  _width = 0;
-  get height() {
-    return this._height;
-  }
-  get width() {
-    return this._width;
-  }
-};
 
 // src/common/extractProperties.ts
 function castObject(obj, transformer) {
@@ -1873,7 +1850,7 @@ var ImagesToFetch = class extends Container {
   add = ({ source, ...xyz }) => {
     this.getSet(source).add(this.xyz2string(xyz));
     this.total[source] = (this.total[source] ?? 0) + 1;
-    infoBox.refresh();
+    this.refresh();
   };
   delete = ({ source, ...xyz }) => {
     this.getSet(source).delete(this.xyz2string(xyz));
@@ -1881,7 +1858,7 @@ var ImagesToFetch = class extends Container {
       delete this.data[source];
       delete this.total[source];
     }
-    infoBox.refresh();
+    this.refresh();
   };
   refresh = () => {
     this.clear();
@@ -1894,6 +1871,219 @@ var ImagesToFetch = class extends Container {
 };
 var imagesToFetch = new ImagesToFetch();
 
+// src/common/math.ts
+var { abs, acos, asin, asinh, atan2, ceil, cos, floor, log2, log10, max, min, PI, pow, round, sin, sqrt, tan, tanh } = Math;
+var PI2 = 2 * PI;
+var piHalf = PI / 2;
+function frac(x) {
+  return x - floor(x);
+}
+
+// src/common/layers.ts
+var zoomMax = 20;
+var zoomMin = 2;
+var min2 = zoomMin;
+var max2 = zoomMax;
+var layers = {
+  "": { label: "- none -", max: max2, min: min2 },
+  bingsat: { label: "bSat", max: max2, min: min2 },
+  gebco: { label: "Depth", max: 9, min: min2 },
+  googlehybrid: { label: "gHybrid", max: max2, min: min2 },
+  googlesat: { label: "gSat", max: max2, min: min2 },
+  googlestreet: { label: "gStreet", max: max2, min: min2 },
+  navionics: { label: "Navionics", max: 17, min: min2 },
+  openseamap: { label: "oSea", max: 18, min: min2 },
+  opentopomap: { label: "oTopo", max: 17, min: min2 },
+  osm: { label: "oStreet", max: 19, min: min2 },
+  vfdensity: { label: "Density", max: 12, min: 3 },
+  worthit: { label: "Worthit", max: max2, min: min2 }
+};
+
+// src/common/modulo.ts
+function modulo(val, mod) {
+  const ret = val % mod;
+  return ret < 0 ? ret + mod : ret;
+}
+
+// src/client/utils/deg2rad.ts
+function deg2rad(val) {
+  return Number(val) * PI / 180;
+}
+
+// src/client/utils/lon2x.ts
+function lon2x(lon2, tiles = position.tiles) {
+  return (lon2 / PI / 2 + 0.5) * tiles;
+}
+
+// src/common/x2lon.ts
+function x2lonCommon(x, tiles) {
+  return (x / tiles - 0.5) * PI * 2;
+}
+
+// src/client/utils/x2lon.ts
+function x2lon(x, tiles = position.tiles) {
+  return x2lonCommon(x, tiles);
+}
+
+// src/common/y2lat.ts
+function y2latCommon(y, tiles) {
+  return asin(tanh((0.5 - y / tiles) * 2 * PI));
+}
+
+// src/client/utils/y2lat.ts
+function y2lat(y, tiles = position.tiles) {
+  return y2latCommon(y, tiles);
+}
+
+// src/client/globals/position.ts
+var Position = class {
+  constructor({ ttl: ttl2, x, y, z: z2 }) {
+    this.xyz = { x, y, z: z2 };
+    this._ttl = ttl2;
+    this.map = { x, y, z: z2 };
+  }
+  set ttl(val) {
+    this._ttl = val;
+  }
+  get ttl() {
+    return this._ttl;
+  }
+  get lat() {
+    return this._lat;
+  }
+  get lon() {
+    return this._lon;
+  }
+  get x() {
+    return this._x;
+  }
+  get y() {
+    return this._y;
+  }
+  get z() {
+    return this._z;
+  }
+  set xyz({ x = this._x, y = this._y, z: z2 = this._z }) {
+    this._z = z2;
+    this._tiles = 1 << z2;
+    this._x = modulo(x, this._tiles);
+    this._y = max(0, min(y, this._tiles));
+    this._lat = y2lat(y, 1 << z2);
+    this._lon = x2lon(x, 1 << z2);
+    this.refresh();
+  }
+  get xyz() {
+    return {
+      x: this._x,
+      y: this._y,
+      z: this._z
+    };
+  }
+  get tiles() {
+    return this._tiles;
+  }
+  zoomIn = ({ dx = 0, dy = 0 } = {}) => {
+    if (this._z < zoomMax) {
+      this.xyz = {
+        x: this._x * 2 + dx,
+        y: this._y * 2 + dy,
+        z: this._z + 1
+      };
+      return true;
+    }
+    return false;
+  };
+  zoomOut = ({ dx = 0, dy = 0 } = {}) => {
+    if (this.z > zoomMin) {
+      this.xyz = {
+        x: (this._x - dx) / 2,
+        y: (this._y - dy) / 2,
+        z: this._z - 1
+      };
+      return true;
+    }
+    return false;
+  };
+  listeners = /* @__PURE__ */ new Set();
+  refresh() {
+    this.listeners.forEach((callback) => callback());
+  }
+  map;
+  _lat = NaN;
+  _lon = NaN;
+  _ttl = NaN;
+  _x = NaN;
+  _y = NaN;
+  _z = NaN;
+  _tiles = NaN;
+};
+var searchParams = fromEntriesTyped(new URL(window.location.href).searchParams.entries());
+var { lat, lon, ttl, z } = castObject(searchParams, {
+  lat: (val) => Number(val) ? deg2rad(parseFloat(val)) : 0,
+  lon: (val) => Number(val) ? deg2rad(parseFloat(val)) : 0,
+  ttl: (val) => Number(val) ? parseInt(val) : 0,
+  z: (val) => Number(val) ? parseInt(val) : 2
+});
+var position = new Position({
+  ttl,
+  x: lon2x(lon, 1 << z),
+  y: lat2y(lat, 1 << z),
+  z
+});
+
+// src/client/utils/lat2y.ts
+function lat2y(lat2, tiles = position.tiles) {
+  return (0.5 - asinh(tan(lat2)) / PI2) * tiles;
+}
+
+// src/client/globals/marker.ts
+var Marker = class {
+  constructor({
+    accuracy = 0,
+    lat: lat2,
+    lon: lon2,
+    timestamp = 0,
+    type
+  }) {
+    this.accuracy = accuracy;
+    this.timestamp = timestamp;
+    this.lat = lat2;
+    this.lon = lon2;
+    this.type = type;
+  }
+  accuracy;
+  timestamp;
+  lat;
+  lon;
+  type;
+  get x() {
+    return lon2x(this.lon);
+  }
+  get y() {
+    return lat2y(this.lat);
+  }
+};
+var Markers = class {
+  _markers = /* @__PURE__ */ new Map();
+  add = (params) => {
+    this._markers.set(params.type, new Marker(params));
+    this.refresh();
+  };
+  delete = (type) => {
+    if (this._markers.has(type)) {
+      this._markers.delete(type);
+      this.refresh();
+    }
+  };
+  get = (type) => this._markers.get(type);
+  set = () => this._markers;
+  listeners = /* @__PURE__ */ new Set();
+  refresh() {
+    this.listeners.forEach((callback) => callback());
+  }
+};
+var markers = new Markers();
+
 // src/client/globals/mouse.ts
 var mouse = {
   down: {
@@ -1905,31 +2095,154 @@ var mouse = {
   y: 0
 };
 
-// src/common/layers.ts
-var zoomMax = 20;
-var zoomMin = 2;
-var min = zoomMin;
-var max = zoomMax;
-var layers = {
-  "": { label: "- none -", max, min },
-  bingsat: { label: "bSat", max, min },
-  gebco: { label: "Depth", max: 9, min },
-  googlehybrid: { label: "gHybrid", max, min },
-  googlesat: { label: "gSat", max, min },
-  googlestreet: { label: "gStreet", max, min },
-  navionics: { label: "Navionics", max: 17, min },
-  openseamap: { label: "oSea", max: 18, min },
-  opentopomap: { label: "oTopo", max: 17, min },
-  osm: { label: "oStreet", max: 19, min },
-  vfdensity: { label: "Density", max: 12, min: 3 },
-  worthit: { label: "Worthit", max, min }
-};
+// src/client/globals/tileSize.ts
+var tileSize = 256;
 
-// src/common/modulo.ts
-function modulo(val, mod) {
-  const ret = val % mod;
-  return ret < 0 ? ret + mod : ret;
+// src/client/mainContainer.ts
+var MainContainer = class extends Container {
+  constructor() {
+    const {
+      container: containerId = ""
+    } = Object.fromEntries(new URL(import.meta.url).searchParams.entries());
+    super(
+      Container.from(document.getElementById(containerId) ?? Container.from("div").html)
+    );
+    window.addEventListener("resize", () => {
+      this.refresh();
+    });
+    this.refresh();
+  }
+  refresh = () => {
+    const { height, width } = this.html.getBoundingClientRect();
+    console.log("new bounding rect", { height, width });
+    this._height = height;
+    this._width = width;
+    position.refresh();
+  };
+  _height = 0;
+  _width = 0;
+  get height() {
+    return this._height;
+  }
+  get width() {
+    return this._width;
+  }
+};
+var mainContainer = new MainContainer();
+
+// src/client/utils/px2nm.ts
+function px2nm(lat2) {
+  const stretch = 1 / cos(lat2);
+  return 360 * 60 / position.tiles / tileSize / stretch;
 }
+
+// src/client/utils/rad2string.ts
+var rad2ModuloDeg = (phi) => modulo(phi * 180 / PI + 180, 360) - 180;
+var rad2stringFuncs = {
+  d: ({ axis = " -", pad: pad2 = 0, phi }) => {
+    const deg = round(rad2ModuloDeg(phi) * 1e5) / 1e5;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad2 + 6, "0")}\xB0`;
+  },
+  dm: ({ axis = " -", pad: pad2 = 0, phi }) => {
+    const deg = round(rad2ModuloDeg(phi) * 6e4) / 6e4;
+    const degrees = deg | 0;
+    const minutes = (abs(deg) - abs(degrees)) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}`;
+  },
+  dms: ({ axis = " -", pad: pad2 = 0, phi }) => {
+    const deg = round(rad2ModuloDeg(phi) * 36e4) / 36e4;
+    const degrees = deg | 0;
+    const min4 = round((abs(deg) - abs(degrees)) * 36e4) / 6e3;
+    const minutes = min4 | 0;
+    const seconds = (min4 - minutes) * 60;
+    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}`;
+  }
+};
+function rad2string({ axis = " -", pad: pad2 = 0, phi }) {
+  return rad2stringFuncs[settings.units.coords]({ axis, pad: pad2, phi });
+}
+
+// src/client/containers/menu/coordsToggle.ts
+var CoordsToggle = class _CoordsToggle extends Container {
+  static toString = () => {
+    return {
+      d: "Dec",
+      dm: "D\xB0M'",
+      dms: "DMS"
+    }[settings.units.coords];
+  };
+  constructor() {
+    super(Container.from("a", {
+      classes: ["btn", "btn-secondary"],
+      onclick: () => {
+        settings.units.coords = {
+          d: "dm",
+          dm: "dms",
+          dms: "d"
+        }[settings.units.coords] ?? "dm";
+        this.refresh();
+      },
+      role: "button"
+    }));
+  }
+  listeners = /* @__PURE__ */ new Set();
+  refresh() {
+    this.listeners.forEach((callback) => callback());
+    this.clear();
+    this.append(_CoordsToggle.toString());
+  }
+};
+var coordsToggle = new CoordsToggle();
+
+// src/client/containers/infoBox/infoBoxCoords.ts
+var InfoBoxCoords = class extends Container {
+  constructor() {
+    super();
+    this.refresh();
+    position.listeners.add(() => this.refresh());
+    coordsToggle.listeners.add(() => this.refresh());
+  }
+  refresh() {
+    const { height, width } = mainContainer;
+    const { lat: lat2, lon: lon2, x, y } = position;
+    const latMouse = y2lat(y + (mouse.y - height / 2) / tileSize);
+    const lonMouse = x2lon(x + (mouse.x - width / 2) / tileSize);
+    const scale = (() => {
+      let nm = px2nm(lat2);
+      let px = 1;
+      if (nm >= 1)
+        return `${px2nm(lat2).toPrecision(3)}nm/px`;
+      while (nm < 1) {
+        nm *= 10;
+        px *= 10;
+      }
+      return `${nm.toPrecision(3)}nm/${px.toFixed(0)}px`;
+    })();
+    this.clear();
+    this.row("Scale", `${scale} (Zoom ${position.z})`);
+    this.row("Lat/Lon", `${rad2string({ axis: "NS", pad: 2, phi: lat2 })} ${rad2string({ axis: "EW", pad: 3, phi: lon2 })}`);
+    this.row("Mouse", `${rad2string({ axis: "NS", pad: 2, phi: latMouse })} ${rad2string({ axis: "EW", pad: 3, phi: lonMouse })}`);
+    markers.set().forEach((marker, key) => {
+      this.row(
+        key,
+        `${rad2string({ axis: "NS", pad: 2, phi: marker.lat })} ${rad2string({ axis: "EW", pad: 3, phi: marker.lon })}`
+      );
+    });
+  }
+  row(left2, right2) {
+    this.append(
+      Container.from("div", {
+        classes: [
+          "d-flex",
+          "w-100"
+        ]
+      }).append(
+        Container.from("div", { classes: ["mrA"] }).append(left2),
+        Container.from("div", { classes: ["mlA"] }).append(right2)
+      )
+    );
+  }
+};
 
 // node_modules/@mc-styrsky/queue/lib/index.js
 var StyQueue = class {
@@ -1968,14 +2281,6 @@ var StyQueue = class {
     return promise;
   };
 };
-
-// src/client/globals/tileSize.ts
-var tileSize = 256;
-
-// src/client/utils/deg2rad.ts
-function deg2rad(val) {
-  return Number(val) * Math.PI / 180;
-}
 
 // node_modules/@popperjs/core/lib/index.js
 var lib_exports = {};
@@ -2158,9 +2463,9 @@ function getBasePlacement(placement) {
 }
 
 // node_modules/@popperjs/core/lib/utils/math.js
-var max2 = Math.max;
-var min2 = Math.min;
-var round = Math.round;
+var max3 = Math.max;
+var min3 = Math.min;
+var round2 = Math.round;
 
 // node_modules/@popperjs/core/lib/utils/userAgent.js
 function getUAString() {
@@ -2190,8 +2495,8 @@ function getBoundingClientRect(element, includeScale, isFixedStrategy) {
   var scaleX = 1;
   var scaleY = 1;
   if (includeScale && isHTMLElement(element)) {
-    scaleX = element.offsetWidth > 0 ? round(clientRect.width) / element.offsetWidth || 1 : 1;
-    scaleY = element.offsetHeight > 0 ? round(clientRect.height) / element.offsetHeight || 1 : 1;
+    scaleX = element.offsetWidth > 0 ? round2(clientRect.width) / element.offsetWidth || 1 : 1;
+    scaleY = element.offsetHeight > 0 ? round2(clientRect.height) / element.offsetHeight || 1 : 1;
   }
   var _ref = isElement(element) ? getWindow(element) : window, visualViewport = _ref.visualViewport;
   var addVisualOffsets = !isLayoutViewport() && isFixedStrategy;
@@ -2331,12 +2636,12 @@ function getMainAxisFromPlacement(placement) {
 }
 
 // node_modules/@popperjs/core/lib/utils/within.js
-function within(min3, value, max3) {
-  return max2(min3, min2(value, max3));
+function within(min4, value, max4) {
+  return max3(min4, min3(value, max4));
 }
-function withinMaxClamp(min3, value, max3) {
-  var v = within(min3, value, max3);
-  return v > max3 ? max3 : v;
+function withinMaxClamp(min4, value, max4) {
+  var v = within(min4, value, max4);
+  return v > max4 ? max4 : v;
 }
 
 // node_modules/@popperjs/core/lib/utils/getFreshSideObject.js
@@ -2390,10 +2695,10 @@ function arrow(_ref) {
   var arrowOffsetParent = getOffsetParent(arrowElement);
   var clientSize = arrowOffsetParent ? axis === "y" ? arrowOffsetParent.clientHeight || 0 : arrowOffsetParent.clientWidth || 0 : 0;
   var centerToReference = endDiff / 2 - startDiff / 2;
-  var min3 = paddingObject[minProp];
-  var max3 = clientSize - arrowRect[len] - paddingObject[maxProp];
+  var min4 = paddingObject[minProp];
+  var max4 = clientSize - arrowRect[len] - paddingObject[maxProp];
   var center = clientSize / 2 - arrowRect[len] / 2 + centerToReference;
-  var offset2 = within(min3, center, max3);
+  var offset2 = within(min4, center, max4);
   var axisProp = axis;
   state.modifiersData[name] = (_state$modifiersData$ = {}, _state$modifiersData$[axisProp] = offset2, _state$modifiersData$.centerOffset = offset2 - center, _state$modifiersData$);
 }
@@ -2440,8 +2745,8 @@ function roundOffsetsByDPR(_ref, win) {
   var x = _ref.x, y = _ref.y;
   var dpr = win.devicePixelRatio || 1;
   return {
-    x: round(x * dpr) / dpr || 0,
-    y: round(y * dpr) / dpr || 0
+    x: round2(x * dpr) / dpr || 0,
+    y: round2(y * dpr) / dpr || 0
   };
 }
 function mapToStyles(_ref2) {
@@ -2660,12 +2965,12 @@ function getDocumentRect(element) {
   var html = getDocumentElement(element);
   var winScroll = getWindowScroll(element);
   var body = (_element$ownerDocumen = element.ownerDocument) == null ? void 0 : _element$ownerDocumen.body;
-  var width = max2(html.scrollWidth, html.clientWidth, body ? body.scrollWidth : 0, body ? body.clientWidth : 0);
-  var height = max2(html.scrollHeight, html.clientHeight, body ? body.scrollHeight : 0, body ? body.clientHeight : 0);
+  var width = max3(html.scrollWidth, html.clientWidth, body ? body.scrollWidth : 0, body ? body.clientWidth : 0);
+  var height = max3(html.scrollHeight, html.clientHeight, body ? body.scrollHeight : 0, body ? body.clientHeight : 0);
   var x = -winScroll.scrollLeft + getWindowScrollBarX(element);
   var y = -winScroll.scrollTop;
   if (getComputedStyle2(body || html).direction === "rtl") {
-    x += max2(html.clientWidth, body ? body.clientWidth : 0) - width;
+    x += max3(html.clientWidth, body ? body.clientWidth : 0) - width;
   }
   return {
     width,
@@ -2752,10 +3057,10 @@ function getClippingRect(element, boundary, rootBoundary, strategy) {
   var firstClippingParent = clippingParents2[0];
   var clippingRect = clippingParents2.reduce(function(accRect, clippingParent) {
     var rect = getClientRectFromMixedType(element, clippingParent, strategy);
-    accRect.top = max2(rect.top, accRect.top);
-    accRect.right = min2(rect.right, accRect.right);
-    accRect.bottom = min2(rect.bottom, accRect.bottom);
-    accRect.left = max2(rect.left, accRect.left);
+    accRect.top = max3(rect.top, accRect.top);
+    accRect.right = min3(rect.right, accRect.right);
+    accRect.bottom = min3(rect.bottom, accRect.bottom);
+    accRect.left = max3(rect.left, accRect.left);
     return accRect;
   }, getClientRectFromMixedType(element, firstClippingParent, strategy));
   clippingRect.width = clippingRect.right - clippingRect.left;
@@ -3152,8 +3457,8 @@ function preventOverflow(_ref) {
     var altSide = mainAxis === "y" ? bottom : right;
     var len = mainAxis === "y" ? "height" : "width";
     var offset2 = popperOffsets2[mainAxis];
-    var min3 = offset2 + overflow[mainSide];
-    var max3 = offset2 - overflow[altSide];
+    var min4 = offset2 + overflow[mainSide];
+    var max4 = offset2 - overflow[altSide];
     var additive = tether ? -popperRect[len] / 2 : 0;
     var minLen = variation === start ? referenceRect[len] : popperRect[len];
     var maxLen = variation === start ? -popperRect[len] : -referenceRect[len];
@@ -3173,7 +3478,7 @@ function preventOverflow(_ref) {
     var offsetModifierValue = (_offsetModifierState$ = offsetModifierState == null ? void 0 : offsetModifierState[mainAxis]) != null ? _offsetModifierState$ : 0;
     var tetherMin = offset2 + minOffset - offsetModifierValue - clientOffset;
     var tetherMax = offset2 + maxOffset - offsetModifierValue;
-    var preventedOffset = within(tether ? min2(min3, tetherMin) : min3, offset2, tether ? max2(max3, tetherMax) : max3);
+    var preventedOffset = within(tether ? min3(min4, tetherMin) : min4, offset2, tether ? max3(max4, tetherMax) : max4);
     popperOffsets2[mainAxis] = preventedOffset;
     data[mainAxis] = preventedOffset - offset2;
   }
@@ -3223,8 +3528,8 @@ function getNodeScroll(node) {
 // node_modules/@popperjs/core/lib/dom-utils/getCompositeRect.js
 function isElementScaled(element) {
   var rect = element.getBoundingClientRect();
-  var scaleX = round(rect.width) / element.offsetWidth || 1;
-  var scaleY = round(rect.height) / element.offsetHeight || 1;
+  var scaleX = round2(rect.width) / element.offsetWidth || 1;
+  var scaleY = round2(rect.height) / element.offsetHeight || 1;
   return scaleX !== 1 || scaleY !== 1;
 }
 function getCompositeRect(elementOrVirtualElement, offsetParent, isFixed) {
@@ -6182,10 +6487,10 @@ var Tooltip = class _Tooltip extends BaseComponent {
     const tip = this._getTipElement();
     this._element.setAttribute("aria-describedby", tip.getAttribute("id"));
     const {
-      container: container2
+      container
     } = this._config;
     if (!this._element.ownerDocument.documentElement.contains(this.tip)) {
-      container2.append(tip);
+      container.append(tip);
       EventHandler.trigger(this._element, this.constructor.eventName(EVENT_INSERTED));
     }
     this._popper = this._createPopper(tip);
@@ -7172,13 +7477,16 @@ var AccordionHead = class extends Container {
     super(Container.from("div", {
       classes: [
         "accordion-header",
+        "d-flex",
         "AccordionLabel"
       ]
     }));
     this.hasBody = body;
     this.labelContainer = Container.from("div", {
       classes: [
-        body ? "accordion-button" : "d-flex",
+        "w-100",
+        "d-flex",
+        body ? "accordion-button" : null,
         "px-2",
         "py-0",
         "AccordionLabel"
@@ -7259,20 +7567,12 @@ var AccordionItem = class extends Container {
   }
 };
 
-// src/client/utils/lat2y.ts
-function lat2y(lat2, tiles = position.tiles) {
-  return (0.5 - Math.asinh(Math.tan(lat2)) / Math.PI / 2) * tiles;
-}
-
-// src/client/utils/lon2x.ts
-function lon2x(lon2, tiles = position.tiles) {
-  return (lon2 / Math.PI / 2 + 0.5) * tiles;
-}
-
-// src/client/utils/px2nm.ts
-function px2nm(lat2) {
-  const stretch = 1 / Math.cos(lat2);
-  return 360 * 60 / position.tiles / tileSize / stretch;
+// src/client/utils/xyz2latLon.ts
+function xyz2latLon({ x, y, z: z2 }) {
+  return {
+    lat: y2lat(y, 1 << z2),
+    lon: x2lon(x, 1 << z2)
+  };
 }
 
 // src/client/containers/infoBox/navionicsDetails/navionicsItem/details.ts
@@ -7285,27 +7585,7 @@ var NavionicsItemDetails = class extends Container {
 
 // src/client/utils/rad2deg.ts
 function rad2deg(val) {
-  return Number(val) * 180 / Math.PI;
-}
-
-// src/common/x2lon.ts
-function x2lonCommon(x, tiles) {
-  return (x / tiles - 0.5) * Math.PI * 2;
-}
-
-// src/client/utils/x2lon.ts
-function x2lon(x, tiles = position.tiles) {
-  return x2lonCommon(x, tiles);
-}
-
-// src/common/y2lat.ts
-function y2latCommon(y, tiles) {
-  return Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
-}
-
-// src/client/utils/y2lat.ts
-function y2lat(y, tiles = position.tiles) {
-  return y2latCommon(y, tiles);
+  return Number(val) * 180 / PI;
 }
 
 // src/client/containers/map/drawImage.ts
@@ -7342,8 +7622,8 @@ function drawImage({
           context: workerContext,
           source,
           ttl: ttl2,
-          x: Math.floor(x / 2),
-          y: Math.floor(y / 2),
+          x: floor(x / 2),
+          y: floor(y / 2),
           z: z2 - 1
         });
         const success = draw();
@@ -7537,12 +7817,10 @@ var MapTile = class _MapTile extends Container {
     const scale = (1 << ref.z) / (1 << z2);
     const dx = (x + 0.5) * scale - ref.x;
     const dy = (y + 0.5) * scale - ref.y;
-    return Math.sqrt(dx * dx + dy * dy);
+    return sqrt(dx * dx + dy * dy);
   }
   constructor({ x, y, z: z2 }) {
-    const width = tileSize;
-    const height = tileSize;
-    const ttl2 = Math.max(Math.min(17, z2 + Math.max(0, position.ttl)) - z2, 0);
+    const ttl2 = max(min(17, z2 + max(0, position.ttl)) - z2, 0);
     super(Container.from("canvas", {
       classes: ["MapTile"],
       dataset: {
@@ -7555,8 +7833,8 @@ var MapTile = class _MapTile extends Container {
     this.y = y;
     this.z = z2;
     this.id = _MapTile.id({ x, y, z: z2 });
-    this.html.width = width;
-    this.html.height = height;
+    this.html.width = tileSize;
+    this.html.height = tileSize;
     const context = this.html.getContext("2d");
     if (context) {
       Promise.all(settings.tiles.map(async (entry) => {
@@ -7576,7 +7854,7 @@ var MapTile = class _MapTile extends Container {
     const size = tileSize * scaleZ;
     this.html.style.height = `${size}px`;
     this.html.style.width = `${size}px`;
-    this.html.style.transform = `translate(${Math.floor((this.x * scaleZ - x) * tileSize)}px, ${Math.floor((this.y * scaleZ - y) * tileSize)}px)`;
+    this.html.style.transform = `translate(${floor((this.x * scaleZ - x) * tileSize)}px, ${floor((this.y * scaleZ - y) * tileSize)}px)`;
   }
   id;
 };
@@ -7624,26 +7902,28 @@ var TilesContainer = class _TilesContainer extends Container {
       classes: ["MapContainerStyle"],
       id: _TilesContainer.name
     }));
+    window.addEventListener("resize", () => this.refresh("resize"));
+    position.listeners.add(() => this.refresh("position"));
+    this.rebuild("initial");
   }
   mapTiles = /* @__PURE__ */ new Map();
   rebuild(type) {
     this.mapTiles.clear();
-    this.redraw(type);
+    this.refresh(type);
   }
   set baselayer(baselayer) {
     settings.baselayer = baselayer;
     baselayerMenu.baselayerLabel = BaselayerMenu.baselayerLabel(baselayer);
     this.rebuild("changed baselayer");
   }
-  redraw(type) {
-    const { height, width } = boundingRect;
-    const { tiles, ttl: ttl2, x, y, z: z2 } = position;
-    infoBox.refresh();
+  refresh(type) {
     console.log(`${type} redraw@${(/* @__PURE__ */ new Date()).toISOString()}`);
-    const maxdx = Math.ceil(x + width / 2 / tileSize);
-    const maxdy = Math.ceil(y + height / 2 / tileSize);
-    const mindx = Math.floor(x - width / 2 / tileSize);
-    const mindy = Math.floor(y - height / 2 / tileSize);
+    const { height, width } = mainContainer;
+    const { tiles, ttl: ttl2, x, y, z: z2 } = position;
+    const maxdx = ceil(x + width / 2 / tileSize);
+    const maxdy = ceil(y + height / 2 / tileSize);
+    const mindx = floor(x - width / 2 / tileSize);
+    const mindy = floor(y - height / 2 / tileSize);
     const txArray = [];
     for (let tx = mindx; tx < maxdx; tx++) {
       txArray.push(tx);
@@ -7755,8 +8035,7 @@ var IconButton = class extends Container {
         this.html.classList.add("btn-secondary");
         this.html.classList.remove("btn-success");
       }
-      mapContainer.clear();
-      mapContainer.redraw("icon clicked");
+      mapContainer.refresh("icon clicked");
     };
   }
 };
@@ -7777,7 +8056,6 @@ var NavionicsGoto = class extends Container {
           x: lon2x(lon2),
           y: lat2y(lat2)
         };
-        mapContainer.redraw("goto");
         event.stopPropagation();
       }
     }));
@@ -7815,6 +8093,72 @@ var NavionicsIcon = class extends Container {
   }
 };
 
+// src/client/utils/rad2nm.ts
+function rad2nm(val) {
+  return Number(val) * 21600 / PI2;
+}
+
+// src/client/utils/spheric/latLon2RadiusOmega.ts
+function latLon2RadiusOmega({ from, to }) {
+  const dLon = to.lon - from.lon;
+  const zeta = acos(sin(from.lat) * sin(to.lat) + cos(from.lat) * cos(to.lat) * cos(dLon));
+  const omega = atan2(
+    sin(dLon) * cos(to.lat),
+    cos(from.lat) * sin(to.lat) - sin(from.lat) * cos(to.lat) * cos(dLon)
+  );
+  const radius = rad2nm(zeta);
+  return { omega, radius };
+}
+
+// src/client/utils/htmlElements/distance.ts
+var DistanceElement = class extends Container {
+  constructor(show) {
+    super(Container.from("span", {
+      classes: ["NavionicsItemLabelDistance", show ? "show" : void 0]
+    }));
+    this.append(this.arrow, this.label);
+  }
+  arrow = Container.from("i", { classes: ["bi-arrow-up"] });
+  label = Container.from("div", { classes: ["d-inline-block"] });
+  set dist({ omega, radius }) {
+    this.arrow.html.style.transform = `rotate(${omega}rad)`;
+    if (radius < 1e-3) {
+      this.arrow.html.classList.add("d-none");
+      this.arrow.html.classList.remove("d-inline-block");
+    } else {
+      this.arrow.html.classList.remove("d-none");
+      this.arrow.html.classList.add("d-inline-block");
+    }
+    this.label.html.innerText = `${radius.toFixed(3)}nm`;
+  }
+};
+var Distance = class extends DistanceElement {
+  constructor({ lat: lat2, lon: lon2 }) {
+    super(true);
+    this.lat = lat2;
+    this.lon = lon2;
+  }
+  spacer = new DistanceElement(false);
+  lat;
+  lon;
+  _radiusOmega = {
+    omega: NaN,
+    radius: NaN
+  };
+  get radiusOmega() {
+    return this._radiusOmega;
+  }
+  set reference(ref) {
+    const radiusOmega = latLon2RadiusOmega({
+      from: ref,
+      to: this
+    });
+    this._radiusOmega = radiusOmega;
+    this.dist = radiusOmega;
+    this.spacer.dist = radiusOmega;
+  }
+};
+
 // src/client/containers/infoBox/navionicsDetails/navionicsItem/label.ts
 stylesheet.addClass({
   NavionicsItemLabel: {
@@ -7826,76 +8170,50 @@ stylesheet.addClass({
     fontSize: "70%",
     paddingLeft: "0.5rem"
   },
-  NavionicsItemLabelDistanceHidden: {
-    display: "inline-block",
-    visibility: "hidden"
-  },
-  NavionicsItemLabelDistanceVisible: {
+  "NavionicsItemLabelDistance:is(.show)": {
     bottom: "0",
     marginLeft: "auto",
     paddingBottom: "0.11rem",
     position: "absolute",
     right: "0"
+  },
+  "NavionicsItemLabelDistance:not(.show)": {
+    display: "inline-block",
+    visibility: "hidden"
   }
 });
 var NavionicsItemLabel = class extends Container {
-  constructor(itemName) {
+  constructor({ itemName, itemPosition }) {
     super(Container.from("div", {
       classes: ["NavionicsItemLabel"]
     }));
+    this.distanceContainer = new Distance(itemPosition);
     this.append(
       Container.from("div", { classes: ["myA"] }).append(
         itemName,
-        this.distanceSpacer
+        this.distanceContainer.spacer
       ),
       this.distanceContainer
     );
   }
-  distanceContainer = Container.from("span", {
-    classes: ["NavionicsItemLabelDistance", "NavionicsItemLabelDistanceVisible"]
-  });
-  distance = "NaN";
-  distanceSpacer = Container.from("div", {
-    classes: ["NavionicsItemLabelDistance", "NavionicsItemLabelDistanceHidden"]
-  });
-  setDistance(distance) {
-    if (distance !== this.distance) {
-      this.distance = distance;
-      this.distanceContainer.clear();
-      this.distanceContainer.append(distance);
-      this.distanceSpacer.clear();
-      this.distanceSpacer.append(distance);
-    }
-  }
+  distanceContainer;
 };
 
 // src/client/containers/infoBox/navionicsDetails/navionicsItem.ts
-stylesheet.addClass({
-  NavionicsItemSpacer: {
-    flexGrow: "0",
-    flexShrink: "0",
-    width: "var(--bs-accordion-btn-icon-width)"
-  }
-});
-stylesheet.addClass({});
 var NavionicsItem = class extends AccordionItem {
   constructor({
     details,
     iconId,
     itemId,
     itemName,
-    position: position2
+    itemPosition
   }) {
-    const labelContainer = new NavionicsItemLabel(itemName);
+    const labelContainer = new NavionicsItemLabel({ itemName, itemPosition });
     const headLabel = Container.from("div", {
       classes: ["d-flex", "w-100"]
     }).append(
       new NavionicsIcon(iconId),
-      labelContainer,
-      position2 ? new NavionicsGoto(position2) : null,
-      details ? void 0 : Container.from("div", {
-        classes: ["NavionicsItemSpacer"]
-      })
+      labelContainer
     );
     if (details) {
       const bodyLabel = new NavionicsItemDetails();
@@ -7919,24 +8237,27 @@ var NavionicsItem = class extends AccordionItem {
       });
     } else
       super({ headLabel, itemId });
+    this.head.append(new NavionicsGoto(itemPosition));
     this.itemId = itemId;
     this.labelContainer = labelContainer;
-    this.position = position2;
+    this.head.html.onmousemove = () => {
+      markers.add({
+        lat: itemPosition.lat,
+        lon: itemPosition.lon,
+        type: "navionics"
+      });
+    };
+    position.listeners.add(() => this.reference = position);
   }
   get distance() {
     return this._distance;
   }
   itemId;
   _distance = NaN;
-  position;
   labelContainer;
-  setReference({ x, y }) {
-    const pdx = this.position.x - x;
-    const pdy = this.position.y - y;
-    this._distance = Math.sqrt(pdx * pdx + pdy * pdy) * tileSize * px2nm(this.position.lat);
-    this.labelContainer.setDistance(
-      `${this.distance.toFixed(3)}nm`
-    );
+  set reference({ lat: lat2, lon: lon2 }) {
+    this.labelContainer.distanceContainer.reference = { lat: lat2, lon: lon2 };
+    this._distance = this.labelContainer.distanceContainer.radiusOmega.radius;
   }
 };
 
@@ -7946,9 +8267,12 @@ var NavionicsDetails = class extends Container {
     super();
     this.mainAccordion = new Accordion({ accordionId: this.accordionIdPrefix });
     this.append(this.mainAccordion);
+    position.listeners.add(() => {
+      if (!mouse.down.state)
+        this.fetch(position);
+    });
     this.queue.enqueue(() => new Promise((r) => setInterval(r, 1)));
   }
-  marker;
   abortControllers = /* @__PURE__ */ new Set();
   accordionIdPrefix = "navionicsDetailsList";
   accordions = /* @__PURE__ */ new Map([]);
@@ -7984,10 +8308,8 @@ var NavionicsDetails = class extends Container {
       if (!this.mainAccordionItems.has(accordionId))
         this.mainAccordionItems.set(accordionId, mainAccordionItem);
       accordionKeys.delete(accordionId);
-      mainAccordionItem.html.parentNode?.removeChild(mainAccordionItem.html);
       this.mainAccordion.append(mainAccordionItem);
       itemsSlice.forEach((item) => {
-        item.html.parentNode?.removeChild(item.html);
         accordion.append(item);
         itemKeys.delete(item.itemId);
       });
@@ -8000,9 +8322,10 @@ var NavionicsDetails = class extends Container {
       const node = this.mainAccordionItems.get(key)?.html;
       node?.parentNode?.removeChild(node);
     });
-    this.fetchProgress.html.parentNode?.removeChild(this.fetchProgress.html);
     if (this.queue.length > 0)
       this.mainAccordion.append(this.fetchProgress);
+    else
+      this.fetchProgress.html.parentNode?.removeChild(this.fetchProgress.html);
   };
   async fetch({ x, y, z: z2 }) {
     while (this.queue.shift())
@@ -8013,23 +8336,24 @@ var NavionicsDetails = class extends Container {
     if (!settings.show.navionicsDetails)
       return;
     await this.queue.enqueue(async () => {
+      const { lat: lat2, lon: lon2 } = xyz2latLon({ x, y, z: z2 });
       this.items.clear();
       this.refresh();
       const abortController = new AbortController();
       this.abortControllers.add(abortController);
       const { signal } = abortController;
-      const max3 = 4;
+      const max4 = 4;
       const perTile = 20;
       const points = [{
-        dx: Math.round(x * tileSize) / tileSize,
-        dy: Math.round(y * tileSize) / tileSize,
+        dx: round(x * tileSize) / tileSize,
+        dy: round(y * tileSize) / tileSize,
         radius: 0
       }];
-      for (let iX = -max3; iX < max3; iX++) {
-        for (let iY = -max3; iY < max3; iY++) {
-          const dx = Math.ceil(x * perTile + iX) / perTile;
-          const dy = Math.ceil(y * perTile + iY) / perTile;
-          const radius = Math.sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y));
+      for (let iX = -max4; iX < max4; iX++) {
+        for (let iY = -max4; iY < max4; iY++) {
+          const dx = ceil(x * perTile + iX) / perTile;
+          const dy = ceil(y * perTile + iY) / perTile;
+          const radius = sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y));
           points.push({ dx, dy, radius });
         }
       }
@@ -8046,23 +8370,23 @@ var NavionicsDetails = class extends Container {
               icon_id: iconId,
               id: itemId,
               name: itemName,
-              position: position2
+              position: itemPosition
             } = castObject(itemRemote, {
               category_id: String,
               details: Boolean,
               icon_id: String,
               id: String,
               name: String,
-              position: ({ lat: lat2, lon: lon2 }) => ({
-                lat: deg2rad(lat2),
-                lon: deg2rad(lon2),
-                x: lon2x(deg2rad(lon2)),
-                y: lat2y(deg2rad(lat2))
+              position: ({ lat: lat3, lon: lon3 }) => ({
+                lat: deg2rad(lat3),
+                lon: deg2rad(lon3),
+                x: lon2x(deg2rad(lon3)),
+                y: lat2y(deg2rad(lat3))
               })
             });
             const cachedItem = this.itemsCache.get(itemId);
             if (cachedItem) {
-              cachedItem.setReference({ x, y });
+              cachedItem.reference = { lat: lat2, lon: lon2 };
               this.add(itemId, cachedItem);
               return;
             } else if (![
@@ -8074,9 +8398,9 @@ var NavionicsDetails = class extends Container {
                 iconId,
                 itemId,
                 itemName,
-                position: position2
+                itemPosition
               });
-              item.setReference({ x, y });
+              item.reference = { lat: lat2, lon: lon2 };
               this.itemsCache.set(itemId, item);
               this.add(itemId, item);
             }
@@ -8094,501 +8418,6 @@ var NavionicsDetails = class extends Container {
   }
 };
 var navionicsDetails = new NavionicsDetails();
-
-// src/client/utils/frac.ts
-function frac(x) {
-  return x - Math.floor(x);
-}
-
-// src/client/utils/min2rad.ts
-function min2rad(min3) {
-  return min3 / 60 / 180 * Math.PI;
-}
-
-// src/client/utils/nm2px.ts
-function nm2px(lat2) {
-  const stretch = 1 / Math.cos(lat2);
-  return position.tiles * tileSize / 360 / 60 * stretch;
-}
-
-// src/client/containers/overlay/sphericCircle.ts
-function sphericCircle(lat2, lon2, radius, steps = 256) {
-  const sinRadius = Math.sin(radius);
-  const cosRadius = Math.cos(radius);
-  const sinLat = Math.sin(lat2);
-  const cosLat = Math.cos(lat2);
-  const pi2 = Math.PI * 2;
-  const points = [];
-  for (let step = 0; step <= steps; step++) {
-    const omega = step / steps * pi2;
-    const { lat2: lat22, lon2: lon22 } = sphericLatLon({ cosLat, cosRadius, lat: lat2, omega, radius, sinLat, sinRadius });
-    if (step === 0)
-      points.push([lat22, lon2 + Math.abs(lon22), false]);
-    else if (step === steps / 2) {
-      points.push([lat22, lon2 + Math.abs(lon22), true]);
-      points.push([lat22, lon2 - Math.abs(lon22), false]);
-    } else if (step === steps)
-      points.push([lat22, lon2 - Math.abs(lon22), true]);
-    else
-      points.push([lat22, lon2 + lon22, true]);
-  }
-  return points;
-}
-function sphericLatLon({ cosLat, cosRadius, lat: lat2, omega, radius, sinLat, sinRadius }) {
-  sinRadius ??= Math.sin(radius);
-  cosRadius ??= Math.cos(radius);
-  sinLat ??= Math.sin(lat2);
-  cosLat ??= Math.cos(lat2);
-  const pi2 = 2 * Math.PI;
-  const lonSign = omega - pi2 * Math.floor(omega / pi2) > Math.PI ? -1 : 1;
-  const sinLat2 = Math.max(-1, Math.min(Math.cos(omega) * cosLat * sinRadius + sinLat * cosRadius, 1));
-  const lat22 = Math.asin(sinLat2);
-  const cosLat2 = Math.sqrt(1 - sinLat2 * sinLat2);
-  const cosLon2 = Math.max(-1, Math.min((cosRadius - sinLat * sinLat2) / cosLat / cosLat2, 1));
-  const lon2 = Math.acos(cosLon2) * lonSign;
-  const cosOmega2 = (sinLat - sinLat2 * cosRadius) / (cosLat2 * sinRadius);
-  return { cosOmega2, lat2: lat22, lon2 };
-}
-
-// src/client/containers/overlay/crosshairs.ts
-function drawCrosshair({
-  context,
-  width,
-  x,
-  y
-}) {
-  if (!settings.show.crosshair)
-    return;
-  const lat2 = y2lat(y);
-  const lon2 = x2lon(x);
-  const milesPerTile = 100 / nm2px(lat2);
-  const scale = Math.log10(milesPerTile);
-  const scaleFloor = Math.floor(scale);
-  const scaleFrac = frac(scale);
-  const milesPerArc = Math.pow(10, scaleFloor) * (scaleFrac < 0.3 ? 1 : scaleFrac > 0.7 ? 5 : 2);
-  const milesPerDiv = milesPerArc / 10;
-  let minLast = 0;
-  context.beginPath();
-  context.strokeStyle = "#ff0000";
-  context.moveTo(-5, 5);
-  context.lineTo(5, -5);
-  context.moveTo(5, 5);
-  context.lineTo(-5, -5);
-  context.stroke();
-  for (let minArc = milesPerArc; minArc < 10800; minArc += milesPerArc) {
-    const radiusX = nm2px(lat2) * minArc;
-    if (radiusX > width)
-      break;
-    const radDiv = min2rad(minArc);
-    const circlePoints = sphericCircle(lat2, lon2, radDiv).map(([latPoint, lonPoint, draw]) => ({
-      draw,
-      tx: (lon2x(lonPoint) - x) * tileSize,
-      ty: (lat2y(latPoint) - y) * tileSize
-    }));
-    context.beginPath();
-    context.strokeStyle = "#ff0000";
-    circlePoints.forEach(({ draw, tx, ty }, idx) => {
-      if (draw)
-        context.lineTo(tx, ty);
-      else
-        context.moveTo(tx, ty);
-      if (idx === 96)
-        context.strokeText(
-          `${minArc.toFixed(Math.max(0, -scaleFloor))}nm`,
-          tx,
-          ty
-        );
-    });
-    context.stroke();
-    const piHalf = Math.PI / 2;
-    context.beginPath();
-    context.strokeStyle = "#ff0000";
-    for (let minDiv = minLast + milesPerDiv; minDiv < minArc; minDiv += milesPerDiv) {
-      const radDiv2 = min2rad(minDiv);
-      if (lat2 + radDiv2 < piHalf) {
-        const top2 = (lat2y(lat2 + radDiv2) - y) * tileSize;
-        context.moveTo(-5, top2);
-        context.lineTo(5, top2);
-      }
-      if (lat2 - radDiv2 > -piHalf) {
-        const bottom2 = (lat2y(lat2 - radDiv2) - y) * tileSize;
-        context.moveTo(-5, bottom2);
-        context.lineTo(5, bottom2);
-      }
-      const { cosOmega2, lat2: lat22, lon2: lon22 } = sphericLatLon({
-        lat: lat2,
-        omega: piHalf,
-        radius: radDiv2
-      });
-      const sinOmega2 = Math.sqrt(1 - cosOmega2 * cosOmega2);
-      context.moveTo(
-        (lon2x(lon2 + lon22) - x) * tileSize + cosOmega2 * 5,
-        (lat2y(lat22) - y) * tileSize - sinOmega2 * 5
-      );
-      context.lineTo(
-        (lon2x(lon2 + lon22) - x) * tileSize - cosOmega2 * 5,
-        (lat2y(lat22) - y) * tileSize + sinOmega2 * 5
-      );
-      context.moveTo(
-        (lon2x(lon2 - lon22) - x) * tileSize - cosOmega2 * 5,
-        (lat2y(lat22) - y) * tileSize - sinOmega2 * 5
-      );
-      context.lineTo(
-        (lon2x(lon2 - lon22) - x) * tileSize + cosOmega2 * 5,
-        (lat2y(lat22) - y) * tileSize + sinOmega2 * 5
-      );
-    }
-    context.stroke();
-    minLast = minArc;
-  }
-}
-
-// src/client/containers/overlay/markers.ts
-var drawMarkers = ({
-  context,
-  x,
-  y
-}) => {
-  position.markers.forEach((marker) => {
-    const markerX = (marker.x - x) * tileSize;
-    const markerY = (marker.y - y) * tileSize;
-    const from = 40;
-    const to = 10;
-    [
-      { color: "#000000", width: 3 },
-      { color: { navionics: "#00ff00", user: "#800000" }[marker.type], width: 1 }
-    ].forEach(({ color, width }) => {
-      context.beginPath();
-      context.strokeStyle = color;
-      context.lineWidth = width;
-      context.arc(
-        markerX,
-        markerY,
-        5,
-        2 * Math.PI,
-        0
-      );
-      context.moveTo(markerX + from, markerY);
-      context.lineTo(markerX + to, markerY);
-      context.moveTo(markerX - from, markerY);
-      context.lineTo(markerX - to, markerY);
-      context.moveTo(markerX, markerY + from);
-      context.lineTo(markerX, markerY + to);
-      context.moveTo(markerX, markerY - from);
-      context.lineTo(markerX, markerY - to);
-      context.stroke();
-    });
-  });
-};
-
-// src/client/utils/rad2string.ts
-var rad2ModuloDeg = (phi) => modulo(phi * 180 / Math.PI + 180, 360) - 180;
-var rad2stringFuncs = {
-  d: ({ axis = " -", pad: pad2 = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 1e5) / 1e5;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -deg : deg).toFixed(5).padStart(pad2 + 6, "0")}\xB0`;
-  },
-  dm: ({ axis = " -", pad: pad2 = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 6e4) / 6e4;
-    const degrees = deg | 0;
-    const minutes = (Math.abs(deg) - Math.abs(degrees)) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(3).padStart(6, "0")}`;
-  },
-  dms: ({ axis = " -", pad: pad2 = 0, phi }) => {
-    const deg = Math.round(rad2ModuloDeg(phi) * 36e4) / 36e4;
-    const degrees = deg | 0;
-    const min3 = Math.round((Math.abs(deg) - Math.abs(degrees)) * 36e4) / 6e3;
-    const minutes = min3 | 0;
-    const seconds = (min3 - minutes) * 60;
-    return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}`;
-  }
-};
-function rad2string({ axis = " -", pad: pad2 = 0, phi }) {
-  return rad2stringFuncs[settings.units.coords]({ axis, pad: pad2, phi });
-}
-
-// src/client/containers/overlay/net.ts
-var scales = [
-  0.025,
-  0.05,
-  0.1,
-  0.2,
-  0.5,
-  1,
-  2,
-  5,
-  10,
-  15,
-  20,
-  30,
-  60,
-  2 * 60,
-  5 * 60,
-  10 * 60,
-  15 * 60,
-  20 * 60,
-  30 * 60,
-  45 * 60
-];
-var getScale = (lat2, minPx = 100) => {
-  const target = px2nm(lat2) * minPx;
-  return min2rad(scales.reduce((prev, curr) => {
-    return prev > target ? prev : curr;
-  }, scales[0]));
-};
-var drawNet = ({
-  context,
-  height,
-  width,
-  x,
-  y
-}) => {
-  const lat2 = y2lat(y);
-  const scaleX = getScale(0, context.measureText(rad2string({ axis: "EW", pad: 3, phi: 0 })).width);
-  const scaleY = getScale(lat2);
-  const left2 = x - width / 2 / tileSize;
-  const right2 = x + width / 2 / tileSize;
-  const top2 = y - height / 2 / tileSize;
-  const bottom2 = y + height / 2 / tileSize;
-  const strokeText = (text, x2, y2) => {
-    context.strokeText(text, x2, y2);
-    context.fillText(text, x2, y2);
-  };
-  const latTop = Math.floor(y2lat(top2) / scaleY) * scaleY;
-  const latBottom = Math.ceil(y2lat(bottom2) / scaleY) * scaleY;
-  const pointsY = [];
-  for (let ctr = 0; ctr < 1e3; ctr++) {
-    const latGrid = latTop - scaleY * ctr;
-    if (latGrid < latBottom)
-      break;
-    pointsY.push({
-      latGrid,
-      x1: (left2 - x) * tileSize,
-      x2: (right2 - x) * tileSize,
-      y1: (lat2y(latGrid) - y) * tileSize
-    });
-  }
-  const lonLeft = Math.floor(x2lon(left2) / scaleX) * scaleX;
-  const lonRight = Math.ceil(x2lon(right2) / scaleX) * scaleX;
-  const pointsX = [];
-  for (let ctr = 0; ctr < 1e3; ctr++) {
-    const lonGrid = lonLeft + scaleX * ctr;
-    if (lonGrid > lonRight)
-      break;
-    pointsX.push({
-      lonGrid,
-      x1: (lon2x(lonGrid) - x) * tileSize,
-      y1: (top2 - y) * tileSize,
-      y2: (bottom2 - y) * tileSize
-    });
-  }
-  context.beginPath();
-  context.strokeStyle = "#808080";
-  pointsY.forEach(({ x1, x2, y1 }) => {
-    context.moveTo(x1, y1);
-    context.lineTo(x2, y1);
-  });
-  pointsX.forEach(({ x1, y1, y2 }) => {
-    context.moveTo(x1, y1);
-    context.lineTo(x1, y2);
-  });
-  context.stroke();
-  context.beginPath();
-  context.strokeStyle = "#ffffff";
-  context.fillStyle = "#000000";
-  context.lineWidth = 3;
-  pointsY.forEach(({ latGrid, x1, y1 }) => {
-    strokeText(
-      rad2string({ axis: "NS", pad: 2, phi: latGrid }),
-      x1 + 3,
-      y1 - 3
-    );
-  });
-  pointsX.forEach(({ lonGrid, x1, y2 }) => {
-    strokeText(
-      rad2string({ axis: "EW", pad: 3, phi: lonGrid }),
-      x1 + 3,
-      y2 - 3
-    );
-  });
-  context.fill();
-  context.stroke();
-};
-
-// src/client/containers/overlayContainer.ts
-stylesheet.addClass({
-  OverlayContainerCanvas: {
-    height: "100%",
-    position: "absolute",
-    width: "100%"
-  }
-});
-var OverlayContainer = class _OverlayContainer extends Container {
-  constructor() {
-    super(Container.from("div", {
-      classes: ["MapContainerStyle"],
-      id: _OverlayContainer.name
-    }));
-  }
-  redraw() {
-    const { height, width } = this.html.getBoundingClientRect();
-    const canvas = Container.from("canvas", {
-      classes: ["OverlayContainerCanvas"],
-      height,
-      width
-    });
-    const context = canvas.html.getContext("2d");
-    this.clear();
-    if (context) {
-      const { x, y } = position;
-      context.translate(width / 2, height / 2);
-      const props = { context, height, width, x, y };
-      drawCrosshair(props);
-      drawNet(props);
-      drawMarkers(props);
-      this.append(canvas);
-    }
-  }
-};
-var overlayContainer = new OverlayContainer();
-
-// src/client/globals/position.ts
-var Position = class {
-  constructor({ ttl: ttl2, x, y, z: z2 }) {
-    this.xyz = { x, y, z: z2 };
-    this._ttl = ttl2;
-    this.map = { x, y, z: z2 };
-  }
-  set ttl(val) {
-    this._ttl = val;
-  }
-  get ttl() {
-    return this._ttl;
-  }
-  get x() {
-    return this._x;
-  }
-  get y() {
-    return this._y;
-  }
-  get z() {
-    return this._z;
-  }
-  set xyz({ x = this._x, y = this._y, z: z2 = this._z }) {
-    this._z = z2;
-    this._tiles = 1 << z2;
-    this._x = modulo(x, this._tiles);
-    this._y = Math.max(0, Math.min(y, this._tiles));
-    setTimeout(() => overlayContainer.redraw(), 1);
-    if (!mouse.down.state)
-      setTimeout(() => navionicsDetails.fetch(this), 100);
-  }
-  get xyz() {
-    return {
-      x: this._x,
-      y: this._y,
-      z: this._z
-    };
-  }
-  get tiles() {
-    return this._tiles;
-  }
-  zoomIn = () => {
-    if (this._z < zoomMax) {
-      this.xyz = {
-        x: this._x * 2,
-        y: this._y * 2,
-        z: this._z + 1
-      };
-      return true;
-    }
-    return false;
-  };
-  zoomOut = () => {
-    if (this.z > zoomMin) {
-      this.xyz = {
-        x: this._x /= 2,
-        y: this._y /= 2,
-        z: this._z - 1
-      };
-      return true;
-    }
-    return false;
-  };
-  map;
-  markers = /* @__PURE__ */ new Map();
-  user = {
-    accuracy: 0,
-    latitude: 0,
-    longitude: 0,
-    timestamp: 0
-  };
-  _ttl;
-  _x = 0;
-  _y = 0;
-  _z = 0;
-  _tiles = 0;
-};
-var searchParams = Object.fromEntries(new URL(window.location.href).searchParams.entries());
-var { lat, lon, ttl, z } = castObject(searchParams, {
-  lat: (val) => Number(val) ? deg2rad(parseFloat(val)) : 0,
-  lon: (val) => Number(val) ? deg2rad(parseFloat(val)) : 0,
-  ttl: (val) => Number(val) ? parseInt(val) : 0,
-  z: (val) => Number(val) ? parseInt(val) : 2
-});
-var position = new Position({
-  ttl,
-  x: lon2x(lon, 1 << z),
-  y: lat2y(lat, 1 << z),
-  z
-});
-
-// src/client/containers/infoBox/infoBoxCoords.ts
-var InfoBoxCoords = class extends Container {
-  constructor() {
-    super();
-    const { height, width } = boundingRect;
-    const { x, y } = position;
-    const lat2 = y2lat(y);
-    const lon2 = x2lon(x);
-    const latMouse = y2lat(y + (mouse.y - height / 2) / tileSize);
-    const lonMouse = x2lon(x + (mouse.x - width / 2) / tileSize);
-    const scale = (() => {
-      let nm = px2nm(lat2);
-      let px = 1;
-      if (nm >= 1)
-        return `${px2nm(lat2).toPrecision(3)}nm/px`;
-      while (nm < 1) {
-        nm *= 10;
-        px *= 10;
-      }
-      return `${nm.toPrecision(3)}nm/${px.toFixed(0)}px`;
-    })();
-    this.row("Scale", `${scale} (Zoom ${position.z})`);
-    this.row("Lat/Lon", `${rad2string({ axis: "NS", pad: 2, phi: lat2 })} ${rad2string({ axis: "EW", pad: 3, phi: lon2 })}`);
-    this.row("Mouse", `${rad2string({ axis: "NS", pad: 2, phi: latMouse })} ${rad2string({ axis: "EW", pad: 3, phi: lonMouse })}`);
-    this.row(
-      "User",
-      `${rad2string({ axis: "NS", pad: 2, phi: position.user.latitude })} ${rad2string({ axis: "EW", pad: 3, phi: position.user.longitude })}`
-    );
-  }
-  row(left2, right2) {
-    this.append(
-      Container.from("div", {
-        classes: [
-          "d-flex",
-          "w-100"
-        ]
-      }).append(
-        Container.from("div", { classes: ["mrA"] }).append(left2),
-        Container.from("div", { classes: ["mlA"] }).append(right2)
-      )
-    );
-  }
-};
-
-// src/client/globals/halfDay.ts
-var halfDay = 12 * 3600 * 1e3;
 
 // node_modules/date-fns/toDate.mjs
 function toDate(argument) {
@@ -10166,8 +9995,11 @@ function cleanEscapedString(input) {
   return matched[1].replace(doubleQuoteRegExp, "'");
 }
 
-// src/client/containers/infoBox/suncalc/solarTimes/durations.ts
+// src/client/containers/infoBox/suncalc/solarTimes.ts
 var import_suncalc = __toESM(require_suncalc(), 1);
+
+// src/client/globals/halfDay.ts
+var halfDay = 12 * 3600 * 1e3;
 
 // src/client/containers/infoBox/suncalc/intervalValueOf.ts
 function intervalValueOf({ end: endDate, solarNoon: noonDate, start: startDate }) {
@@ -10185,76 +10017,16 @@ function intervalValueOf({ end: endDate, solarNoon: noonDate, start: startDate }
   return end2 - start2;
 }
 
-// src/client/containers/infoBox/suncalc/solarTimes/statics.ts
-var SolarTimesStatics = class extends Container {
-  constructor() {
-    super();
-    this.html.id = "SolarTimes";
-  }
-  lat = 0;
-  lon = 0;
-  x = -1;
-  y = -1;
-  static increment = ({ durations, keys }) => keys.reduce((sum, key) => sum + durations[key], 0);
-  static formatDates = (dates) => dates.sort((a, b) => a.valueOf() - b.valueOf()).reduce((ret, date) => {
-    const { end: end2 = date, start: start2 = date } = ret.pop() ?? {};
-    if (date.valueOf() - end2.valueOf() <= halfDay * 2)
-      ret.push({ end: date, start: start2 });
-    else {
-      ret.push({ end: end2, start: start2 });
-      ret.push({ end: date, start: date });
-    }
-    return ret;
-  }, []).reduce((ret, { end: end2, start: start2 }, idx) => {
-    if (idx !== 0)
-      ret.push(Container.from("br"));
-    ret.push(
-      start2.valueOf() === end2.valueOf() ? format(start2, "dd.MM.yyyy") : `${format(start2, "dd.MM.yyyy")} - ${format(end2, "dd.MM.yyyy")}`
-    );
-    return ret;
-  }, []);
-};
-
-// src/client/containers/infoBox/suncalc/solarTimes/durations.ts
-var SolarTimesDurations = class extends SolarTimesStatics {
-  getDurations = ({ date }) => {
-    const { dawn, dusk, nauticalDawn, nauticalDusk, night, nightEnd, solarNoon, sunrise, sunriseEnd, sunset, sunsetStart } = (0, import_suncalc.getTimes)(date, this.lat, this.lon);
-    const dayRaw = intervalValueOf({ end: sunsetStart, solarNoon, start: sunriseEnd });
-    const isPolarDay = dayRaw === 0 && (0, import_suncalc.getPosition)(solarNoon, this.lat, this.lon).altitude >= 0;
-    return {
-      astronomicalDawn: intervalValueOf({ end: nauticalDawn, solarNoon, start: nightEnd }),
-      astronomicalDusk: intervalValueOf({ end: night, solarNoon, start: nauticalDusk }),
-      civilDawn: intervalValueOf({ end: sunrise, solarNoon, start: dawn }),
-      civilDusk: intervalValueOf({ end: dusk, solarNoon, start: sunset }),
-      day: isPolarDay ? halfDay * 2 : dayRaw,
-      nauticalDawn: intervalValueOf({ end: dawn, solarNoon, start: nauticalDawn }),
-      nauticalDusk: intervalValueOf({ end: nauticalDusk, solarNoon, start: dusk }),
-      sunrise: intervalValueOf({ end: sunriseEnd, solarNoon, start: sunrise }),
-      sunset: intervalValueOf({ end: sunset, solarNoon, start: sunsetStart })
-    };
-  };
-  getDurationsStat = ({ year }) => {
-    let date = new Date(year, 0);
-    const ret = [];
-    while (date.getFullYear() === year) {
-      const durations = this.getDurations({ date });
-      ret.push(durations);
-      date = add(date, { hours: 24 });
-    }
-    return ret;
-  };
-};
-
 // src/client/utils/formatDateValue.ts
 function formatDateValue(val) {
-  const secs = Math.round(val / 1e3);
+  const secs = round(val / 1e3);
   const {
     hours,
     minutes,
     seconds
   } = {
-    hours: Math.floor(secs / 3600),
-    minutes: Math.floor(secs / 60) % 60,
+    hours: floor(secs / 3600),
+    minutes: floor(secs / 60) % 60,
     seconds: secs % 60
   };
   return [hours, minutes, seconds].map((v) => v?.toFixed(0).padStart(2, "0")).join(":");
@@ -10270,10 +10042,10 @@ stylesheet.addClass({
 });
 var SolarTimesStatsCanvas = class extends Container {
   constructor({ height, keys, map = (val) => val, stats, width }) {
-    const values = stats.map((durations) => map(SolarTimesStatics.increment({ durations, keys })));
-    const min3 = Math.min(...values);
-    const max3 = Math.max(...values);
-    const scaleY = (height - 1) / (max3 - min3);
+    const values = stats.map((durations) => map(SolarTimes.increment({ durations, keys })));
+    const minValue = min(...values);
+    const maxValue = max(...values);
+    const scaleY = (height - 1) / (maxValue - minValue);
     const scaleX = width / stats.length;
     super(Container.from("canvas", {
       classes: ["SolarTimesStatsCanvas"],
@@ -10286,7 +10058,7 @@ var SolarTimesStatsCanvas = class extends Container {
       context.strokeStyle = "#000000";
       values.forEach((val, idx) => {
         const x = idx * scaleX;
-        const y = (max3 - val) * scaleY + 0.5;
+        const y = (maxValue - val) * scaleY + 0.5;
         if (x === 0)
           context.moveTo(x, y);
         else
@@ -10294,8 +10066,8 @@ var SolarTimesStatsCanvas = class extends Container {
       });
       context.stroke();
     }
-    this.max = max3;
-    this.min = min3;
+    this.max = maxValue;
+    this.min = minValue;
   }
   min;
   max;
@@ -10333,7 +10105,7 @@ var ValueRow = class extends Container {
     map: (val) => sum - val
   });
   add({ durations, increment, keys, label }) {
-    increment ??= SolarTimesStatics.increment({
+    increment ??= SolarTimes.increment({
       durations: durations.today,
       keys
     }), this.total += increment;
@@ -10388,7 +10160,59 @@ var ValueRow = class extends Container {
 };
 
 // src/client/containers/infoBox/suncalc/solarTimes.ts
-var SolarTimes = class extends SolarTimesDurations {
+var SolarTimes = class extends Container {
+  constructor() {
+    super();
+    this.html.id = "SolarTimes";
+  }
+  lat = 0;
+  lon = 0;
+  x = -1;
+  y = -1;
+  static increment = ({ durations, keys }) => keys.reduce((sum, key) => sum + durations[key], 0);
+  static formatDates = (dates) => dates.sort((a, b) => a.valueOf() - b.valueOf()).reduce((ret, date) => {
+    const { end: end2 = date, start: start2 = date } = ret.pop() ?? {};
+    if (date.valueOf() - end2.valueOf() <= halfDay * 2)
+      ret.push({ end: date, start: start2 });
+    else {
+      ret.push({ end: end2, start: start2 });
+      ret.push({ end: date, start: date });
+    }
+    return ret;
+  }, []).reduce((ret, { end: end2, start: start2 }, idx) => {
+    if (idx !== 0)
+      ret.push(Container.from("br"));
+    ret.push(
+      start2.valueOf() === end2.valueOf() ? format(start2, "dd.MM.yyyy") : `${format(start2, "dd.MM.yyyy")} - ${format(end2, "dd.MM.yyyy")}`
+    );
+    return ret;
+  }, []);
+  getDurations = ({ date }) => {
+    const { dawn, dusk, nauticalDawn, nauticalDusk, night, nightEnd, solarNoon, sunrise, sunriseEnd, sunset, sunsetStart } = (0, import_suncalc.getTimes)(date, this.lat, this.lon);
+    const dayRaw = intervalValueOf({ end: sunsetStart, solarNoon, start: sunriseEnd });
+    const isPolarDay = dayRaw === 0 && (0, import_suncalc.getPosition)(solarNoon, this.lat, this.lon).altitude >= 0;
+    return {
+      astronomicalDawn: intervalValueOf({ end: nauticalDawn, solarNoon, start: nightEnd }),
+      astronomicalDusk: intervalValueOf({ end: night, solarNoon, start: nauticalDusk }),
+      civilDawn: intervalValueOf({ end: sunrise, solarNoon, start: dawn }),
+      civilDusk: intervalValueOf({ end: dusk, solarNoon, start: sunset }),
+      day: isPolarDay ? halfDay * 2 : dayRaw,
+      nauticalDawn: intervalValueOf({ end: dawn, solarNoon, start: nauticalDawn }),
+      nauticalDusk: intervalValueOf({ end: nauticalDusk, solarNoon, start: dusk }),
+      sunrise: intervalValueOf({ end: sunriseEnd, solarNoon, start: sunrise }),
+      sunset: intervalValueOf({ end: sunset, solarNoon, start: sunsetStart })
+    };
+  };
+  getDurationsStat = ({ year }) => {
+    let date = new Date(year, 0);
+    const ret = [];
+    while (date.getFullYear() === year) {
+      const durations = this.getDurations({ date });
+      ret.push(durations);
+      date = add(date, { hours: 24 });
+    }
+    return ret;
+  };
   refresh = () => {
     if (this.x !== position.x || this.y !== position.y) {
       this.x = position.x;
@@ -10427,6 +10251,27 @@ var SolarTimes = class extends SolarTimesDurations {
 };
 var solarTimes = new SolarTimes();
 
+// src/client/containers/menu/navionicsDetailsToggle.ts
+var NavionicsDetailsToggle = class extends IconButton {
+  constructor() {
+    super({
+      active: () => settings.show.navionicsDetails,
+      icon: "question-circle",
+      onclick: () => {
+        const newActive = !settings.show.navionicsDetails;
+        settings.show.navionicsDetails = newActive;
+        navionicsDetails.fetch(position);
+      }
+    });
+    this.refresh();
+  }
+  listeners = /* @__PURE__ */ new Set();
+  refresh() {
+    this.listeners.forEach((callback) => callback());
+  }
+};
+var navionicsDetailsToggle = new NavionicsDetailsToggle();
+
 // src/client/containers/infoBox.ts
 stylesheet.addClass(
   {
@@ -10445,46 +10290,353 @@ var InfoBox = class extends Container {
     super(Container.from("div", {
       classes: ["InfoBox", "p-2", "mt-2"]
     }));
+    navionicsDetailsToggle.listeners.add(() => this.refresh);
+    this.infoBoxCoords = new InfoBoxCoords();
+    this.refresh();
   }
+  infoBoxCoords;
   refresh() {
     this.clear();
-    this.append(new InfoBoxCoords());
+    this.append(this.infoBoxCoords);
     if (settings.show.navionicsDetails)
       this.append(navionicsDetails);
-    if (settings.show.suncalc) {
-      solarTimes.refresh();
+    if (settings.show.suncalc)
       this.append(solarTimes);
-    }
-    imagesToFetch.refresh();
     this.append(imagesToFetch);
   }
 };
 var infoBox = new InfoBox();
 
-// src/client/containers/menu/coordsToggle.ts
-var coordsToggle = Container.from("a", {
-  classes: ["btn", "btn-secondary"],
-  onclick: () => {
-    settings.units.coords = {
-      d: "dm",
-      dm: "dms",
-      dms: "d"
-    }[settings.units.coords] ?? "dm";
-    coordsToggle.clear();
-    coordsToggle.append({
-      d: "Dec",
-      dm: "D\xB0M'",
-      dms: "DMS"
-    }[settings.units.coords]);
-    mapContainer.redraw("coords changed");
-  },
-  role: "button"
+// src/client/utils/min2rad.ts
+function nm2rad(min4) {
+  return min4 / 21600 * PI2;
+}
+
+// src/client/utils/nm2px.ts
+function nm2px(lat2) {
+  const stretch = 1 / cos(lat2);
+  return position.tiles * tileSize / 360 / 60 * stretch;
+}
+
+// src/client/utils/spheric/radiusOmega2LatLon.ts
+function radiusOmega2LatLon({ cosLat, cosZeta, lat: lat2, lon: lon2, omega, radius, sinLat, sinZeta, zeta }) {
+  zeta ??= nm2rad(radius);
+  sinZeta ??= sin(zeta);
+  cosZeta ??= cos(zeta);
+  sinLat ??= sin(lat2);
+  cosLat ??= cos(lat2);
+  const sinLat2 = max(-1, min(cos(omega) * cosLat * sinZeta + sinLat * cosZeta, 1));
+  const lat22 = asin(sinLat2);
+  const cosLat2 = sqrt(1 - sinLat2 * sinLat2);
+  const lon22 = lon2 + atan2(
+    sin(omega) * sinZeta * cosLat,
+    cosZeta - sinLat * sinLat2
+  );
+  const cosOmega2 = (sinLat - sinLat2 * cosZeta) / (cosLat2 * sinZeta);
+  return { cosOmega2, lat2: lat22, lon2: lon22 };
+}
+
+// src/client/containers/overlay/sphericCircle.ts
+function sphericCircle({ lat: lat2, lon: lon2, steps = 256, zeta }) {
+  const sinZeta = sin(zeta);
+  const cosZeta = cos(zeta);
+  const sinLat = sin(lat2);
+  const cosLat = cos(lat2);
+  const points = [];
+  for (let step = 0; step <= steps; step++) {
+    const omega = step / steps * PI2;
+    const { lat2: lat22, lon2: lon22 } = radiusOmega2LatLon({ cosLat, cosZeta, lat: lat2, lon: lon2, omega, sinLat, sinZeta, zeta });
+    if (step === 0)
+      points.push([lat22, lon2 + abs(lon22 - lon2), false]);
+    else if (step === steps / 2) {
+      points.push([lat22, lon2 + abs(lon22 - lon2), true]);
+      points.push([lat22, lon2 - abs(lon22 - lon2), false]);
+    } else if (step === steps)
+      points.push([lat22, lon2 - abs(lon22 - lon2), true]);
+    else
+      points.push([lat22, lon22, true]);
+  }
+  return points;
+}
+
+// src/client/containers/overlay/crosshairs.ts
+function drawCrosshair({
+  context,
+  width,
+  x,
+  y
+}) {
+  if (!settings.show.crosshair)
+    return;
+  const lat2 = y2lat(y);
+  const lon2 = x2lon(x);
+  const milesPerTile = 100 / nm2px(lat2);
+  const scale = log10(milesPerTile);
+  const scaleFloor = floor(scale);
+  const scaleFrac = frac(scale);
+  const milesPerArc = pow(10, scaleFloor) * (scaleFrac < 0.3 ? 1 : scaleFrac > 0.7 ? 5 : 2);
+  const milesPerDiv = milesPerArc / 10;
+  let minLast = 0;
+  context.beginPath();
+  context.strokeStyle = "#ff0000";
+  context.moveTo(-5, 5);
+  context.lineTo(5, -5);
+  context.moveTo(5, 5);
+  context.lineTo(-5, -5);
+  context.stroke();
+  for (let minArc = milesPerArc; minArc < 10800; minArc += milesPerArc) {
+    const radiusX = nm2px(lat2) * minArc;
+    if (radiusX > width)
+      break;
+    const radDiv = nm2rad(minArc);
+    const circlePoints = sphericCircle({ lat: lat2, lon: lon2, zeta: radDiv }).map(([latPoint, lonPoint, draw]) => ({
+      draw,
+      tx: (lon2x(lonPoint) - x) * tileSize,
+      ty: (lat2y(latPoint) - y) * tileSize
+    }));
+    context.beginPath();
+    context.strokeStyle = "#ff0000";
+    circlePoints.forEach(({ draw, tx, ty }, idx) => {
+      if (draw)
+        context.lineTo(tx, ty);
+      else
+        context.moveTo(tx, ty);
+      if (idx === 96)
+        context.strokeText(
+          `${minArc.toFixed(max(0, -scaleFloor))}nm`,
+          tx,
+          ty
+        );
+    });
+    context.stroke();
+    context.beginPath();
+    context.strokeStyle = "#ff0000";
+    for (let minDiv = minLast + milesPerDiv; minDiv < minArc; minDiv += milesPerDiv) {
+      const zeta = nm2rad(minDiv);
+      if (lat2 + zeta < piHalf) {
+        const top2 = (lat2y(lat2 + zeta) - y) * tileSize;
+        context.moveTo(-5, top2);
+        context.lineTo(5, top2);
+      }
+      if (lat2 - zeta > -piHalf) {
+        const bottom2 = (lat2y(lat2 - zeta) - y) * tileSize;
+        context.moveTo(-5, bottom2);
+        context.lineTo(5, bottom2);
+      }
+      const { cosOmega2, lat2: lat22, lon2: lon22 } = radiusOmega2LatLon({
+        lat: lat2,
+        lon: lon2,
+        omega: piHalf,
+        zeta
+      });
+      const sinOmega2 = sqrt(1 - cosOmega2 * cosOmega2);
+      context.moveTo(
+        (lon2x(lon22) - x) * tileSize + cosOmega2 * 5,
+        (lat2y(lat22) - y) * tileSize - sinOmega2 * 5
+      );
+      context.lineTo(
+        (lon2x(lon22) - x) * tileSize - cosOmega2 * 5,
+        (lat2y(lat22) - y) * tileSize + sinOmega2 * 5
+      );
+      context.moveTo(
+        (x - lon2x(lon22)) * tileSize - cosOmega2 * 5,
+        (lat2y(lat22) - y) * tileSize - sinOmega2 * 5
+      );
+      context.lineTo(
+        (x - lon2x(lon22)) * tileSize + cosOmega2 * 5,
+        (lat2y(lat22) - y) * tileSize + sinOmega2 * 5
+      );
+    }
+    context.stroke();
+    minLast = minArc;
+  }
+}
+
+// src/client/containers/overlay/markers.ts
+var drawMarkers = ({
+  context,
+  x,
+  y
+}) => {
+  markers.set().forEach((marker) => {
+    const markerX = (marker.x - x) * tileSize;
+    const markerY = (marker.y - y) * tileSize;
+    const from = 40;
+    const to = 10;
+    [
+      { color: "#000000", width: 3 },
+      { color: { navionics: "#00ff00", user: "#800000" }[marker.type], width: 1 }
+    ].forEach(({ color, width }) => {
+      context.beginPath();
+      context.strokeStyle = color;
+      context.lineWidth = width;
+      context.arc(
+        markerX,
+        markerY,
+        5,
+        PI2,
+        0
+      );
+      context.moveTo(markerX + from, markerY);
+      context.lineTo(markerX + to, markerY);
+      context.moveTo(markerX - from, markerY);
+      context.lineTo(markerX - to, markerY);
+      context.moveTo(markerX, markerY + from);
+      context.lineTo(markerX, markerY + to);
+      context.moveTo(markerX, markerY - from);
+      context.lineTo(markerX, markerY - to);
+      context.stroke();
+    });
+  });
+};
+
+// src/client/containers/overlay/net.ts
+var scales = [
+  0.025,
+  0.05,
+  0.1,
+  0.2,
+  0.5,
+  1,
+  2,
+  5,
+  10,
+  15,
+  20,
+  30,
+  60,
+  2 * 60,
+  5 * 60,
+  10 * 60,
+  15 * 60,
+  20 * 60,
+  30 * 60,
+  45 * 60
+];
+var getScale = (lat2, minPx = 100) => {
+  const target = px2nm(lat2) * minPx;
+  return nm2rad(scales.reduce((prev, curr) => {
+    return prev > target ? prev : curr;
+  }, scales[0]));
+};
+var drawNet = ({
+  context,
+  height,
+  width,
+  x,
+  y
+}) => {
+  const lat2 = y2lat(y);
+  const scaleX = getScale(0, context.measureText(rad2string({ axis: "EW", pad: 3, phi: 0 })).width);
+  const scaleY = getScale(lat2);
+  const left2 = x - width / 2 / tileSize;
+  const right2 = x + width / 2 / tileSize;
+  const top2 = y - height / 2 / tileSize;
+  const bottom2 = y + height / 2 / tileSize;
+  const strokeText = (text, x2, y2) => {
+    context.strokeText(text, x2, y2);
+    context.fillText(text, x2, y2);
+  };
+  const latTop = floor(y2lat(top2) / scaleY) * scaleY;
+  const latBottom = ceil(y2lat(bottom2) / scaleY) * scaleY;
+  const pointsY = [];
+  for (let ctr = 0; ctr < 1e3; ctr++) {
+    const latGrid = latTop - scaleY * ctr;
+    if (latGrid < latBottom)
+      break;
+    pointsY.push({
+      latGrid,
+      x1: (left2 - x) * tileSize,
+      x2: (right2 - x) * tileSize,
+      y1: (lat2y(latGrid) - y) * tileSize
+    });
+  }
+  const lonLeft = floor(x2lon(left2) / scaleX) * scaleX;
+  const lonRight = ceil(x2lon(right2) / scaleX) * scaleX;
+  const pointsX = [];
+  for (let ctr = 0; ctr < 1e3; ctr++) {
+    const lonGrid = lonLeft + scaleX * ctr;
+    if (lonGrid > lonRight)
+      break;
+    pointsX.push({
+      lonGrid,
+      x1: (lon2x(lonGrid) - x) * tileSize,
+      y1: (top2 - y) * tileSize,
+      y2: (bottom2 - y) * tileSize
+    });
+  }
+  context.beginPath();
+  context.strokeStyle = "#808080";
+  pointsY.forEach(({ x1, x2, y1 }) => {
+    context.moveTo(x1, y1);
+    context.lineTo(x2, y1);
+  });
+  pointsX.forEach(({ x1, y1, y2 }) => {
+    context.moveTo(x1, y1);
+    context.lineTo(x1, y2);
+  });
+  context.stroke();
+  context.beginPath();
+  context.strokeStyle = "#ffffff";
+  context.fillStyle = "#000000";
+  context.lineWidth = 3;
+  pointsY.forEach(({ latGrid, x1, y1 }) => {
+    strokeText(
+      rad2string({ axis: "NS", pad: 2, phi: latGrid }),
+      x1 + 3,
+      y1 - 3
+    );
+  });
+  pointsX.forEach(({ lonGrid, x1, y2 }) => {
+    strokeText(
+      rad2string({ axis: "EW", pad: 3, phi: lonGrid }),
+      x1 + 3,
+      y2 - 3
+    );
+  });
+  context.fill();
+  context.stroke();
+};
+
+// src/client/containers/overlayContainer.ts
+stylesheet.addClass({
+  OverlayContainerCanvas: {
+    height: "100%",
+    position: "absolute",
+    width: "100%"
+  }
 });
-coordsToggle.append({
-  d: "Dec",
-  dm: "D\xB0M'",
-  dms: "DMS"
-}[settings.units.coords]);
+var OverlayContainer = class _OverlayContainer extends Container {
+  constructor() {
+    super(Container.from("div", {
+      classes: ["MapContainerStyle"],
+      id: _OverlayContainer.name
+    }));
+    position.listeners.add(() => this.refresh());
+    markers.listeners.add(() => this.refresh());
+    this.refresh();
+  }
+  refresh() {
+    const { height, width } = this.html.getBoundingClientRect();
+    const canvas = Container.from("canvas", {
+      classes: ["OverlayContainerCanvas"],
+      height,
+      width
+    });
+    const context = canvas.html.getContext("2d");
+    this.clear();
+    if (context) {
+      const { x, y } = position;
+      context.translate(width / 2, height / 2);
+      const props = { context, height, width, x, y };
+      drawCrosshair(props);
+      drawNet(props);
+      drawMarkers(props);
+      this.append(canvas);
+    }
+  }
+};
+var overlayContainer = new OverlayContainer();
 
 // src/client/containers/menu/crosshairToggle.ts
 var crosshairToggle = new IconButton({
@@ -10492,7 +10644,7 @@ var crosshairToggle = new IconButton({
   icon: "crosshair",
   onclick: () => {
     settings.show.crosshair = !settings.show.crosshair;
-    overlayContainer.redraw();
+    overlayContainer.refresh();
   }
 });
 
@@ -10535,11 +10687,11 @@ var addressInput = Container.from("input", {
               });
               const [lat1 = lat2, lat22 = lat2, lon1 = lon2, lon22 = lon2] = boundingbox;
               const z2 = (() => {
-                if (Math.abs(lat22 - lat1) > 0 && Math.abs(lon22 - lon1) > 0) {
-                  const diffX = Math.abs(lon2x(lon22, 1) - lon2x(lon1, 1));
-                  const diffY = Math.abs(lat2y(lon22, 1) - lat2y(lon1, 1));
-                  const zoom = 1 / Math.max(diffX, diffY);
-                  return Math.max(2, Math.min(Math.ceil(Math.log2(zoom)), 17));
+                if (abs(lat22 - lat1) > 0 && abs(lon22 - lon1) > 0) {
+                  const diffX = abs(lon2x(lon22, 1) - lon2x(lon1, 1));
+                  const diffY = abs(lat2y(lon22, 1) - lat2y(lon1, 1));
+                  const zoom = 1 / max(diffX, diffY);
+                  return max(2, min(ceil(log2(zoom)), 17));
                 }
                 return position.z;
               })();
@@ -10552,7 +10704,6 @@ var addressInput = Container.from("input", {
                   y: lat2y(lat2, 1 << z2),
                   z: z2
                 };
-                mapContainer.redraw("goto address");
               };
               if (idx === 0)
                 addressForm.html.onsubmit = onclick;
@@ -10677,7 +10828,6 @@ var coordForm = Container.from("form", {
         y: lat2y(lat2)
       };
     }
-    mapContainer.redraw("goto");
   }
 });
 coordForm.append(
@@ -10695,31 +10845,31 @@ coordForm.append(
 
 // src/client/containers/menu/goto/savedPositions.ts
 var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
-
-// src/client/utils/savedPositionsFromLocalStoreage.ts
-function savedPositionsFromLocalStoreage() {
-  const storageItem = new LocalStorageItem("savedPositions");
-  const list = storageItem.get();
-  console.log(list);
-  if (Array.isArray(list)) {
-    if (list.every((item) => {
-      const check = item.x + item.y + item.z;
-      return typeof check === "number" && !Number.isNaN(check);
-    }))
-      return list;
-    console.log("x, y, or z is NaN", list);
-  } else
-    console.log("savedPositions not an array");
-  storageItem.set([]);
-  return [];
-}
-
-// src/client/containers/menu/goto/savedPositions.ts
-var SavedPositions = class extends Container {
+var SavedPositions = class _SavedPositions extends Container {
+  static item2xyz = (item) => castObject(item, {
+    x: (val) => Number(val) / tileSize,
+    y: (val) => Number(val) / tileSize,
+    z: Number
+  });
   constructor() {
     super();
+    const list = this.localStorageItem.get();
+    if (Array.isArray(list)) {
+      list.forEach(({ x, y, z: z2 }) => {
+        const check = x + y + z2;
+        if (typeof check === "number" && !Number.isNaN(check))
+          this.add(_SavedPositions.item2xyz({ x, y, z: z2 }));
+        else
+          console.log("x, y, or z is NaN", list);
+      });
+    } else
+      console.log("savedPositions not an array");
+    this.localStorageItem.set([...this.list.values()]);
+    position.listeners.add(() => this.refresh());
     this.refresh();
   }
+  list = /* @__PURE__ */ new Map();
+  localStorageItem = new LocalStorageItem("savedPositions");
   add({ x, y, z: z2 }) {
     this.edit({ func: "add", x, y, z: z2 });
   }
@@ -10728,31 +10878,30 @@ var SavedPositions = class extends Container {
   }
   refresh() {
     this.clear();
-    const list = savedPositionsFromLocalStoreage();
-    list.forEach((item) => {
-      const { x, y, z: z2 } = castObject(item, {
-        x: (val) => Number(val) / tileSize,
-        y: (val) => Number(val) / tileSize,
-        z: Number
-      });
-      console.log({ item, x, y, z: z2 });
+    this.list.forEach((item) => {
+      const { x, y, z: z2 } = _SavedPositions.item2xyz(item);
+      const distanceContainer = new Distance(xyz2latLon({ x, y, z: z2 }));
+      distanceContainer.reference = position;
       this.append(
         Container.from("div", {
           classes: ["btn-group", "my-2", "d-flex"],
           role: "group"
         }).append(
           Container.from("a", {
-            classes: ["btn", "btn-secondary"],
+            classes: ["btn", "btn-secondary", "text-start"],
             onclick: () => {
               position.xyz = { x, y, z: z2 };
-              mapContainer.redraw("load position");
             },
             role: "button"
-          }).append([
-            rad2string({ axis: "NS", pad: 2, phi: y2lat(y, 1 << z2) }),
-            rad2string({ axis: "EW", pad: 3, phi: x2lon(x, 1 << z2) }),
-            `(${z2})`
-          ].join(" ")),
+          }).append(
+            [
+              rad2string({ axis: "NS", pad: 2, phi: y2lat(y, 1 << z2) }),
+              rad2string({ axis: "EW", pad: 3, phi: x2lon(x, 1 << z2) }),
+              `(${z2})`
+            ].join(" "),
+            distanceContainer.spacer,
+            distanceContainer
+          ),
           new IconButton({
             icon: "x",
             onclick: () => {
@@ -10764,20 +10913,21 @@ var SavedPositions = class extends Container {
     });
   }
   edit({ func, x, y, z: z2 }) {
-    const list = new Set(savedPositionsFromLocalStoreage().map((e) => (0, import_json_stable_stringify2.default)(e)));
-    list[func]((0, import_json_stable_stringify2.default)({
-      x: Math.round(x * tileSize),
-      y: Math.round(y * tileSize),
+    const xyz = {
+      x: round(x * tileSize),
+      y: round(y * tileSize),
       z: z2
-    }));
-    new LocalStorageItem("savedPositions").set([...list].map((e) => JSON.parse(e)));
-    updateSavedPositionsList();
+    };
+    const id = (0, import_json_stable_stringify2.default)(xyz);
+    if (func === "add")
+      this.list.set(id, xyz);
+    else if (func === "delete")
+      this.list.delete(id);
+    this.localStorageItem.set([...this.list.values()]);
+    this.refresh();
   }
 };
 var savedPositions = new SavedPositions();
-function updateSavedPositionsList() {
-  throw new Error("Function not implemented.");
-}
 
 // src/client/containers/menu/gotoMenu.ts
 stylesheet.addClass({
@@ -10786,36 +10936,41 @@ stylesheet.addClass({
     minWidth: "20em"
   }
 });
-var gotoMenu = Container.from("div", {
-  classes: ["dropdown"]
-});
-gotoMenu.append(
-  Container.from("a", {
-    classes: ["btn", "btn-secondary", "dropdown-toggle"],
-    dataset: {
-      bsToggle: "dropdown"
-    },
-    role: "button"
-  }).append("Goto"),
-  Container.from("div", {
-    classes: ["dropdown-menu", "p-2"]
-  }).append(
-    coordForm,
-    addressContainer,
-    savedPositions
-  )
-);
-
-// src/client/containers/menu/navionicsDetailsToggle.ts
-var navionicsDetailsToggle = new IconButton({
-  active: () => settings.show.navionicsDetails,
-  icon: "question-circle",
-  onclick: () => {
-    const newActive = !settings.show.navionicsDetails;
-    settings.show.navionicsDetails = newActive;
-    navionicsDetails.fetch(position);
+var GotoMenu = class extends Container {
+  constructor() {
+    super(Container.from("div", {
+      classes: ["btn-group"],
+      role: "group"
+    }));
+    this.append(
+      Container.from("a", {
+        classes: ["btn", "btn-secondary"],
+        onclick: () => {
+          savedPositions.add(position.xyz);
+        },
+        role: "button"
+      }).append("Save")
+    );
+    this.append(
+      Container.from("div", {
+        classes: ["dropdown-menu", "p-2"]
+      }).append(
+        coordForm,
+        addressContainer,
+        savedPositions
+      )
+    );
+    this.append(
+      Container.from("a", {
+        classes: ["btn", "btn-secondary", "IconButton"],
+        dataset: {
+          bsToggle: "dropdown"
+        },
+        role: "button"
+      }).append(new BootstrapIcon({ icon: "arrow-right-circle" }))
+    );
   }
-});
+};
 
 // src/client/containers/menu/overlayToggle.ts
 var OverlayToggle = class extends IconButton {
@@ -10833,16 +10988,6 @@ var OverlayToggle = class extends IconButton {
 
 // src/client/containers/menu/navionicsToggle.ts
 var navionicsToggle = new OverlayToggle("navionics");
-
-// src/client/containers/menu/savePosition.ts
-var savePosition = Container.from("a", {
-  classes: ["btn", "btn-secondary"],
-  onclick: () => {
-    savedPositions.add(position.xyz);
-  },
-  role: "button"
-});
-savePosition.append("Save");
 
 // src/client/containers/menu/suncalcToggle.ts
 var suncalcToggle = new IconButton({
@@ -10877,42 +11022,17 @@ var MenuContainer = class extends Container {
         suncalcToggle,
         coordsToggle
       ),
-      gotoMenu,
-      savePosition
+      new GotoMenu()
     );
   }
 };
 var menuContainer = new MenuContainer();
 
-// src/client/globals/marker.ts
-var Marker = class {
-  constructor({ id = "", lat: lat2, lon: lon2, type }) {
-    this.lat = lat2;
-    this.lon = lon2;
-    this.type = type;
-    this.id = id;
-    position.markers.set(type, this);
-  }
-  lat;
-  lon;
-  id;
-  get x() {
-    return lon2x(this.lon);
-  }
-  get y() {
-    return lat2y(this.lat);
-  }
-  type;
-  delete() {
-    position.markers.delete(this.type);
-  }
-};
-
-// src/client/getUserLocation.ts
+// src/client/updateUserLocation.ts
 var geolocationBlocked = false;
 async function updateUserLocation() {
   if (geolocationBlocked)
-    return position.user;
+    return;
   await new Promise((resolve, reject) => {
     return navigator.geolocation.getCurrentPosition(
       resolve,
@@ -10923,17 +11043,12 @@ async function updateUserLocation() {
         timeout: 5e3
       }
     );
-  }).then((pos) => {
-    const { accuracy, latitude, longitude } = pos.coords;
-    position.user = {
+  }).then(({ coords: { accuracy, latitude, longitude }, timestamp }) => {
+    markers.add({
       accuracy,
-      latitude: deg2rad(latitude),
-      longitude: deg2rad(longitude),
-      timestamp: pos.timestamp
-    };
-    new Marker({
-      lat: latitude,
-      lon: longitude,
+      lat: deg2rad(latitude),
+      lon: deg2rad(longitude),
+      timestamp,
       type: "user"
     });
   }).catch((err) => {
@@ -10941,31 +11056,26 @@ async function updateUserLocation() {
       geolocationBlocked = true;
     console.warn(`ERROR(${err.code}): ${err.message}`);
   });
-  infoBox.refresh();
-  return position.user;
 }
 
 // src/client/events/inputListener.ts
 function inputListener(event, { x, y } = { x: 0, y: 0 }) {
-  const { height, width } = boundingRect;
+  const { height, width } = mainContainer;
   const { type } = event;
-  let needRedraw = false;
   console.log(event.target);
   if (event instanceof WheelEvent) {
     const { deltaY } = event;
-    if (deltaY > 0) {
-      needRedraw = position.zoomOut();
-      position.xyz = {
-        x: position.x - (x - width / 2) / tileSize / 2,
-        y: position.y - (y - height / 2) / tileSize / 2
-      };
-    } else if (deltaY < 0) {
-      needRedraw = position.zoomIn();
-      position.xyz = {
-        x: position.x + (x - width / 2) / tileSize,
-        y: position.y + (y - height / 2) / tileSize
-      };
-    } else {
+    if (deltaY > 0)
+      position.zoomOut({
+        dx: (x - width / 2) / tileSize,
+        dy: (y - height / 2) / tileSize
+      });
+    else if (deltaY < 0)
+      position.zoomIn({
+        dx: (x - width / 2) / tileSize,
+        dy: (y - height / 2) / tileSize
+      });
+    else {
       console.log("noop", { deltaY, type });
       return;
     }
@@ -10993,45 +11103,36 @@ function inputListener(event, { x, y } = { x: 0, y: 0 }) {
         navionicsToggle.html.click();
     } else if (key === "v")
       vfdensityToggle.html.click();
+    else if (key === "r") {
+      position.xyz = {
+        x: round(position.x),
+        y: round(position.y)
+      };
+    } else if (key === "u") {
+      const userMarker = markers.get("user");
+      if (userMarker)
+        position.xyz = userMarker;
+    } else if (key === "ArrowLeft")
+      position.xyz = { x: position.x - 1 };
+    else if (key === "ArrowRight")
+      position.xyz = { x: position.x + 1 };
+    else if (key === "ArrowUp")
+      position.xyz = { y: position.y - 1 };
+    else if (key === "ArrowDown")
+      position.xyz = { y: position.y + 1 };
+    else if (key === "PageDown")
+      position.zoomIn();
+    else if (key === "PageUp")
+      position.zoomOut();
     else {
-      needRedraw = true;
-      if (key === "r") {
-        position.xyz = {
-          x: Math.round(position.x),
-          y: Math.round(position.y)
-        };
-      } else if (key === "u") {
-        position.xyz = {
-          x: lon2x(position.user.longitude),
-          y: lat2y(position.user.latitude)
-        };
-      } else if (key === "ArrowLeft")
-        position.xyz = { x: position.x - 1 };
-      else if (key === "ArrowRight")
-        position.xyz = { x: position.x + 1 };
-      else if (key === "ArrowUp")
-        position.xyz = { y: position.y - 1 };
-      else if (key === "ArrowDown")
-        position.xyz = { y: position.y + 1 };
-      else if (key === "PageDown")
-        position.zoomIn();
-      else if (key === "PageUp")
-        position.zoomOut();
-      else {
-        needRedraw = false;
-        console.log("noop", { key, type });
-        return;
-      }
+      console.log("noop", { key, type });
+      return;
     }
   } else if (event instanceof MouseEvent) {
     position.xyz = {
-      x: Math.round(position.x * tileSize + (mouse.x - x)) / tileSize,
-      y: Math.round(position.y * tileSize + (mouse.y - y)) / tileSize
+      x: round(position.x * tileSize + (mouse.x - x)) / tileSize,
+      y: round(position.y * tileSize + (mouse.y - y)) / tileSize
     };
-    needRedraw = true;
-  }
-  if (needRedraw) {
-    mapContainer.redraw(type);
   }
 }
 
@@ -11055,7 +11156,7 @@ function mouseInput(event) {
   }
   if (!isDown && mouse.down.state) {
     if (mouse.down.x === x && mouse.down.y === y) {
-      const { height, width } = boundingRect;
+      const { height, width } = mainContainer;
       const { x: x2, y: y2, z: z2 } = position;
       navionicsDetails.fetch({
         x: x2 + (mouse.x - width / 2) / tileSize,
@@ -11068,9 +11169,7 @@ function mouseInput(event) {
   mouse.down.state = isDown;
   mouse.x = x;
   mouse.y = y;
-  if (position.markers.delete("navionics"))
-    overlayContainer.redraw();
-  infoBox.refresh();
+  markers.delete("navionics");
 }
 
 // src/client/containers/mouseContainer.ts
@@ -11090,13 +11189,8 @@ var mouseContainer = new MouseContainer();
 mouseContainer.html.tagName;
 
 // src/client/index.ts
-var {
-  container: containerId = ""
-} = Object.fromEntries(new URL(import.meta.url).searchParams.entries());
-var container = Container.from(document.getElementById(containerId) ?? Container.from("div").html);
-var boundingRect = new Size(container);
-container.clear();
-container.append(
+mainContainer.clear();
+mainContainer.append(
   stylesheet,
   mapContainer,
   overlayContainer,
@@ -11104,16 +11198,8 @@ container.append(
   infoBox,
   menuContainer
 );
+mainContainer.refresh();
 window.addEventListener("keydown", inputListener);
-window.addEventListener("resize", () => {
-  boundingRect.refresh();
-  mapContainer.redraw("resize");
-});
-mapContainer.rebuild("initial");
-console.log(stylesheet);
-export {
-  boundingRect
-};
 /*! Bundled license information:
 
 bootstrap/dist/js/bootstrap.esm.js:

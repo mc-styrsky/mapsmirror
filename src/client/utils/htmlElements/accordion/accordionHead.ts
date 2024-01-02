@@ -10,13 +10,16 @@ export class AccordionHead extends Container {
     super(Container.from('div', {
       classes: [
         'accordion-header',
+        'd-flex',
         'AccordionLabel',
       ],
     }));
     this.hasBody = body;
     this.labelContainer = Container.from('div', {
       classes: [
-        body ? 'accordion-button' : 'd-flex',
+        'w-100',
+        'd-flex',
+        body ? 'accordion-button' : null,
         'px-2',
         'py-0',
         'AccordionLabel',

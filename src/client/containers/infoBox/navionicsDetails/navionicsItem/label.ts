@@ -1,5 +1,7 @@
+import type { NavionicsItemConstructor } from '../navionicsItem';
 import { stylesheet } from '../../../../globals/stylesheet';
 import { Container } from '../../../../utils/htmlElements/container';
+import { Distance } from '../../../../utils/htmlElements/distance';
 
 stylesheet.addClass({
   NavionicsItemLabel: {
@@ -11,47 +13,33 @@ stylesheet.addClass({
     fontSize: '70%',
     paddingLeft: '0.5rem',
   },
-  NavionicsItemLabelDistanceHidden: {
-    display: 'inline-block',
-    visibility: 'hidden',
-  },
-  NavionicsItemLabelDistanceVisible: {
+  'NavionicsItemLabelDistance:is(.show)': {
     bottom: '0',
     marginLeft: 'auto',
     paddingBottom: '0.11rem',
     position: 'absolute',
     right: '0',
   },
+  'NavionicsItemLabelDistance:not(.show)': {
+    display: 'inline-block',
+    visibility: 'hidden',
+  },
 });
 
 export class NavionicsItemLabel extends Container {
-  constructor (itemName: string) {
+  constructor ({ itemName, itemPosition }: Pick<NavionicsItemConstructor, 'itemName' | 'itemPosition'>,
+  ) {
     super(Container.from('div', {
       classes: ['NavionicsItemLabel'],
     }));
+    this.distanceContainer = new Distance(itemPosition);
     this.append(
       Container.from('div', { classes: ['myA'] }).append(
         itemName,
-        this.distanceSpacer,
+        this.distanceContainer.spacer,
       ),
       this.distanceContainer,
     );
   }
-  distanceContainer = Container.from('span', {
-    classes: ['NavionicsItemLabelDistance', 'NavionicsItemLabelDistanceVisible'],
-  });
-  distance: string = 'NaN';
-  distanceSpacer = Container.from('div', {
-    classes: ['NavionicsItemLabelDistance', 'NavionicsItemLabelDistanceHidden'],
-  });
-
-  setDistance (distance: string) {
-    if (distance !== this.distance) {
-      this.distance = distance;
-      this.distanceContainer.clear();
-      this.distanceContainer.append(distance);
-      this.distanceSpacer.clear();
-      this.distanceSpacer.append(distance);
-    }
-  }
+  readonly distanceContainer: Distance;
 }

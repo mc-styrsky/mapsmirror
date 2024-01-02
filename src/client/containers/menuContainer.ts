@@ -2,11 +2,10 @@ import { Container } from '../utils/htmlElements/container';
 import { baselayerMenu } from './menu/baselayerMenu';
 import { coordsToggle } from './menu/coordsToggle';
 import { crosshairToggle } from './menu/crosshairToggle';
-import { gotoMenu } from './menu/gotoMenu';
+import { GotoMenu } from './menu/gotoMenu';
 import { navionicsDetailsToggle } from './menu/navionicsDetailsToggle';
 import { navionicsToggle } from './menu/navionicsToggle';
 import { OverlayToggle } from './menu/overlayToggle';
-import { savePosition } from './menu/savePosition';
 import { suncalcToggle } from './menu/suncalcToggle';
 import { vfdensityToggle } from './menu/vfdensityToggle';
 
@@ -33,8 +32,7 @@ class MenuContainer extends Container {
         suncalcToggle,
         coordsToggle,
       ),
-      gotoMenu,
-      savePosition,
+      new GotoMenu,
     );
   }
 }

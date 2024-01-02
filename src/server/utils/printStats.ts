@@ -1,4 +1,5 @@
 import { queues } from '..';
+import { pow, round } from '../../common/math';
 
 let todoLast = 0;
 let fetchedLast = 0;
@@ -9,13 +10,13 @@ export const setMaxzoom = (z: number) => maxzoom = z;
 
 export const printStats = () => {
   if (!queues.statsCount && !queues.worthitCount && maxzoom < 0 && !queues.checked) return;
-  const partialSum = (n: number) => (1 - Math.pow(4, n)) / (1 - 4);
+  const partialSum = (n: number) => (1 - pow(4, n)) / (1 - 4);
   const todo = Object.entries(queues.childs).reduce(
     (sum, [key, queue]) => {
       const len = queue.length;
       const collapsed = queues.childsCollapsed[key] ?? 0;
-      sum += Math.round(collapsed * partialSum(maxzoom - parseInt(key)));
-      sum += Math.round(len * partialSum(maxzoom - 1 - parseInt(key)));
+      sum += round(collapsed * partialSum(maxzoom - parseInt(key)));
+      sum += round(len * partialSum(maxzoom - 1 - parseInt(key)));
       return sum;
     }, 0);
   const done = todoLast - todo;

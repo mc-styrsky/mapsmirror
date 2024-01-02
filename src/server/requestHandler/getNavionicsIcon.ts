@@ -1,6 +1,8 @@
 import type express from 'express';
 import { castObject } from '../../common/extractProperties';
 
+const iconCache: Map<string, Buffer> = new Map();
+
 export const getNavionicsIcon = async (
   req: express.Request<{
     iconId: string;
@@ -11,18 +13,27 @@ export const getNavionicsIcon = async (
     iconId: String,
   });
   try {
-    await fetch(`https://webapp.navionics.com/api/v2/assets/images/${iconId}`)
-    .then(
-      async r => {
-        if (r.ok) {
-          res?.send(Buffer.from(await r.arrayBuffer()));
-        }
-        else res?.sendStatus(r.status);
-      },
-      () => {
-        res?.sendStatus(500);
-      },
-    );
+    const fromCache = iconCache.get(iconId);
+    if (fromCache) {
+      console.log('[cached]', iconId);
+      res?.send(fromCache);
+    }
+    else {
+      await fetch(`https://webapp.navionics.com/api/v2/assets/images/${iconId}`)
+      .then(
+        async r => {
+          if (r.ok) {
+            const toCache = Buffer.from(await r.arrayBuffer());
+            iconCache.set(iconId, toCache);
+            res?.send(toCache);
+          }
+          else res?.sendStatus(r.status);
+        },
+        () => {
+          res?.sendStatus(500);
+        },
+      );
+    }
   }
   catch (e) {
     console.error(e);

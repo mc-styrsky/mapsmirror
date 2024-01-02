@@ -4,7 +4,6 @@ import { deg2rad } from '../../../../utils/deg2rad';
 import { Container } from '../../../../utils/htmlElements/container';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
-import { mapContainer } from '../../../tilesContainer';
 import { coordError } from './error';
 import { coordInfo } from './info';
 import { coordInput } from './input';
@@ -26,7 +25,6 @@ export const coordForm = Container.from('form', {
         y: lat2y(lat),
       };
     }
-    mapContainer.redraw('goto');
   },
 });
 

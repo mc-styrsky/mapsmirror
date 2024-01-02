@@ -1,5 +1,6 @@
 import type { DrawImage } from '../../../common/types/drawImage';
 import { layers } from '../../../common/layers';
+import { floor } from '../../../common/math';
 import { tileSize } from '../../globals/tileSize';
 import { imagesToFetch } from '../infoBox/imagesToFetch';
 import { drawCachedImage } from './drawCachedImage';
@@ -33,8 +34,8 @@ export function drawImage ({
           context: workerContext,
           source,
           ttl,
-          x: Math.floor(x / 2),
-          y: Math.floor(y / 2),
+          x: floor(x / 2),
+          y: floor(y / 2),
           z: z - 1,
         });
 
