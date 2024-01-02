@@ -1,3 +1,4 @@
+import { round } from '../../common/math';
 import { coordsToggle } from '../containers/menu/coordsToggle';
 import { crosshairToggle } from '../containers/menu/crosshairToggle';
 import { navionicsDetailsToggle } from '../containers/menu/navionicsDetailsToggle';
@@ -12,7 +13,6 @@ import { settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
 import { mainContainer } from '../mainContainer';
 import { updateUserLocation } from '../updateUserLocation';
-import { round } from '../../common/math';
 
 
 export function inputListener (

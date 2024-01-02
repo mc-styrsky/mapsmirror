@@ -1,8 +1,8 @@
 import type { Overlay } from '../../../common/types/overlay';
+import { ceil, floor } from '../../../common/math';
 import { tileSize } from '../../globals/tileSize';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
-import { ceil, floor } from '../../../common/math';
 import { nm2rad } from '../../utils/min2rad';
 import { px2nm } from '../../utils/px2nm';
 import { rad2string } from '../../utils/rad2string';

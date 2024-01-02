@@ -1,11 +1,11 @@
 import { StyQueue } from '@mc-styrsky/queue';
 import { castObject } from '../../../../../common/extractProperties';
+import { abs, ceil, log2, max, min } from '../../../../../common/math';
 import { position } from '../../../../globals/position';
 import { deg2rad } from '../../../../utils/deg2rad';
 import { Container } from '../../../../utils/htmlElements/container';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
-import { abs, ceil, log2, max, min } from '../../../../../common/math';
 import { addressForm } from './form';
 import { addressSearchContainer } from './searchContainer';
 
