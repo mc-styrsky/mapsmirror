@@ -1,31 +1,28 @@
+import type { Layer } from '../../common/types/layer';
 import type { XYZ } from '../../common/types/xyz';
 import type express from 'express';
 import { mkdir, stat, unlink, writeFile } from 'fs/promises';
 import { pwd, queues } from '../index';
 import { getTileParams } from '../utils/getTileParams';
+import { getXYZ2Url } from '../utils/getXYZ2Url';
 import { worthItMinMax } from '../utils/worthit';
 
 export class XYZ2Url {
-  constructor ({ provider, quiet, x, y, z }: XYZ & {
-    quiet: any
-    provider: string
+  constructor ({ provider, x, y, z }: XYZ & {
+    provider: Layer
   }) {
     this.x = x;
     this.y = y;
     this.z = z;
     this.provider = provider;
-    this.quiet = Boolean(quiet);
-    this.verbose = !this.quiet;
     this.fallback = null;
   }
-  readonly provider: string;
-  readonly quiet: boolean;
-  readonly verbose: boolean;
-  fallback: null | typeof XYZ2Url;
-  local: boolean = false;
+  readonly provider: Layer;
+  fallback: null | Layer;
+  local = false;
   params: PromiseLike<RequestInit> | RequestInit = {};
   url: PromiseLike<string> | string = '';
-  worthIt = async ({ x, y, z }) => {
+  worthIt = async ({ x, y, z }: XYZ) => {
     const res = await worthItMinMax({ x, y, z });
     if (!res) return false;
     const { max, min } = res;
@@ -33,7 +30,7 @@ export class XYZ2Url {
     if (z <= 10) return max > 1 && min < 132;
     return max > 96 && min < 144 && (max < 132 || max - min > 3);
   };
-  worthItArea = async ({ x, y, z }) => {
+  worthItArea = async ({ x, y, z }: XYZ) => {
     return (await Promise.all([
       this.worthIt({ x: x, y: y, z }),
       this.worthIt({ x: x, y: y - 1, z }),
@@ -64,15 +61,13 @@ export class XYZ2Url {
       };
       if (response.status === 404) {
         if (this.fallback) {
-          const fallbackProvider = this.fallback.name.substring(7).toLowerCase();
-          const fallback = new this.fallback({
-            provider: fallbackProvider,
-            quiet: this.quiet,
+          const fallback = getXYZ2Url({
+            provider: this.fallback,
             x,
             y,
             z,
           });
-          console.log('fallback to', fallbackProvider, await fallback.url);
+          console.log('fallback to', this.fallback, await fallback.url);
           return fallback.fetchFromTileServer();
         }
         return {
@@ -138,7 +133,7 @@ export class XYZ2Url {
       return false;
     }
     const worthitStart = performance.now();
-    if (this.verbose || await this.worthItArea({ x: x, y: y, z })) {
+    if (res ?? await this.worthItArea({ x: x, y: y, z })) {
       const imageStream = await queues.fetch.enqueue(async () => {
         const timeoutController = new globalThis.AbortController();
         const timeoutTimeout = setTimeout(() => timeoutController.abort(), 10000);
@@ -149,7 +144,7 @@ export class XYZ2Url {
       });
 
       if (imageStream.body) {
-        if (this.verbose) console.log('[fetched]', filename);
+        if (res) console.log('[fetched]', filename);
         res?.send(Buffer.from(imageStream.body));
         await writeFile(filename, Buffer.from(imageStream.body));
         return true;
@@ -162,7 +157,6 @@ export class XYZ2Url {
     queues.worthit += performance.now() - worthitStart;
     queues.worthitCount++;
 
-    res?.sendFile(`${pwd}/unworthy.png`);
     return false;
   };
 }

@@ -22,17 +22,17 @@ export class NavionicsDetails extends Container {
     this.mainAccordion = new Accordion({ accordionId: this.accordionIdPrefix });
     this.append(this.mainAccordion);
     position.listeners.add(() => {
-      if (!mouse.down.state) this.fetch(position);
+      if (!mouse.down.state) void this.fetch(position);
     });
-    this.queue.enqueue(() => new Promise(r => setInterval(r, 1)));
+    void this.queue.enqueue(() => new Promise(r => setInterval(r, 1)));
   }
 
-  private readonly abortControllers: Set<AbortController> = new Set();
+  private readonly abortControllers = new Set<AbortController>();
   private readonly accordionIdPrefix = 'navionicsDetailsList';
   private readonly accordions = new Map<string, Accordion>([]);
   private readonly fetchProgress = new AccordionItem({ headLabel: '', itemId: 'fetchProgress' });
-  private readonly items: Map<string, NavionicsItem> = new Map();
-  private readonly itemsCache: Map<string, NavionicsItem> = new Map();
+  private readonly items = new Map<string, NavionicsItem>();
+  private readonly itemsCache = new Map<string, NavionicsItem>();
   private readonly mainAccordion: Accordion;
   private readonly mainAccordionItems = new Map<string, AccordionItem>();
   private readonly queue = new StyQueue(1);
@@ -124,29 +124,37 @@ export class NavionicsDetails extends Container {
         const ret = fetch(`/navionics/quickinfo/${z}/${dx}/${dy}`, { signal })
         .then(async (res) => {
           if (!res.ok) return;
-          const body = await res.json();
-          (body.items ?? [])
-          .map(async (itemRemote: Record<string, any>) => {
-            const {
-              category_id: categoryId,
-              details,
-              icon_id: iconId,
-              id: itemId,
-              name: itemName,
-              position: itemPosition,
-            } = castObject(itemRemote, {
-              category_id: String,
-              details: Boolean,
-              icon_id: String,
-              id: String,
-              name: String,
-              position: ({ lat, lon }) => ({
-                lat: deg2rad(lat),
-                lon: deg2rad(lon),
-                x: lon2x(deg2rad(lon)),
-                y: lat2y(deg2rad(lat)),
-              }),
-            });
+          castObject(await res.json(), {
+            items: (items) => Array.isArray(items) ?
+              items.map(item => castObject(item, {
+                category_id: String,
+                details: Boolean,
+                icon_id: String,
+                id: String,
+                name: String,
+                position: val => {
+                  const { lat, lon } = castObject(val, {
+                    lat: Number,
+                    lon: Number,
+                  });
+                  return {
+                    lat: deg2rad(lat),
+                    lon: deg2rad(lon),
+                    x: lon2x(deg2rad(lon)),
+                    y: lat2y(deg2rad(lat)),
+                  };
+                },
+              })) :
+              [],
+          }).items
+          .map(({
+            category_id: categoryId,
+            details,
+            icon_id: iconId,
+            id: itemId,
+            name: itemName,
+            position: itemPosition,
+          }) => {
             const cachedItem = this.itemsCache.get(itemId);
             if (cachedItem) {
               cachedItem.reference = { lat, lon };

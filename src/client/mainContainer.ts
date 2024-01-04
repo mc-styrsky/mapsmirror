@@ -24,8 +24,8 @@ export class MainContainer extends Container {
     position.refresh();
   };
 
-  private _height: number = 0;
-  private _width: number = 0;
+  private _height = NaN;
+  private _width = NaN;
   get height () {
     return this._height;
   }

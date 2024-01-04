@@ -1,4 +1,4 @@
-export type XYZ = {
+export interface XYZ {
   x: number,
   y: number,
   z: number

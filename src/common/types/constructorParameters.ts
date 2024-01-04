@@ -1,3 +1,1 @@
-export type ConstructorParameters<T> = T extends {
-  new(...args: infer U): any;
-} ? U : never;
+export type ConstructorParameters<T> = T extends new(...args: infer U) => any ? U : never;

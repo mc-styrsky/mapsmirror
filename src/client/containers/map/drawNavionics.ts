@@ -1,3 +1,4 @@
+import type { DrawImage } from '../../../common/types/drawImage';
 import { tileSize } from '../../globals/tileSize';
 import { imagesToFetch } from '../infoBox/imagesToFetch';
 import { drawImage } from './drawImage';
@@ -43,7 +44,7 @@ const backgroundColors = [
   return arr;
 }, new Map<number, number>());
 
-export async function drawNavionics ({ context, source, ttl, x, y, z }) {
+export async function drawNavionics ({ context, source, ttl, x, y, z }: DrawImage) {
   const workerCanvas = new OffscreenCanvas(tileSize, tileSize);
   const workerContext = workerCanvas.getContext('2d');
   const watermark = await navionicsWatermark;

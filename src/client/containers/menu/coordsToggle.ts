@@ -15,9 +15,9 @@ class CoordsToggle extends Container {
       classes: ['btn', 'btn-secondary'],
       onclick: () => {
         settings.units.coords = {
-          d: <const> 'dm',
-          dm: <const> 'dms',
-          dms: <const> 'd',
+          d: 'dm' as const,
+          dm: 'dms' as const,
+          dms: 'd' as const,
         }[settings.units.coords] ?? 'dm';
 
         this.refresh();

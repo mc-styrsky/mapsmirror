@@ -1,10 +1,13 @@
+import { entriesTyped } from './fromEntriesTyped';
+
 export function castObject<T extends object> (
-  obj: Record<string, any> | null | undefined,
-  transformer: { [P in keyof T]: (val?: any) => T[P] },
+  obj: any,
+  transformer: { [P in keyof T]: (val?: unknown) => T[P] },
 ): T {
-  return Object.entries(transformer).reduce((ret, entry) => {
-    const [key, constructor]: [string, any] = entry;
-    ret[key] = constructor(obj?.[key]);
+  const objSave = Object(obj) as object;
+  return entriesTyped(transformer).reduce((ret, entry) => {
+    const [key, constructor] = entry;
+    ret[key] = constructor(objSave[key]);
     return ret;
   }, {} as T);
 }

@@ -5,18 +5,24 @@ import express from "../node_modules/express/index.js";
 // src/common/consts.ts
 var port = 3e3;
 
+// src/common/fromEntriesTyped.ts
+function entriesTyped(o) {
+  return Object.entries(o);
+}
+
 // src/common/extractProperties.ts
 function castObject(obj, transformer) {
-  return Object.entries(transformer).reduce((ret, entry) => {
+  const objSave = Object(obj);
+  return entriesTyped(transformer).reduce((ret, entry) => {
     const [key, constructor] = entry;
-    ret[key] = constructor(obj?.[key]);
+    ret[key] = constructor(objSave[key]);
     return ret;
   }, {});
 }
 
 // src/server/requestHandler/getNavionicsIcon.ts
 var iconCache = /* @__PURE__ */ new Map();
-var getNavionicsIcon = async (req, res) => {
+var getNavionicsIcon = (req, res) => {
   const { iconId } = castObject(req.params, {
     iconId: String
   });
@@ -26,7 +32,7 @@ var getNavionicsIcon = async (req, res) => {
       console.log("[cached]", iconId);
       res?.send(fromCache);
     } else {
-      await fetch(`https://webapp.navionics.com/api/v2/assets/images/${iconId}`).then(
+      fetch(`https://webapp.navionics.com/api/v2/assets/images/${iconId}`).then(
         async (r) => {
           if (r.ok) {
             const toCache = Buffer.from(await r.arrayBuffer());
@@ -53,8 +59,8 @@ var navionicsQueue = new StyQueue(10);
 
 // src/server/requestHandler/getNavionicsObjectinfo.ts
 var objectinfoCache = /* @__PURE__ */ new Map();
-var getNavionicsObjectinfo = async (req, res) => {
-  await navionicsQueue.enqueue(async () => {
+var getNavionicsObjectinfo = (req, res) => {
+  void navionicsQueue.enqueue(() => {
     try {
       const { itemId } = castObject(req.params, {
         itemId: String
@@ -62,45 +68,50 @@ var getNavionicsObjectinfo = async (req, res) => {
       const fromCache = objectinfoCache.get(itemId);
       if (fromCache) {
         console.log("[cached]", itemId);
-        res?.json(fromCache);
+        res.json(fromCache);
       } else {
         console.log("[fetch] ", itemId);
-        await fetch(`https://webapp.navionics.com/api/v2/objectinfo/marine/${itemId}`).then(
+        fetch(`https://webapp.navionics.com/api/v2/objectinfo/marine/${itemId}`).then(
           async (r) => {
             if (r.ok) {
               const toCache = await r.json();
               objectinfoCache.set(itemId, toCache);
-              res?.json(toCache);
+              res.json(toCache);
             } else
-              res?.sendStatus(r.status);
+              res.sendStatus(r.status);
           },
           () => {
-            res?.sendStatus(500);
+            res.sendStatus(500);
           }
         );
       }
     } catch (e) {
       console.error(e);
-      res?.status(500).send("internal server error");
+      res.status(500).send("internal server error");
       return;
     }
   });
 };
 
+// src/common/math.ts
+var { abs, acos, asin, asinh, atan2, ceil, cos, floor, log2, log10, max, min, PI, pow, round, sin, sqrt, tan, tanh } = Math;
+var PI2 = 2 * PI;
+var piHalf = PI / 2;
+
 // src/common/x2lon.ts
 function x2lonCommon(x, tiles) {
-  return (x / tiles - 0.5) * Math.PI * 2;
+  return (x / tiles - 0.5) * PI * 2;
 }
 
 // src/common/y2lat.ts
 function y2latCommon(y, tiles) {
-  return Math.asin(Math.tanh((0.5 - y / tiles) * 2 * Math.PI));
+  return asin(tanh((0.5 - y / tiles) * 2 * PI));
 }
 
 // src/server/requestHandler/getNavionicsQuickinfo.ts
 var quickinfoCache = /* @__PURE__ */ new Map();
-var getNavionicsQuickinfo = async (req, res) => {
-  await navionicsQueue.enqueue(async () => {
+var getNavionicsQuickinfo = (req, res) => {
+  void navionicsQueue.enqueue(() => {
     const { x, y, z } = castObject(req.params, {
       x: Number,
       y: Number,
@@ -108,8 +119,8 @@ var getNavionicsQuickinfo = async (req, res) => {
     });
     try {
       const { lat, lon } = {
-        lat: y2latCommon(y, 1 << z) * 180 / Math.PI,
-        lon: x2lonCommon(x, 1 << z) * 180 / Math.PI
+        lat: y2latCommon(y, 1 << z) * 180 / PI,
+        lon: x2lonCommon(x, 1 << z) * 180 / PI
       };
       const xyz = `${z}_${x}_${y}`;
       const fromCache = quickinfoCache.get(xyz);
@@ -118,7 +129,7 @@ var getNavionicsQuickinfo = async (req, res) => {
         res?.json(fromCache);
       } else {
         console.log("[fetch] ", xyz);
-        await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${Math.max(2, Math.min(Number(z), 17))}&ugc=true&lang=en`).then(
+        fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${max(2, min(Number(z), 17))}&ugc=true&lang=en`).then(
           async (r) => {
             if (r.ok) {
               const toCache = await r.json();
@@ -152,22 +163,27 @@ function modulo(val, mod) {
 // src/common/layers.ts
 var zoomMax = 20;
 var zoomMin = 2;
-var min = zoomMin;
-var max = zoomMax;
-var layers = {
-  "": { label: "- none -", max, min },
-  bingsat: { label: "bSat", max, min },
-  gebco: { label: "Depth", max: 9, min },
-  googlehybrid: { label: "gHybrid", max, min },
-  googlesat: { label: "gSat", max, min },
-  googlestreet: { label: "gStreet", max, min },
-  navionics: { label: "Navionics", max: 17, min },
-  openseamap: { label: "oSea", max: 18, min },
-  opentopomap: { label: "oTopo", max: 17, min },
-  osm: { label: "oStreet", max: 19, min },
-  vfdensity: { label: "Density", max: 12, min: 3 },
-  worthit: { label: "Worthit", max, min }
+var min2 = zoomMin;
+var max2 = zoomMax;
+var Layers = class {
+  static get(layer) {
+    return {
+      "": { label: "- none -", max: max2, min: min2 },
+      bingsat: { label: "bSat", max: max2, min: min2 },
+      gebco: { label: "Depth", max: 9, min: min2 },
+      googlehybrid: { label: "gHybrid", max: max2, min: min2 },
+      googlesat: { label: "gSat", max: max2, min: min2 },
+      googlestreet: { label: "gStreet", max: max2, min: min2 },
+      navionics: { label: "Navionics", max: 17, min: min2 },
+      openseamap: { label: "oSea", max: 18, min: min2 },
+      opentopomap: { label: "oTopo", max: 17, min: min2 },
+      osm: { label: "oStreet", max: 19, min: min2 },
+      vfdensity: { label: "Density", max: 12, min: 3 },
+      worthit: { label: "Worthit", max: max2, min: min2 }
+    }[layer] ?? { label: "unknown provider", max: zoomMax, min: zoomMin };
+  }
 };
+console.log("Layers", entriesTyped(Layers));
 
 // src/server/utils/xyz2quadkey.ts
 var xyz2quadkey = ({ x, y, z }) => {
@@ -239,9 +255,9 @@ var worthItMinMax = async ({ x, y, z }) => {
   const tileMin = worthItDatabase.min[z8]?.[x8]?.[y8];
   if (tileMin && tileMax) {
     const pos = (x & 255) + (y & 255) * 256;
-    const max2 = tileMax[pos];
-    const min2 = tileMin[pos];
-    return { max: max2, min: min2 };
+    const max3 = tileMax[pos];
+    const min3 = tileMin[pos];
+    return { max: max3, min: min3 };
   }
   const { tileId } = getTileParams({ x: x8, y: y8, z: z8 });
   if (z8 < 0)
@@ -254,18 +270,14 @@ var worthItMinMax = async ({ x, y, z }) => {
 
 // src/server/urls/default.ts
 var XYZ2Url = class {
-  constructor({ provider, quiet, x, y, z }) {
+  constructor({ provider, x, y, z }) {
     this.x = x;
     this.y = y;
     this.z = z;
     this.provider = provider;
-    this.quiet = Boolean(quiet);
-    this.verbose = !this.quiet;
     this.fallback = null;
   }
   provider;
-  quiet;
-  verbose;
   fallback;
   local = false;
   params = {};
@@ -274,12 +286,12 @@ var XYZ2Url = class {
     const res = await worthItMinMax({ x, y, z });
     if (!res)
       return false;
-    const { max: max2, min: min2 } = res;
+    const { max: max3, min: min3 } = res;
     if (z <= 6)
-      return min2 < 132;
+      return min3 < 132;
     if (z <= 10)
-      return max2 > 1 && min2 < 132;
-    return max2 > 96 && min2 < 144 && (max2 < 132 || max2 - min2 > 3);
+      return max3 > 1 && min3 < 132;
+    return max3 > 96 && min3 < 144 && (max3 < 132 || max3 - min3 > 3);
   };
   worthItArea = async ({ x, y, z }) => {
     return (await Promise.all([
@@ -308,15 +320,13 @@ var XYZ2Url = class {
         };
       if (response.status === 404) {
         if (this.fallback) {
-          const fallbackProvider = this.fallback.name.substring(7).toLowerCase();
-          const fallback = new this.fallback({
-            provider: fallbackProvider,
-            quiet: this.quiet,
+          const fallback = getXYZ2Url({
+            provider: this.fallback,
             x,
             y,
             z
           });
-          console.log("fallback to", fallbackProvider, await fallback.url);
+          console.log("fallback to", this.fallback, await fallback.url);
           return fallback.fetchFromTileServer();
         }
         return {
@@ -340,7 +350,7 @@ var XYZ2Url = class {
     const url = await this.url;
     const params = await this.params;
     const { x, y, z } = this;
-    const max2 = 1 << z;
+    const max3 = 1 << z;
     if (!url) {
       res?.sendStatus(404);
       return false;
@@ -371,7 +381,7 @@ var XYZ2Url = class {
       return false;
     }
     const worthitStart = performance.now();
-    if (this.verbose || await this.worthItArea({ x, y, z })) {
+    if (res ?? await this.worthItArea({ x, y, z })) {
       const imageStream = await queues.fetch.enqueue(async () => {
         const timeoutController = new globalThis.AbortController();
         const timeoutTimeout = setTimeout(() => timeoutController.abort(), 1e4);
@@ -381,19 +391,18 @@ var XYZ2Url = class {
         return ret;
       });
       if (imageStream.body) {
-        if (this.verbose)
+        if (res)
           console.log("[fetched]", filename);
         res?.send(Buffer.from(imageStream.body));
         await writeFile(filename, Buffer.from(imageStream.body));
         return true;
       }
-      console.log("no imagestream", imageStream.status, { x: (x / max2).toFixed(4), y: (y / max2).toFixed(4), z }, url);
+      console.log("no imagestream", imageStream.status, { x: (x / max3).toFixed(4), y: (y / max3).toFixed(4), z }, url);
       res?.sendStatus(imageStream.status ?? 500);
       return false;
     }
     queues.worthit += performance.now() - worthitStart;
     queues.worthitCount++;
-    res?.sendFile(`${pwd}/unworthy.png`);
     return false;
   };
 };
@@ -403,21 +412,9 @@ var XYZ2UrlBingsat = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
+    const { max: max3, min: min3 } = Layers.get(params.provider);
+    if (z >= min3 && z <= max3)
       this.url = `https://t.ssl.ak.tiles.virtualearth.net/tiles/a${xyz2quadkey({ x, y, z })}.jpeg?g=14041&n=z&prx=1`;
-  }
-};
-
-// src/server/urls/cache.ts
-var XYZ2UrlCache = class extends XYZ2Url {
-  constructor(params) {
-    super(params);
-    const { x, y, z } = params;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
-      this.url = `./cache/tiles/${z}/${x}/${y}.png`;
-    this.local = true;
   }
 };
 
@@ -427,8 +424,8 @@ var XYZ2UrlGebco = class extends XYZ2Url {
     super(params);
     const { x, y, z } = params;
     this.local = true;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
+    const { max: max3, min: min3 } = Layers.get(params.provider);
+    if (z >= min3 && z <= max3)
       this.url = `./gebco/tiles/${z}/${x}/${y}.png`;
   }
 };
@@ -438,8 +435,8 @@ var XYZ2UrlGooglehybrid = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
+    const { max: max3, min: min3 } = Layers.get(params.provider);
+    if (z >= min3 && z <= max3)
       this.url = `https://mt.google.com/vt/lyrs=y&x=${x}&y=${y}&z=${z}`;
   }
 };
@@ -449,9 +446,9 @@ var XYZ2UrlGooglesat = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    this.fallback = XYZ2UrlGooglehybrid;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
+    this.fallback = "googlehybrid";
+    const { max: max3, min: min3 } = Layers.get(params.provider);
+    if (z >= min3 && z <= max3)
       this.url = `https://mt.google.com/vt/lyrs=s&x=${x}&y=${y}&z=${z}`;
   }
 };
@@ -461,8 +458,8 @@ var XYZ2UrlGooglestreet = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
+    const { max: max3, min: min3 } = Layers.get(params.provider);
+    if (z >= min3 && z <= max3)
       this.url = `https://mt.google.com/vt/lyrs=m&x=${x}&y=${y}&z=${z}`;
   }
 };
@@ -501,9 +498,9 @@ var XYZ2UrlNavionics = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    const { max: max2, min: min2 } = layers[params.provider];
+    const { max: max3, min: min3 } = Layers.get(params.provider);
     if ([
-      z >= min2 && z <= max2,
+      z >= min3 && z <= max3,
       z >= 5 && y >= 14922 >> 17 - z,
       z >= 5 && y <= 92442 >> 17 - z
     ].every(Boolean)) {
@@ -535,8 +532,8 @@ var XYZ2UrlOpenseamap = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
+    const { max: max3, min: min3 } = Layers.get(params.provider);
+    if (z >= min3 && z <= max3)
       this.url = `https://tiles.openseamap.org/seamark/${z}/${x}/${y}.png`;
   }
 };
@@ -546,8 +543,8 @@ var XYZ2UrlOpentopomap = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
+    const { max: max3, min: min3 } = Layers.get(params.provider);
+    if (z >= min3 && z <= max3)
       this.url = `https://tile.opentopomap.org/${z}/${x}/${y}.png`;
   }
 };
@@ -557,8 +554,8 @@ var XYZ2UrlOsm = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
+    const { max: max3, min: min3 } = Layers.get(params.provider);
+    if (z >= min3 && z <= max3)
       this.url = `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
   }
 };
@@ -568,8 +565,8 @@ var XYZ2UrlVfdensity = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = params;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
+    const { max: max3, min: min3 } = Layers.get(params.provider);
+    if (z >= min3 && z <= max3)
       this.url = `https://density.tiles.vesselfinder.net/all/${z}/${x}/${y}.png`;
   }
 };
@@ -585,15 +582,15 @@ var XYZ2UrlWorthit = class extends XYZ2Url {
   constructor(params) {
     super(params);
     const { x, y, z } = this;
-    const { max: max2, min: min2 } = layers[params.provider];
-    if (z >= min2 && z <= max2)
+    const { max: max3, min: min3 } = Layers.get(params.provider);
+    if (z >= min3 && z <= max3)
       this.url = `./worthit/tiles/${z}/${x}/${y}.png`;
   }
   fetchFromTileServer = async () => {
     const { x, y, z } = this;
     const tile = new Uint8Array(3 * tileSize * tileSize);
     for (let zi = 0; zi <= 8; zi++) {
-      const color = zi > 4 ? [0, Math.min(32 << zi - 4, 255), 0] : zi > 0 ? [0, 0, Math.min(32 << zi - 1, 255)] : [Math.min(64 << zi, 255), 0, 0];
+      const color = zi > 4 ? [0, min(32 << zi - 4, 255), 0] : zi > 0 ? [0, 0, min(32 << zi - 1, 255)] : [min(64 << zi, 255), 0, 0];
       for (let yi = 0; yi < 1 << zi; yi++) {
         const yiOffset = yi << 8 - zi;
         for (let xi = 0; xi < 1 << zi; xi++) {
@@ -630,6 +627,35 @@ var XYZ2UrlWorthit = class extends XYZ2Url {
   };
 };
 
+// src/server/utils/getXYZ2Url.ts
+function getXYZ2Url(params) {
+  switch (params.provider) {
+    case "bingsat":
+      return new XYZ2UrlBingsat(params);
+    case "gebco":
+      return new XYZ2UrlGebco(params);
+    case "googlehybrid":
+      return new XYZ2UrlGooglehybrid(params);
+    case "googlesat":
+      return new XYZ2UrlGooglesat(params);
+    case "googlestreet":
+      return new XYZ2UrlGooglestreet(params);
+    case "navionics":
+      return new XYZ2UrlNavionics(params);
+    case "openseamap":
+      return new XYZ2UrlOpenseamap(params);
+    case "opentopomap":
+      return new XYZ2UrlOpentopomap(params);
+    case "osm":
+      return new XYZ2UrlOsm(params);
+    case "vfdensity":
+      return new XYZ2UrlVfdensity(params);
+    case "worthit":
+      return new XYZ2UrlWorthit(params);
+  }
+  return new XYZ2Url(params);
+}
+
 // src/server/utils/printStats.ts
 var todoLast = 0;
 var fetchedLast = 0;
@@ -639,13 +665,13 @@ var setMaxzoom = (z) => maxzoom = z;
 var printStats = () => {
   if (!queues.statsCount && !queues.worthitCount && maxzoom < 0 && !queues.checked)
     return;
-  const partialSum = (n) => (1 - Math.pow(4, n)) / (1 - 4);
+  const partialSum = (n) => (1 - pow(4, n)) / (1 - 4);
   const todo = Object.entries(queues.childs).reduce(
     (sum, [key, queue]) => {
       const len = queue.length;
       const collapsed = queues.childsCollapsed[key] ?? 0;
-      sum += Math.round(collapsed * partialSum(maxzoom - parseInt(key)));
-      sum += Math.round(len * partialSum(maxzoom - 1 - parseInt(key)));
+      sum += round(collapsed * partialSum(maxzoom - parseInt(key)));
+      sum += round(len * partialSum(maxzoom - 1 - parseInt(key)));
       return sum;
     },
     0
@@ -679,91 +705,72 @@ var printStats = () => {
 };
 
 // src/server/requestHandler/getTile.ts
-var getTile = async (req, res) => {
+var getTile = (req, res) => {
   try {
-    const { zoom } = castObject(req.params, {
-      zoom: (val) => parseInt(String(val))
+    const { z } = castObject(req.params, {
+      z: (val) => parseInt(String(val))
     });
-    if (zoom > getMaxzoom())
-      setMaxzoom(zoom);
+    if (z > getMaxzoom())
+      setMaxzoom(z);
     const parsePosition = (val) => {
-      return modulo(parseInt(String(val), 16), 1 << zoom);
+      return modulo(parseInt(String(val), 16), 1 << z);
     };
-    const { provider, x, y } = castObject(req.params, {
-      provider: String,
+    const { source, x, y } = castObject(req.params, {
+      source: (val) => String(val),
       x: parsePosition,
       y: parsePosition
     });
-    const { quiet, ttl } = castObject(req.query, {
-      quiet: (val) => Boolean(parseInt(String(val ?? 0))),
+    const { ttl } = castObject(req.query, {
       ttl: (val) => parseInt(String(val ?? 3))
     });
-    const queue = quiet ? queues.quiet : queues.verbose;
-    const fetchChilds = await queue.enqueue(() => {
-      try {
-        const xyz2url = new ({
-          bingsat: XYZ2UrlBingsat,
-          cache: XYZ2UrlCache,
-          gebco: XYZ2UrlGebco,
-          googlehybrid: XYZ2UrlGooglehybrid,
-          googlesat: XYZ2UrlGooglesat,
-          googlestreet: XYZ2UrlGooglestreet,
-          navionics: XYZ2UrlNavionics,
-          openseamap: XYZ2UrlOpenseamap,
-          opentopomap: XYZ2UrlOpentopomap,
-          osm: XYZ2UrlOsm,
-          vfdensity: XYZ2UrlVfdensity,
-          worthit: XYZ2UrlWorthit
-        }[provider] ?? XYZ2Url)({ provider, quiet, x, y, z: zoom });
-        return xyz2url.sendTile(res);
-      } catch (e) {
-        console.log(e);
-        return false;
-      }
+    void fetchTile({ source, ttl, x, y, z }, res).catch((e) => {
+      console.error(e);
+      if (!res.headersSent)
+        res.sendStatus(500);
     });
-    queues.checked++;
-    if (fetchChilds && ttl > 0 && zoom < 16)
-      pushToQueues({ provider, ttl, x, y, zoom });
-    return fetchChilds;
   } catch (e) {
     console.error(e);
-    res?.status(500).send("internal server error");
-    return null;
+    res.sendStatus(500);
   }
 };
-async function fetchChildTile({ dx, dy, provider, ttl, x, y, zoom }) {
-  try {
-    await getTile(
-      {
-        params: {
-          provider,
-          x: (x * 2 + dx).toString(16),
-          y: (y * 2 + dy).toString(16),
-          zoom: String(zoom + 1)
-        },
-        query: {
-          quiet: "1",
-          ttl: String(ttl - 1)
-        }
-      },
-      null
-    );
-  } catch (e) {
-    console.log(e);
-  }
+async function fetchTile({ source, ttl, x, y, z }, res = null) {
+  const queue = res ? queues.verbose : queues.quiet;
+  await queue.enqueue(async () => {
+    try {
+      return await getXYZ2Url({ provider: source, x, y, z }).sendTile(res);
+    } catch (e) {
+      console.log(e);
+      return false;
+    }
+  }).then((childs) => {
+    if (res)
+      console.log("tile", { provider: source, x, y, z });
+    queues.checked++;
+    if (childs && ttl > 0 && z < 16)
+      void fetchChilds({ source, ttl, x, y, z });
+  });
 }
-async function pushToQueues({ provider, ttl, x, y, zoom }) {
-  queues.childsCollapsed[zoom] ??= 0;
-  queues.childs[zoom] ??= new StyQueue2(1e3);
-  const childQueue = queues.childs[zoom];
-  queues.childsCollapsed[zoom]++;
-  while (childQueue.length > 100)
-    await (queues.childs[zoom - 1] ??= new StyQueue2(1e3)).enqueue(() => new Promise((r) => setTimeout(r, childQueue.length / 1)));
-  queues.childsCollapsed[zoom]--;
-  childQueue.enqueue(() => fetchChildTile({ dx: 0, dy: 0, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchChildTile({ dx: 0, dy: 1, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchChildTile({ dx: 1, dy: 0, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchChildTile({ dx: 1, dy: 1, provider, ttl, x, y, zoom }));
+async function fetchChildTile({ dx, dy, source: provider, ttl, x, y, z }) {
+  await fetchTile({
+    source: provider,
+    ttl: ttl - 1,
+    x: x * 2 + dx,
+    y: y * 2 + dy,
+    z: z + 1
+  }).catch((e) => console.log(e));
+}
+async function fetchChilds({ source: provider, ttl, x, y, z }) {
+  queues.childsCollapsed[z] ??= 0;
+  queues.childs[z] ??= new StyQueue2(1e3);
+  const queue = queues.childs[z];
+  queues.childsCollapsed[z]++;
+  while (queue.length > 100)
+    await (queues.childs[z - 1] ??= new StyQueue2(1e3)).enqueue(() => new Promise((r) => setTimeout(r, queue.length / 1)));
+  queues.childsCollapsed[z]--;
+  void queue.enqueue(() => fetchChildTile({ dx: 0, dy: 0, source: provider, ttl, x, y, z }));
+  void queue.enqueue(() => fetchChildTile({ dx: 0, dy: 1, source: provider, ttl, x, y, z }));
+  void queue.enqueue(() => fetchChildTile({ dx: 1, dy: 0, source: provider, ttl, x, y, z }));
+  void queue.enqueue(() => fetchChildTile({ dx: 1, dy: 1, source: provider, ttl, x, y, z }));
 }
 
 // src/server/index.ts
@@ -781,7 +788,7 @@ var queues = {
   worthit: 0,
   worthitCount: 0
 };
-express().use(express.json()).use(express.urlencoded({ extended: true })).use("", express.static("public")).get("/tile/:provider/:zoom/:x/:y", getTile).get("/navionics/icon/:iconId", getNavionicsIcon).get("/navionics/quickinfo/:z/:x/:y", getNavionicsQuickinfo).get("/navionics/objectinfo/:itemId", getNavionicsObjectinfo).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
+express().use(express.json()).use(express.urlencoded({ extended: false })).use("", express.static("public")).get("/tile/:source/:z/:x/:y", getTile).get("/navionics/icon/:iconId", getNavionicsIcon).get("/navionics/quickinfo/:z/:x/:y", getNavionicsQuickinfo).get("/navionics/objectinfo/:itemId", getNavionicsObjectinfo).listen(port, () => console.log(`backend listener running on port ${port}`)).on("error", (e) => {
   console.error(`cannot start listener on port ${port}`);
   console.log(e);
 });

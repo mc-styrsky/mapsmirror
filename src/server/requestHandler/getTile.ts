@@ -1,119 +1,87 @@
+import type { Layer } from '../../common/types/layer';
 import type express from 'express';
 import { StyQueue } from '@mc-styrsky/queue';
 import { castObject } from '../../common/extractProperties';
 import { modulo } from '../../common/modulo';
 import { queues } from '../index';
-import { XYZ2UrlBingsat } from '../urls/bingsat';
-import { XYZ2UrlCache } from '../urls/cache';
-import { XYZ2Url } from '../urls/default';
-import { XYZ2UrlGebco } from '../urls/gebco';
-import { XYZ2UrlGooglehybrid } from '../urls/googlehybrid';
-import { XYZ2UrlGooglesat } from '../urls/googlesat';
-import { XYZ2UrlGooglestreet } from '../urls/googlestreet';
-import { XYZ2UrlNavionics } from '../urls/navionics';
-import { XYZ2UrlOpenseamap } from '../urls/openseamap';
-import { XYZ2UrlOpentopomap } from '../urls/opentopomap';
-import { XYZ2UrlOsm } from '../urls/osm';
-import { XYZ2UrlVfdensity } from '../urls/vfdensity';
-import { XYZ2UrlWorthit } from '../urls/worthit';
+import { getXYZ2Url } from '../utils/getXYZ2Url';
 import { getMaxzoom, setMaxzoom } from '../utils/printStats';
 
-export const getTile = async (
-  req: express.Request<{
-    provider: string;
-    zoom: string;
-    x: string;
-    y: string;
-  }, any, any, Record<string, any>, Record<string, any>>,
-  res: express.Response | null,
-): Promise<boolean | null> => {
+interface TileParams { ttl: number, source: Layer; x: number; y: number; z: number; }
+
+export const getTile = (
+  req: express.Request<any, any, any, Record<string, any>, Record<string, any>>,
+  res: express.Response,
+) => {
   try {
-    const { zoom } = castObject(req.params, {
-      zoom: val => parseInt(String(val)),
+    const { z } = castObject(req.params, {
+      z: val => parseInt(String(val)),
     });
-    if (zoom > getMaxzoom()) setMaxzoom(zoom);
+    if (z > getMaxzoom()) setMaxzoom(z);
     const parsePosition = (val: any) => {
-      return modulo(parseInt(String(val), 16), 1 << zoom);
+      return modulo(parseInt(String(val), 16), 1 << z);
     };
-    const { provider, x, y } = castObject(req.params, {
-      provider: String,
+    const { source, x, y } = castObject(req.params, {
+      source: (val: any) => String(val) as Layer,
       x: parsePosition,
       y: parsePosition,
     });
-    const { quiet, ttl } = castObject(req.query, {
-      quiet: val => Boolean(parseInt(String(val ?? 0))),
+    const { ttl } = castObject(req.query, {
       ttl: val => parseInt(String(val ?? 3)),
     });
 
-    const queue = quiet ? queues.quiet : queues.verbose;
-    const fetchChilds = await queue.enqueue(() => {
-      try {
-        const xyz2url = new ({
-          bingsat: XYZ2UrlBingsat,
-          cache: XYZ2UrlCache,
-          gebco: XYZ2UrlGebco,
-          googlehybrid: XYZ2UrlGooglehybrid,
-          googlesat: XYZ2UrlGooglesat,
-          googlestreet: XYZ2UrlGooglestreet,
-          navionics: XYZ2UrlNavionics,
-          openseamap: XYZ2UrlOpenseamap,
-          opentopomap: XYZ2UrlOpentopomap,
-          osm: XYZ2UrlOsm,
-          vfdensity: XYZ2UrlVfdensity,
-          worthit: XYZ2UrlWorthit,
-        }[provider] ?? XYZ2Url)({ provider, quiet, x, y, z: zoom });
-        return xyz2url.sendTile(res);
-      }
-      catch (e) {
-        console.log(e);
-        return false;
-      }
+    void fetchTile({ source, ttl, x, y, z }, res)
+    .catch(e => {
+      console.error(e);
+      if (!res.headersSent) res.sendStatus(500);
     });
-
-    queues.checked++;
-
-    if (fetchChilds && ttl > 0 && zoom < 16) pushToQueues({ provider, ttl, x, y, zoom });
-
-    return fetchChilds;
   }
   catch (e) {
     console.error(e);
-    res?.status(500).send('internal server error');
-    return null;
+    res.sendStatus(500);
   }
 };
 
-async function fetchChildTile ({ dx, dy, provider, ttl, x, y, zoom }: { dx: number; dy: number; provider: string; x: number; y: number; zoom: number; ttl: number }) {
-  try {
-    await getTile(
-      <any>{
-        params: {
-          provider,
-          x: (x * 2 + dx).toString(16),
-          y: (y * 2 + dy).toString(16),
-          zoom: String(zoom + 1),
-        },
-        query: {
-          quiet: '1',
-          ttl: String(ttl - 1),
-        },
-      },
-      null,
-    );
-  }
-  catch (e) {
-    console.log(e);
-  }
+async function fetchTile (
+  { source, ttl, x, y, z }: TileParams,
+  res: express.Response | null = null,
+) {
+  const queue = res ? queues.verbose : queues.quiet;
+  await queue.enqueue(async () => {
+    try {
+      return await getXYZ2Url({ provider: source, x, y, z }).sendTile(res);
+    }
+    catch (e) {
+      console.log(e);
+      return false;
+    }
+  })
+  .then(childs => {
+    if (res) console.log('tile', { provider: source, x, y, z });
+    queues.checked++;
+    if (childs && ttl > 0 && z < 16) void fetchChilds({ source, ttl, x, y, z });
+  });
 }
-async function pushToQueues ({ provider, ttl, x, y, zoom }: { ttl: number, provider: string; x: number; y: number; zoom: number; }) {
-  queues.childsCollapsed[zoom] ??= 0;
-  queues.childs[zoom] ??= new StyQueue(1000);
-  const childQueue = queues.childs[zoom];
-  queues.childsCollapsed[zoom]++;
-  while (childQueue.length > 100) await (queues.childs[zoom - 1] ??= new StyQueue(1000)).enqueue(() => new Promise(r => setTimeout(r, childQueue.length / 1)));
-  queues.childsCollapsed[zoom]--;
-  childQueue.enqueue(() => fetchChildTile({ dx: 0, dy: 0, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchChildTile({ dx: 0, dy: 1, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchChildTile({ dx: 1, dy: 0, provider, ttl, x, y, zoom }));
-  childQueue.enqueue(() => fetchChildTile({ dx: 1, dy: 1, provider, ttl, x, y, zoom }));
+
+async function fetchChildTile ({ dx, dy, source: provider, ttl, x, y, z }: { dx: number; dy: number} & TileParams) {
+  await fetchTile({
+    source: provider,
+    ttl: ttl - 1,
+    x: x * 2 + dx,
+    y: y * 2 + dy,
+    z: z + 1,
+  })
+  .catch(e => console.log(e));
+}
+async function fetchChilds ({ source: provider, ttl, x, y, z }: TileParams) {
+  queues.childsCollapsed[z] ??= 0;
+  queues.childs[z] ??= new StyQueue(1000);
+  const queue = queues.childs[z];
+  queues.childsCollapsed[z]++;
+  while (queue.length > 100) await (queues.childs[z - 1] ??= new StyQueue(1000)).enqueue(() => new Promise(r => setTimeout(r, queue.length / 1)));
+  queues.childsCollapsed[z]--;
+  void queue.enqueue(() => fetchChildTile({ dx: 0, dy: 0, source: provider, ttl, x, y, z: z }));
+  void queue.enqueue(() => fetchChildTile({ dx: 0, dy: 1, source: provider, ttl, x, y, z: z }));
+  void queue.enqueue(() => fetchChildTile({ dx: 1, dy: 0, source: provider, ttl, x, y, z: z }));
+  void queue.enqueue(() => fetchChildTile({ dx: 1, dy: 1, source: provider, ttl, x, y, z: z }));
 }

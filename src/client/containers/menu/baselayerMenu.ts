@@ -1,12 +1,12 @@
 import type { Baselayer } from '../../../common/types/layer';
-import { layers } from '../../../common/layers';
+import { Layers } from '../../../common/layers';
 import { baselayers } from '../../globals/baselayers';
 import { settings } from '../../globals/settings';
 import { Container } from '../../utils/htmlElements/container';
 import { mapContainer } from '../tilesContainer';
 
 export class BaselayerMenu extends Container {
-  static baselayerLabel = (source: Baselayer) => `${layers[source].label} (${baselayers.indexOf(source)})`;
+  static baselayerLabel = (source: Baselayer) => `${Layers.get(source).label} (${baselayers.indexOf(source)})`;
 
   constructor () {
     super(Container.from('div', {

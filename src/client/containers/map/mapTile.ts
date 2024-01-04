@@ -57,7 +57,7 @@ export class MapTile extends Container<HTMLCanvasElement> {
     const context = this.html.getContext('2d');
 
     if (context) {
-      Promise.all(settings.tiles.map(async (entry) => {
+      void Promise.all(settings.tiles.map(async (entry) => {
         const { alpha, source } = entry;
         return await drawCachedImage({ alpha, context, source, ttl, x, y, z });
       }))

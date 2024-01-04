@@ -8,7 +8,7 @@ type HtmlProps<E extends HTMLElement> = Partial<Omit<E, 'dataset' | 'style'>> & 
 }
 
 declare const _: unique symbol;
-type Forbidden = { [_]: typeof _; }
+interface Forbidden { [_]: typeof _; }
 type NoOverride<T=void> = T & Forbidden;
 
 export class Container<Selector extends HTMLElement = HTMLDivElement> {
@@ -44,6 +44,7 @@ export class Container<Selector extends HTMLElement = HTMLDivElement> {
   constructor (html: Container<any>)
   constructor (html: HTMLElement)
   constructor (html: HTMLElement | Container<any> = Container.from('div')) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.html = html instanceof Container ? html.html : html;
   }
 

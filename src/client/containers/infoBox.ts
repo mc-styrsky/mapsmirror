@@ -23,7 +23,7 @@ class InfoBox extends Container {
     super(Container.from('div', {
       classes: ['InfoBox', 'p-2', 'mt-2'],
     }));
-    navionicsDetailsToggle.listeners.add(() => this.refresh);
+    navionicsDetailsToggle.listeners.add(() => this.refresh());
     this.infoBoxCoords = new InfoBoxCoords();
     this.refresh();
   }

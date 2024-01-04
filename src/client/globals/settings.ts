@@ -22,7 +22,11 @@ class Settings {
       vfdensity: Boolean,
     });
     this.units = castObject(localStorageSettings?.units, {
-      coords: (val) => ['d', 'dm', 'dms'].includes(val) ? val : 'dm',
+      coords: (val) => {
+        if (val === 'd') return 'd';
+        if (val === 'dms') return 'dms';
+        return 'dm';
+      },
     });
   }
 

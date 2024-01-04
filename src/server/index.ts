@@ -11,8 +11,8 @@ export const pwd = '/home/sty/Documents/GitHub/mapsmirror';
 
 export const queues = {
   checked: 0,
-  childs: <Record<string, StyQueue>> {},
-  childsCollapsed: <Record<string, number>> {},
+  childs: {} as Record<string, StyQueue>,
+  childsCollapsed: {} as Record<string, number>,
   fetch: new StyQueue(10),
   fetched: 0,
   quiet: new StyQueue(1000),
@@ -25,9 +25,9 @@ export const queues = {
 
 express()
 .use(express.json())
-.use(express.urlencoded({ extended: true }))
+.use(express.urlencoded({ extended: false }))
 .use('', express.static('public'))
-.get('/tile/:provider/:zoom/:x/:y', getTile)
+.get('/tile/:source/:z/:x/:y', getTile)
 .get('/navionics/icon/:iconId', getNavionicsIcon)
 .get('/navionics/quickinfo/:z/:x/:y', getNavionicsQuickinfo)
 .get('/navionics/objectinfo/:itemId', getNavionicsObjectinfo)

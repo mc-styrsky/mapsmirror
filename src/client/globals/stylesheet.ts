@@ -16,7 +16,7 @@ class Stylesheet extends Container<HTMLStyleElement> {
       if (this.keys.has(key)) throw Error(`"${key}" already defined`);
       this.keys.add(key);
 
-      const rules = entriesTyped(style).map(([k, v]) => `${kebabify(k)}: ${v}`);
+      const rules = entriesTyped(style).map(([k, v]) => `${kebabify(k)}: ${v?.toString()}`);
       this.append(`${key} { ${rules.join('; ')} }\n`);
     });
   }

@@ -44,17 +44,16 @@ export class NavionicsItem extends AccordionItem {
       super({ bodyLabel, headLabel, itemId });
 
       this.head.progress();
-      fetch(`/navionics/objectinfo/${itemId}`)
-      .then(async (res) => res.ok ? await res.json() : {})
-      .catch(() => ({}))
-      .then(body => {
-        const { properties } = castObject(body,
-          {
-            properties: (val) => Array.isArray(val) ?
-              val.map(({ label }) => String(label)) :
-              [],
-          },
-        );
+      void fetch(`/navionics/objectinfo/${itemId}`)
+      .then(async (res) => castObject(res.ok ? await res.json() : {},
+        {
+          properties: (val) => Array.isArray(val) ?
+            val.map(({ label }) => String(label)) :
+            [],
+        },
+      ))
+      .catch(() => ({ properties: [] }))
+      .then(({ properties }) => {
         bodyLabel.clear();
         if (properties) properties.forEach(prop => {
           if (prop) bodyLabel.append(Container.from('p').append(prop));
@@ -83,7 +82,7 @@ export class NavionicsItem extends AccordionItem {
     return this._distance;
   }
   readonly itemId: string;
-  private _distance: number = NaN;
+  private _distance = NaN;
   readonly labelContainer: NavionicsItemLabel;
 
 

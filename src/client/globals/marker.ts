@@ -1,7 +1,7 @@
 import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';
 
-export type MarkerConstructorParameters = {
+export interface MarkerConstructorParameters {
   accuracy?: number;
   lat: number;
   lon: number;
@@ -39,7 +39,7 @@ class Marker {
 }
 
 class Markers {
-  readonly _markers: Map<Marker['type'], Marker> = new Map();
+  readonly _markers = new Map<Marker['type'], Marker>();
 
   add = (params: MarkerConstructorParameters) => {
     this._markers.set(params.type, new Marker(params));

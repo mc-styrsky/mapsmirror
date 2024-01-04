@@ -1536,86 +1536,264 @@ var require_suncalc = __commonJS({
   }
 });
 
-// node_modules/parse-dms/index.js
-var require_parse_dms = __commonJS({
-  "node_modules/parse-dms/index.js"(exports, module) {
-    "use strict";
-    module.exports = function(dmsString) {
-      dmsString = dmsString.trim();
-      var dmsRe = /([NSEW])?\s?(-)?(\d+(?:\.\d+)?)[°º:d\s]?\s?(?:(\d+(?:\.\d+)?)['’‘′:]?\s?(?:(\d{1,2}(?:\.\d+)?)(?:"|″|’’|'')?)?)?\s?([NSEW])?/i;
-      var result = {};
-      var m1, m2, decDeg1, decDeg2, dmsString2;
-      m1 = dmsString.match(dmsRe);
-      if (!m1)
-        throw "Could not parse string";
-      if (m1[1]) {
-        m1[6] = void 0;
-        dmsString2 = dmsString.substr(m1[0].length - 1).trim();
-      } else {
-        dmsString2 = dmsString.substr(m1[0].length).trim();
-      }
-      decDeg1 = decDegFromMatch(m1);
-      m2 = dmsString2.match(dmsRe);
-      decDeg2 = m2 ? decDegFromMatch(m2) : {};
-      if (typeof decDeg1.latLon === "undefined") {
-        if (!isNaN(decDeg1.decDeg) && isNaN(decDeg2.decDeg)) {
-          return decDeg1.decDeg;
-        } else if (!isNaN(decDeg1.decDeg) && !isNaN(decDeg2.decDeg)) {
-          decDeg1.latLon = "lat";
-          decDeg2.latLon = "lon";
-        } else {
-          throw "Could not parse string";
+// node_modules/coordinate-parser/validator.js
+var require_validator = __commonJS({
+  "node_modules/coordinate-parser/validator.js"(exports, module) {
+    var Validator;
+    Validator = class Validator {
+      isValid(coordinates) {
+        var isValid2, validationError;
+        isValid2 = true;
+        try {
+          this.validate(coordinates);
+          return isValid2;
+        } catch (error) {
+          validationError = error;
+          isValid2 = false;
+          return isValid2;
         }
       }
-      if (typeof decDeg2.latLon === "undefined") {
-        decDeg2.latLon = decDeg1.latLon === "lat" ? "lon" : "lat";
+      validate(coordinates) {
+        this.checkContainsNoLetters(coordinates);
+        this.checkValidOrientation(coordinates);
+        return this.checkNumbers(coordinates);
       }
-      result[decDeg1.latLon] = decDeg1.decDeg;
-      result[decDeg2.latLon] = decDeg2.decDeg;
-      return result;
+      checkContainsNoLetters(coordinates) {
+        var containsLetters;
+        containsLetters = /(?![neswd])[a-z]/i.test(coordinates);
+        if (containsLetters) {
+          throw new Error("Coordinate contains invalid alphanumeric characters.");
+        }
+      }
+      checkValidOrientation(coordinates) {
+        var validOrientation;
+        validOrientation = /^[^nsew]*[ns]?[^nsew]*[ew]?[^nsew]*$/i.test(coordinates);
+        if (!validOrientation) {
+          throw new Error("Invalid cardinal direction.");
+        }
+      }
+      checkNumbers(coordinates) {
+        var coordinateNumbers;
+        coordinateNumbers = coordinates.match(/-?\d+(\.\d+)?/g);
+        this.checkAnyCoordinateNumbers(coordinateNumbers);
+        this.checkEvenCoordinateNumbers(coordinateNumbers);
+        return this.checkMaximumCoordinateNumbers(coordinateNumbers);
+      }
+      checkAnyCoordinateNumbers(coordinateNumbers) {
+        if (coordinateNumbers.length === 0) {
+          throw new Error("Could not find any coordinate number");
+        }
+      }
+      checkEvenCoordinateNumbers(coordinateNumbers) {
+        var isUnevenNumbers;
+        isUnevenNumbers = coordinateNumbers.length % 2;
+        if (isUnevenNumbers) {
+          throw new Error("Uneven count of latitude/longitude numbers");
+        }
+      }
+      checkMaximumCoordinateNumbers(coordinateNumbers) {
+        if (coordinateNumbers.length > 6) {
+          throw new Error("Too many coordinate numbers");
+        }
+      }
     };
-    function decDegFromMatch(m) {
-      var signIndex = {
-        "-": -1,
-        "N": 1,
-        "S": -1,
-        "E": 1,
-        "W": -1
-      };
-      var latLonIndex = {
-        "N": "lat",
-        "S": "lat",
-        "E": "lon",
-        "W": "lon"
-      };
-      var degrees, minutes, seconds, sign, latLon;
-      sign = signIndex[m[2]] || signIndex[m[1]] || signIndex[m[6]] || 1;
-      degrees = Number(m[3]);
-      minutes = m[4] ? Number(m[4]) : 0;
-      seconds = m[5] ? Number(m[5]) : 0;
-      latLon = latLonIndex[m[1]] || latLonIndex[m[6]];
-      if (!inRange(degrees, 0, 180))
-        throw "Degrees out of range";
-      if (!inRange(minutes, 0, 60))
-        throw "Minutes out of range";
-      if (!inRange(seconds, 0, 60))
-        throw "Seconds out of range";
-      return {
-        decDeg: sign * (degrees + minutes / 60 + seconds / 3600),
-        latLon
-      };
-    }
-    function inRange(value, a, b) {
-      return value >= a && value <= b;
-    }
+    module.exports = Validator;
   }
 });
 
+// node_modules/coordinate-parser/coordinate-number.js
+var require_coordinate_number = __commonJS({
+  "node_modules/coordinate-parser/coordinate-number.js"(exports, module) {
+    var CoordinateNumber;
+    CoordinateNumber = class CoordinateNumber {
+      constructor(coordinateNumbers) {
+        coordinateNumbers = this.normalizeCoordinateNumbers(coordinateNumbers);
+        this.sign = this.normalizedSignOf(coordinateNumbers[0]);
+        [this.degrees, this.minutes, this.seconds, this.milliseconds] = coordinateNumbers.map(Math.abs);
+      }
+      normalizeCoordinateNumbers(coordinateNumbers) {
+        var currentNumber, i, j, len, normalizedNumbers;
+        normalizedNumbers = [0, 0, 0, 0];
+        for (i = j = 0, len = coordinateNumbers.length; j < len; i = ++j) {
+          currentNumber = coordinateNumbers[i];
+          normalizedNumbers[i] = parseFloat(currentNumber);
+        }
+        return normalizedNumbers;
+      }
+      normalizedSignOf(number) {
+        if (number >= 0) {
+          return 1;
+        } else {
+          return -1;
+        }
+      }
+      detectSpecialFormats() {
+        if (this.degreesCanBeSpecial()) {
+          if (this.degreesCanBeMilliseconds()) {
+            return this.degreesAsMilliseconds();
+          } else if (this.degreesCanBeDegreesMinutesAndSeconds()) {
+            return this.degreesAsDegreesMinutesAndSeconds();
+          } else if (this.degreesCanBeDegreesAndMinutes()) {
+            return this.degreesAsDegreesAndMinutes();
+          }
+        }
+      }
+      degreesCanBeSpecial() {
+        var canBe;
+        canBe = false;
+        if (!this.minutes && !this.seconds) {
+          canBe = true;
+        }
+        return canBe;
+      }
+      degreesCanBeMilliseconds() {
+        var canBe;
+        if (this.degrees > 909090) {
+          canBe = true;
+        } else {
+          canBe = false;
+        }
+        return canBe;
+      }
+      degreesAsMilliseconds() {
+        this.milliseconds = this.degrees;
+        return this.degrees = 0;
+      }
+      degreesCanBeDegreesMinutesAndSeconds() {
+        var canBe;
+        if (this.degrees > 9090) {
+          canBe = true;
+        } else {
+          canBe = false;
+        }
+        return canBe;
+      }
+      degreesAsDegreesMinutesAndSeconds() {
+        var newDegrees;
+        newDegrees = Math.floor(this.degrees / 1e4);
+        this.minutes = Math.floor((this.degrees - newDegrees * 1e4) / 100);
+        this.seconds = Math.floor(this.degrees - newDegrees * 1e4 - this.minutes * 100);
+        return this.degrees = newDegrees;
+      }
+      degreesCanBeDegreesAndMinutes() {
+        var canBe;
+        if (this.degrees > 360) {
+          canBe = true;
+        } else {
+          canBe = false;
+        }
+        return canBe;
+      }
+      degreesAsDegreesAndMinutes() {
+        var newDegrees;
+        newDegrees = Math.floor(this.degrees / 100);
+        this.minutes = this.degrees - newDegrees * 100;
+        return this.degrees = newDegrees;
+      }
+      toDecimal() {
+        var decimalCoordinate;
+        decimalCoordinate = this.sign * (this.degrees + this.minutes / 60 + this.seconds / 3600 + this.milliseconds / 36e5);
+        return decimalCoordinate;
+      }
+    };
+    module.exports = CoordinateNumber;
+  }
+});
+
+// node_modules/coordinate-parser/coordinates.js
+var require_coordinates = __commonJS({
+  "node_modules/coordinate-parser/coordinates.js"(exports, module) {
+    var CoordinateNumber;
+    var Coordinates2;
+    var Validator;
+    Validator = require_validator();
+    CoordinateNumber = require_coordinate_number();
+    Coordinates2 = class Coordinates {
+      constructor(coordinateString) {
+        this.coordinates = coordinateString;
+        this.latitudeNumbers = null;
+        this.longitudeNumbers = null;
+        this.validate();
+        this.parse();
+      }
+      validate() {
+        var validator;
+        validator = new Validator();
+        return validator.validate(this.coordinates);
+      }
+      parse() {
+        this.groupCoordinateNumbers();
+        this.latitude = this.extractLatitude();
+        return this.longitude = this.extractLongitude();
+      }
+      groupCoordinateNumbers() {
+        var coordinateNumbers, numberCountEachCoordinate;
+        coordinateNumbers = this.extractCoordinateNumbers(this.coordinates);
+        numberCountEachCoordinate = coordinateNumbers.length / 2;
+        this.latitudeNumbers = coordinateNumbers.slice(0, numberCountEachCoordinate);
+        return this.longitudeNumbers = coordinateNumbers.slice(0 - numberCountEachCoordinate);
+      }
+      extractCoordinateNumbers(coordinates) {
+        return coordinates.match(/-?\d+(\.\d+)?/g);
+      }
+      extractLatitude() {
+        var latitude;
+        latitude = this.coordinateNumbersToDecimal(this.latitudeNumbers);
+        if (this.latitudeIsNegative()) {
+          latitude = latitude * -1;
+        }
+        return latitude;
+      }
+      extractLongitude() {
+        var longitude;
+        longitude = this.coordinateNumbersToDecimal(this.longitudeNumbers);
+        if (this.longitudeIsNegative()) {
+          longitude = longitude * -1;
+        }
+        return longitude;
+      }
+      coordinateNumbersToDecimal(coordinateNumbers) {
+        var coordinate, decimalCoordinate;
+        coordinate = new CoordinateNumber(coordinateNumbers);
+        coordinate.detectSpecialFormats();
+        decimalCoordinate = coordinate.toDecimal();
+        return decimalCoordinate;
+      }
+      latitudeIsNegative() {
+        var isNegative;
+        isNegative = this.coordinates.match(/s/i);
+        return isNegative;
+      }
+      longitudeIsNegative() {
+        var isNegative;
+        isNegative = this.coordinates.match(/w/i);
+        return isNegative;
+      }
+      getLatitude() {
+        return this.latitude;
+      }
+      getLongitude() {
+        return this.longitude;
+      }
+    };
+    module.exports = Coordinates2;
+  }
+});
+
+// src/common/fromEntriesTyped.ts
+function fromEntriesTyped(entries) {
+  return Object.fromEntries(entries);
+}
+function entriesTyped(o) {
+  return Object.entries(o);
+}
+
 // src/common/extractProperties.ts
 function castObject(obj, transformer) {
-  return Object.entries(transformer).reduce((ret, entry) => {
+  const objSave = Object(obj);
+  return entriesTyped(transformer).reduce((ret, entry) => {
     const [key, constructor] = entry;
-    ret[key] = constructor(obj?.[key]);
+    ret[key] = constructor(objSave[key]);
     return ret;
   }, {});
 }
@@ -1671,7 +1849,13 @@ var Settings = class {
       vfdensity: Boolean
     });
     this.units = castObject(localStorageSettings?.units, {
-      coords: (val) => ["d", "dm", "dms"].includes(val) ? val : "dm"
+      coords: (val) => {
+        if (val === "d")
+          return "d";
+        if (val === "dms")
+          return "dms";
+        return "dm";
+      }
     });
   }
   show;
@@ -1693,14 +1877,6 @@ var Settings = class {
   };
 };
 var settings = new Settings();
-
-// src/common/fromEntriesTyped.ts
-function fromEntriesTyped(entries) {
-  return Object.fromEntries(entries);
-}
-function entriesTyped(o) {
-  return Object.entries(o);
-}
 
 // src/client/utils/kebabify.ts
 var kebabify = (str) => str.replace(/[a-z][A-Z]/g, ($) => {
@@ -1762,7 +1938,7 @@ var Stylesheet = class extends Container {
       if (this.keys.has(key))
         throw Error(`"${key}" already defined`);
       this.keys.add(key);
-      const rules = entriesTyped(style).map(([k, v]) => `${kebabify(k)}: ${v}`);
+      const rules = entriesTyped(style).map(([k, v]) => `${kebabify(k)}: ${v?.toString()}`);
       this.append(`${key} { ${rules.join("; ")} }
 `);
     });
@@ -1884,20 +2060,25 @@ var zoomMax = 20;
 var zoomMin = 2;
 var min2 = zoomMin;
 var max2 = zoomMax;
-var layers = {
-  "": { label: "- none -", max: max2, min: min2 },
-  bingsat: { label: "bSat", max: max2, min: min2 },
-  gebco: { label: "Depth", max: 9, min: min2 },
-  googlehybrid: { label: "gHybrid", max: max2, min: min2 },
-  googlesat: { label: "gSat", max: max2, min: min2 },
-  googlestreet: { label: "gStreet", max: max2, min: min2 },
-  navionics: { label: "Navionics", max: 17, min: min2 },
-  openseamap: { label: "oSea", max: 18, min: min2 },
-  opentopomap: { label: "oTopo", max: 17, min: min2 },
-  osm: { label: "oStreet", max: 19, min: min2 },
-  vfdensity: { label: "Density", max: 12, min: 3 },
-  worthit: { label: "Worthit", max: max2, min: min2 }
+var Layers = class {
+  static get(layer) {
+    return {
+      "": { label: "- none -", max: max2, min: min2 },
+      bingsat: { label: "bSat", max: max2, min: min2 },
+      gebco: { label: "Depth", max: 9, min: min2 },
+      googlehybrid: { label: "gHybrid", max: max2, min: min2 },
+      googlesat: { label: "gSat", max: max2, min: min2 },
+      googlestreet: { label: "gStreet", max: max2, min: min2 },
+      navionics: { label: "Navionics", max: 17, min: min2 },
+      openseamap: { label: "oSea", max: 18, min: min2 },
+      opentopomap: { label: "oTopo", max: 17, min: min2 },
+      osm: { label: "oStreet", max: 19, min: min2 },
+      vfdensity: { label: "Density", max: 12, min: 3 },
+      worthit: { label: "Worthit", max: max2, min: min2 }
+    }[layer] ?? { label: "unknown provider", max: zoomMax, min: zoomMin };
+  }
 };
+console.log("Layers", entriesTyped(Layers));
 
 // src/common/modulo.ts
 function modulo(val, mod) {
@@ -2019,10 +2200,10 @@ var Position = class {
 };
 var searchParams = fromEntriesTyped(new URL(window.location.href).searchParams.entries());
 var { lat, lon, ttl, z } = castObject(searchParams, {
-  lat: (val) => Number(val) ? deg2rad(parseFloat(val)) : 0,
-  lon: (val) => Number(val) ? deg2rad(parseFloat(val)) : 0,
-  ttl: (val) => Number(val) ? parseInt(val) : 0,
-  z: (val) => Number(val) ? parseInt(val) : 2
+  lat: (val) => Number(val) ? deg2rad(parseFloat(String(val))) : 0,
+  lon: (val) => Number(val) ? deg2rad(parseFloat(String(val))) : 0,
+  ttl: (val) => Number(val) ? parseInt(String(val)) : 0,
+  z: (val) => Number(val) ? parseInt(String(val)) : 2
 });
 var position = new Position({
   ttl,
@@ -2119,8 +2300,8 @@ var MainContainer = class extends Container {
     this._width = width;
     position.refresh();
   };
-  _height = 0;
-  _width = 0;
+  _height = NaN;
+  _width = NaN;
   get height() {
     return this._height;
   }
@@ -7597,7 +7778,7 @@ function drawImage({
   y,
   z: z2
 }) {
-  if (z2 < layers[source].min)
+  if (z2 < Layers.get(source).min)
     return Promise.resolve(false);
   const src = `/tile/${source}/${[
     z2,
@@ -7646,8 +7827,8 @@ function drawImage({
         resolve(false);
       }
     };
-    if (z2 > layers[source].max)
-      onerror();
+    if (z2 > Layers.get(source).max)
+      void onerror();
     else {
       img.src = src;
       img.onload = onload;
@@ -7837,7 +8018,7 @@ var MapTile = class _MapTile extends Container {
     this.html.height = tileSize;
     const context = this.html.getContext("2d");
     if (context) {
-      Promise.all(settings.tiles.map(async (entry) => {
+      void Promise.all(settings.tiles.map(async (entry) => {
         const { alpha, source } = entry;
         return await drawCachedImage({ alpha, context, source, ttl: ttl2, x, y, z: z2 });
       })).then((draws) => draws.reduce(
@@ -7861,7 +8042,7 @@ var MapTile = class _MapTile extends Container {
 
 // src/client/containers/menu/baselayerMenu.ts
 var BaselayerMenu = class _BaselayerMenu extends Container {
-  static baselayerLabel = (source) => `${layers[source].label} (${baselayers.indexOf(source)})`;
+  static baselayerLabel = (source) => `${Layers.get(source).label} (${baselayers.indexOf(source)})`;
   constructor() {
     super(Container.from("div", {
       classes: ["dropdown"]
@@ -8219,13 +8400,12 @@ var NavionicsItem = class extends AccordionItem {
       const bodyLabel = new NavionicsItemDetails();
       super({ bodyLabel, headLabel, itemId });
       this.head.progress();
-      fetch(`/navionics/objectinfo/${itemId}`).then(async (res) => res.ok ? await res.json() : {}).catch(() => ({})).then((body) => {
-        const { properties } = castObject(
-          body,
-          {
-            properties: (val) => Array.isArray(val) ? val.map(({ label }) => String(label)) : []
-          }
-        );
+      void fetch(`/navionics/objectinfo/${itemId}`).then(async (res) => castObject(
+        res.ok ? await res.json() : {},
+        {
+          properties: (val) => Array.isArray(val) ? val.map(({ label }) => String(label)) : []
+        }
+      )).catch(() => ({ properties: [] })).then(({ properties }) => {
         bodyLabel.clear();
         if (properties)
           properties.forEach((prop) => {
@@ -8269,9 +8449,9 @@ var NavionicsDetails = class extends Container {
     this.append(this.mainAccordion);
     position.listeners.add(() => {
       if (!mouse.down.state)
-        this.fetch(position);
+        void this.fetch(position);
     });
-    this.queue.enqueue(() => new Promise((r) => setInterval(r, 1)));
+    void this.queue.enqueue(() => new Promise((r) => setInterval(r, 1)));
   }
   abortControllers = /* @__PURE__ */ new Set();
   accordionIdPrefix = "navionicsDetailsList";
@@ -8362,28 +8542,34 @@ var NavionicsDetails = class extends Container {
         const ret = fetch(`/navionics/quickinfo/${z2}/${dx}/${dy}`, { signal }).then(async (res) => {
           if (!res.ok)
             return;
-          const body = await res.json();
-          (body.items ?? []).map(async (itemRemote) => {
-            const {
-              category_id: categoryId,
-              details,
-              icon_id: iconId,
-              id: itemId,
-              name: itemName,
-              position: itemPosition
-            } = castObject(itemRemote, {
+          castObject(await res.json(), {
+            items: (items) => Array.isArray(items) ? items.map((item) => castObject(item, {
               category_id: String,
               details: Boolean,
               icon_id: String,
               id: String,
               name: String,
-              position: ({ lat: lat3, lon: lon3 }) => ({
-                lat: deg2rad(lat3),
-                lon: deg2rad(lon3),
-                x: lon2x(deg2rad(lon3)),
-                y: lat2y(deg2rad(lat3))
-              })
-            });
+              position: (val) => {
+                const { lat: lat3, lon: lon3 } = castObject(val, {
+                  lat: Number,
+                  lon: Number
+                });
+                return {
+                  lat: deg2rad(lat3),
+                  lon: deg2rad(lon3),
+                  x: lon2x(deg2rad(lon3)),
+                  y: lat2y(deg2rad(lat3))
+                };
+              }
+            })) : []
+          }).items.map(({
+            category_id: categoryId,
+            details,
+            icon_id: iconId,
+            id: itemId,
+            name: itemName,
+            position: itemPosition
+          }) => {
             const cachedItem = this.itemsCache.get(itemId);
             if (cachedItem) {
               cachedItem.reference = { lat: lat2, lon: lon2 };
@@ -10260,7 +10446,7 @@ var NavionicsDetailsToggle = class extends IconButton {
       onclick: () => {
         const newActive = !settings.show.navionicsDetails;
         settings.show.navionicsDetails = newActive;
-        navionicsDetails.fetch(position);
+        void navionicsDetails.fetch(position);
       }
     });
     this.refresh();
@@ -10290,7 +10476,7 @@ var InfoBox = class extends Container {
     super(Container.from("div", {
       classes: ["InfoBox", "p-2", "mt-2"]
     }));
-    navionicsDetailsToggle.listeners.add(() => this.refresh);
+    navionicsDetailsToggle.listeners.add(() => this.refresh());
     this.infoBoxCoords = new InfoBoxCoords();
     this.refresh();
   }
@@ -10655,6 +10841,20 @@ var addressSearchContainer = Container.from("div", {
 
 // src/client/containers/menu/goto/address/input.ts
 var addressQueue = new StyQueue(1);
+var parseNominatim = (input) => {
+  if (Array.isArray(input)) {
+    return input.map(
+      (item) => castObject(item, {
+        boundingbox: (val) => Array.isArray(val) ? val.map(deg2rad) : [],
+        display_name: String,
+        importance: Number,
+        lat: (val) => deg2rad(Number(val)),
+        lon: (val) => deg2rad(Number(val))
+      })
+    );
+  }
+  return [];
+};
 var addressInput = Container.from("input", {
   autocomplete: "off",
   classes: ["form-control"],
@@ -10666,9 +10866,7 @@ var addressInput = Container.from("input", {
       return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${addressInput.html.value}`).then(async (res) => {
         if (!res.ok)
           return false;
-        const items = await res.json();
-        if (!Array.isArray(items))
-          return false;
+        const items = parseNominatim(await res.json());
         if (items.length === 0)
           return false;
         if (value !== addressInput.html.value)
@@ -10678,13 +10876,7 @@ var addressInput = Container.from("input", {
           Container.from("div", {
             classes: ["list-group", "list-group-flush"]
           }).append(
-            ...items.sort((a, b) => b.importance - a.importance).map((item, idx) => {
-              const { boundingbox, display_name: displayName, lat: lat2, lon: lon2 } = castObject(item, {
-                boundingbox: (val) => Array.isArray(val) ? val.map(deg2rad) : [],
-                display_name: String,
-                lat: deg2rad,
-                lon: deg2rad
-              });
+            ...items.sort((a, b) => b.importance - a.importance).map(({ boundingbox, display_name: displayName, lat: lat2, lon: lon2 }, idx) => {
               const [lat1 = lat2, lat22 = lat2, lon1 = lon2, lon22 = lon2] = boundingbox;
               const z2 = (() => {
                 if (abs(lat22 - lat1) > 0 && abs(lon22 - lon1) > 0) {
@@ -10746,102 +10938,91 @@ addressContainer.append(
 );
 
 // src/client/containers/menu/goto/coord/form.ts
-var import_parse_dms2 = __toESM(require_parse_dms(), 1);
-
-// src/client/containers/menu/goto/coord/error.ts
-var coordError = Container.from("div", {
-  classes: ["form-text"]
-});
+var import_coordinate_parser = __toESM(require_coordinates(), 1);
 
 // src/client/globals/coordUnits.ts
 var coordUnits = ["d", "dm", "dms"];
 
-// src/client/containers/menu/goto/coord/info.ts
-var coordInfo = fromEntriesTyped(
-  coordUnits.map((c) => [
-    c,
-    Container.from("div", {
-      classes: ["form-text", "w-100"]
-    })
-  ])
-);
-
-// src/client/containers/menu/goto/coord/input.ts
-var import_parse_dms = __toESM(require_parse_dms(), 1);
-
-// src/client/containers/menu/goto/coord/submit.ts
-var coordSubmit = new IconButton({
-  icon: "arrow-right-circle",
-  onclick: () => coordForm.html.submit()
-});
-
-// src/client/containers/menu/goto/coord/input.ts
-var coordInput = Container.from("input", {
-  autocomplete: "off",
-  classes: ["form-control"],
-  oninput: () => {
-    console.log("oninput");
-    coordUnits.forEach((u) => {
-      coordInfo[u].html.style.display = "none";
-    });
-    try {
-      if (!coordInput.html.value)
-        coordSubmit.html.classList.add("disabled");
-      const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms.default)(coordInput.html.value);
-      const { lat: lat2, lon: lon2 } = {
-        lat: deg2rad(latDeg),
-        lon: deg2rad(lonDeg)
-      };
-      if (typeof latDeg === "number" && typeof lonDeg === "number") {
-        coordUnits.forEach((u) => {
-          console.log("update lat/lon");
-          const func = rad2stringFuncs[u];
-          coordInfo[u].html.innerText = `${func({ axis: "NS", pad: 2, phi: lat2 })} ${func({ axis: "EW", pad: 3, phi: lon2 })}`;
-          coordInfo[u].html.style.display = "block";
-          coordError.html.style.display = "none";
-          coordSubmit.html.classList.remove("disabled");
-        });
-      }
-    } catch (e) {
-      coordError.html.innerText = e.toString();
-      coordError.html.style.display = "block";
-      coordSubmit.html.classList.add("disabled");
-    }
-  },
-  placeholder: "Coordinates",
-  type: "text"
-});
-
 // src/client/containers/menu/goto/coord/form.ts
-var coordForm = Container.from("form", {
-  action: "javascript:void(0)",
-  classes: ["GotoForm"],
-  onsubmit: () => {
-    const { lat: latDeg, lon: lonDeg } = (0, import_parse_dms2.default)(coordInput.html.value);
-    const { lat: lat2, lon: lon2 } = {
-      lat: deg2rad(latDeg),
-      lon: deg2rad(lonDeg)
-    };
-    if (typeof latDeg === "number" && typeof lonDeg === "number") {
-      position.xyz = {
-        x: lon2x(lon2),
-        y: lat2y(lat2)
-      };
+var CoordForm = class extends Container {
+  constructor() {
+    super(Container.from("form", {
+      action: "javascript:void(0)",
+      classes: ["GotoForm"],
+      onsubmit: () => {
+        if (this.valid)
+          position.xyz = {
+            x: lon2x(this.lon),
+            y: lat2y(this.lat)
+          };
+        return this.valid;
+      }
+    }));
+    this.append(
+      Container.from("div", {
+        classes: ["input-group"]
+      }).append(
+        this.input,
+        this.submit
+      ),
+      this.error,
+      this.info.d,
+      this.info.dm,
+      this.info.dms
+    );
+  }
+  valid = false;
+  lat = NaN;
+  lon = NaN;
+  submit = new IconButton({
+    icon: "arrow-right-circle",
+    onclick: () => this.html.submit()
+  });
+  error = Container.from("div", { classes: ["form-text"] });
+  info = {
+    d: Container.from("div", { classes: ["form-text", "w-100"] }),
+    dm: Container.from("div", { classes: ["form-text", "w-100"] }),
+    dms: Container.from("div", { classes: ["form-text", "w-100"] })
+  };
+  input = Container.from("input", {
+    autocomplete: "off",
+    classes: ["form-control"],
+    oninput: () => {
+      console.log("oninput");
+      this.refresh();
+    },
+    placeholder: "Coordinates",
+    type: "text"
+  });
+  refresh() {
+    coordUnits.forEach((u) => {
+      this.info[u].html.style.display = "none";
+    });
+    const { value } = this.input.html;
+    if (!value)
+      this.submit.html.classList.add("disabled");
+    try {
+      const coords = new import_coordinate_parser.default(value);
+      this.lat = deg2rad(coords.getLatitude());
+      this.lon = deg2rad(coords.getLongitude());
+      coordUnits.forEach((u) => {
+        console.log("update lat/lon");
+        const func = rad2stringFuncs[u];
+        this.info[u].html.innerText = `${func({ axis: "NS", pad: 2, phi: this.lat })} ${func({ axis: "EW", pad: 3, phi: this.lon })}`;
+        this.info[u].html.style.display = "block";
+        this.submit.html.classList.remove("disabled");
+      });
+      this.error.html.style.display = "none";
+      this.valid = true;
+    } catch (e) {
+      this.valid = false;
+      this.error.html.innerText = e instanceof Error ? e.toString() : "unknown error";
+      this.error.html.style.display = "block";
+      this.submit.html.classList.add("disabled");
     }
   }
-});
-coordForm.append(
-  Container.from("div", {
-    classes: ["input-group"]
-  }).append(
-    coordInput,
-    coordSubmit
-  ),
-  coordError,
-  coordInfo.d,
-  coordInfo.dm,
-  coordInfo.dms
-);
+};
+var coordForm = new CoordForm();
 
 // src/client/containers/menu/goto/savedPositions.ts
 var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
@@ -11030,32 +11211,30 @@ var menuContainer = new MenuContainer();
 
 // src/client/updateUserLocation.ts
 var geolocationBlocked = false;
-async function updateUserLocation() {
+function updateUserLocation() {
   if (geolocationBlocked)
     return;
-  await new Promise((resolve, reject) => {
-    return navigator.geolocation.getCurrentPosition(
-      resolve,
-      reject,
-      {
-        enableHighAccuracy: true,
-        maximumAge: 0,
-        timeout: 5e3
-      }
-    );
-  }).then(({ coords: { accuracy, latitude, longitude }, timestamp }) => {
-    markers.add({
-      accuracy,
-      lat: deg2rad(latitude),
-      lon: deg2rad(longitude),
-      timestamp,
-      type: "user"
-    });
-  }).catch((err) => {
-    if (err.code === 1)
-      geolocationBlocked = true;
-    console.warn(`ERROR(${err.code}): ${err.message}`);
-  });
+  navigator.geolocation.getCurrentPosition(
+    ({ coords: { accuracy, latitude, longitude }, timestamp }) => {
+      markers.add({
+        accuracy,
+        lat: deg2rad(latitude),
+        lon: deg2rad(longitude),
+        timestamp,
+        type: "user"
+      });
+    },
+    (err) => {
+      if (err.code === 1)
+        geolocationBlocked = true;
+      console.warn(`ERROR(${err.code}): ${err.message}`);
+    },
+    {
+      enableHighAccuracy: true,
+      maximumAge: 0,
+      timeout: 5e3
+    }
+  );
 }
 
 // src/client/events/inputListener.ts
@@ -11158,13 +11337,13 @@ function mouseInput(event) {
     if (mouse.down.x === x && mouse.down.y === y) {
       const { height, width } = mainContainer;
       const { x: x2, y: y2, z: z2 } = position;
-      navionicsDetails.fetch({
+      void navionicsDetails.fetch({
         x: x2 + (mouse.x - width / 2) / tileSize,
         y: y2 + (mouse.y - height / 2) / tileSize,
         z: z2
       });
     } else
-      navionicsDetails.fetch(position);
+      void navionicsDetails.fetch(position);
   }
   mouse.down.state = isDown;
   mouse.x = x;

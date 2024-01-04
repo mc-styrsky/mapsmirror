@@ -1,2 +1,2 @@
 
-export type RadiusOmega = { radius: number; omega: number; };
+export interface RadiusOmega { radius: number; omega: number; }

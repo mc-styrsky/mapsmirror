@@ -1,9 +1,9 @@
 import type express from 'express';
 import { castObject } from '../../common/extractProperties';
 
-const iconCache: Map<string, Buffer> = new Map();
+const iconCache = new Map<string, Buffer>();
 
-export const getNavionicsIcon = async (
+export const getNavionicsIcon = (
   req: express.Request<{
     iconId: string;
   }, any, any, Record<string, any>, Record<string, any>>,
@@ -19,7 +19,7 @@ export const getNavionicsIcon = async (
       res?.send(fromCache);
     }
     else {
-      await fetch(`https://webapp.navionics.com/api/v2/assets/images/${iconId}`)
+      fetch(`https://webapp.navionics.com/api/v2/assets/images/${iconId}`)
       .then(
         async r => {
           if (r.ok) {

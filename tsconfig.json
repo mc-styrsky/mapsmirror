@@ -21,7 +21,7 @@
   },
   "files": [
     "src/server/index.ts",
-    "src/client/index.ts",
+    "src/client/index.ts"
   ],
   "include": [
     "src"

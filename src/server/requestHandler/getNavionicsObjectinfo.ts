@@ -2,14 +2,14 @@ import type express from 'express';
 import { castObject } from '../../common/extractProperties';
 import { navionicsQueue } from '../utils/navionicsQueue';
 
-const objectinfoCache: Map<string, any> = new Map();
-export const getNavionicsObjectinfo = async (
+const objectinfoCache = new Map<string, Record<string, any>>();
+export const getNavionicsObjectinfo = (
   req: express.Request<{
     itemId: string;
   }, any, any, Record<string, any>, Record<string, any>>,
-  res: express.Response | null,
+  res: express.Response,
 ) => {
-  await navionicsQueue.enqueue(async () => {
+  void navionicsQueue.enqueue(() => {
     try {
       const { itemId } = castObject(req.params, {
         itemId: String,
@@ -17,29 +17,29 @@ export const getNavionicsObjectinfo = async (
       const fromCache = objectinfoCache.get(itemId);
       if (fromCache) {
         console.log('[cached]', itemId);
-        res?.json(fromCache);
+        res.json(fromCache);
       }
       else {
         console.log('[fetch] ', itemId);
-        await fetch(`https://webapp.navionics.com/api/v2/objectinfo/marine/${itemId}`)
+        fetch(`https://webapp.navionics.com/api/v2/objectinfo/marine/${itemId}`)
         .then(
           async r => {
             if (r.ok) {
-              const toCache = await r.json();
-              objectinfoCache.set(itemId, toCache);
-              res?.json(toCache);
+              const toCache = await r.json() as Record<string, any>;
+              objectinfoCache.set(itemId, toCache) as Record<string, any>;
+              res.json(toCache);
             }
-            else res?.sendStatus(r.status);
+            else res.sendStatus(r.status);
           },
           () => {
-            res?.sendStatus(500);
+            res.sendStatus(500);
           },
         );
       }
     }
     catch (e) {
       console.error(e);
-      res?.status(500).send('internal server error');
+      res.status(500).send('internal server error');
       return;
     }
   });

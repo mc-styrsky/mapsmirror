@@ -5,9 +5,9 @@ import { x2lonCommon } from '../../common/x2lon';
 import { y2latCommon } from '../../common/y2lat';
 import { navionicsQueue } from '../utils/navionicsQueue';
 
-const quickinfoCache: Map<string, any> = new Map();
+const quickinfoCache = new Map<string, Record<string, any>>();
 
-export const getNavionicsQuickinfo = async (
+export const getNavionicsQuickinfo = (
   req: express.Request<{
     x: number,
     y: number,
@@ -15,7 +15,7 @@ export const getNavionicsQuickinfo = async (
   }, any, any, Record<string, any>, Record<string, any>>,
   res: express.Response | null,
 ) => {
-  await navionicsQueue.enqueue(async () => {
+  void navionicsQueue.enqueue(() => {
     const { x, y, z } = castObject(req.params, {
       x: Number,
       y: Number,
@@ -35,11 +35,11 @@ export const getNavionicsQuickinfo = async (
       else {
         console.log('[fetch] ', xyz);
 
-        await fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${max(2, min(Number(z), 17))}&ugc=true&lang=en`)
+        fetch(`https://webapp.navionics.com/api/v2/quickinfo/marine/${lat}/${lon}?z=${max(2, min(Number(z), 17))}&ugc=true&lang=en`)
         .then(
           async r => {
             if (r.ok) {
-              const toCache = await r.json();
+              const toCache = await r.json() as Record<string, any>;
               quickinfoCache.set(xyz, toCache);
               res?.json(toCache);
             }

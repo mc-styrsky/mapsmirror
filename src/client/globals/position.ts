@@ -91,19 +91,19 @@ class Position {
   readonly map: XYZ;
   private _lat: LatLon['lat'] = NaN;
   private _lon: LatLon['lon'] = NaN;
-  private _ttl: number = NaN;
+  private _ttl = NaN;
   private _x: XYZ['x'] = NaN;
   private _y: XYZ['y'] = NaN;
   private _z: XYZ['z'] = NaN;
-  private _tiles: number = NaN;
+  private _tiles = NaN;
 }
 
 const searchParams = fromEntriesTyped(new URL(window.location.href).searchParams.entries());
 const { lat, lon, ttl, z } = castObject(searchParams, {
-  lat: val => Number(val) ? deg2rad(parseFloat(val)) : 0,
-  lon: val => Number(val) ? deg2rad(parseFloat(val)) : 0,
-  ttl: val => Number(val) ? parseInt(val) : 0,
-  z: val => Number(val) ? parseInt(val) : 2,
+  lat: val => Number(val) ? deg2rad(parseFloat(String(val))) : 0,
+  lon: val => Number(val) ? deg2rad(parseFloat(String(val))) : 0,
+  ttl: val => Number(val) ? parseInt(String(val)) : 0,
+  z: val => Number(val) ? parseInt(String(val)) : 2,
 });
 
 export const position: Position = new Position({

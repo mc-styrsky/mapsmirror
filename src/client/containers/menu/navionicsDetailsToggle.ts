@@ -11,7 +11,7 @@ class NavionicsDetailsToggle extends IconButton {
       onclick: () => {
         const newActive = !settings.show.navionicsDetails;
         settings.show.navionicsDetails = newActive;
-        navionicsDetails.fetch(position);
+        void navionicsDetails.fetch(position);
       },
     });
     this.refresh();

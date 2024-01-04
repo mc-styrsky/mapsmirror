@@ -11,6 +11,21 @@ import { addressSearchContainer } from './searchContainer';
 
 const addressQueue = new StyQueue(1);
 
+const parseNominatim = (input: any) => {
+  if (Array.isArray(input)) {
+    return input.map(item =>
+      castObject(item, {
+        boundingbox: (val) => Array.isArray(val) ? val.map(deg2rad) : [],
+        display_name: String,
+        importance: Number,
+        lat: (val) => deg2rad(Number(val)),
+        lon: (val) => deg2rad(Number(val)),
+      }),
+    );
+  }
+  return [];
+};
+
 export const addressInput = Container.from('input', {
   autocomplete: 'off',
   classes: ['form-control'],
@@ -21,8 +36,7 @@ export const addressInput = Container.from('input', {
       return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${addressInput.html.value}`)
       .then(async res => {
         if (!res.ok) return false;
-        const items = await res.json();
-        if (!Array.isArray(items)) return false;
+        const items = parseNominatim(await res.json());
         if (items.length === 0) return false;
         if (value !== addressInput.html.value) return false;
 
@@ -34,13 +48,7 @@ export const addressInput = Container.from('input', {
           .append(
             ...items
             .sort((a, b) => b.importance - a.importance)
-            .map((item, idx) => {
-              const { boundingbox, display_name: displayName, lat, lon } = castObject(item, {
-                boundingbox: (val) => Array.isArray(val) ? val.map(deg2rad) : [],
-                display_name: String,
-                lat: deg2rad,
-                lon: deg2rad,
-              });
+            .map(({ boundingbox, display_name: displayName, lat, lon }, idx) => {
               const [lat1 = lat, lat2 = lat, lon1 = lon, lon2 = lon] = boundingbox;
               const z = (() => {
                 if (abs(lat2 - lat1) > 0 && abs(lon2 - lon1) > 0) {

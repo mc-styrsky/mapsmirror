@@ -30,13 +30,13 @@ export function mouseInput (event: MouseEvent | WheelEvent) {
     if (mouse.down.x === x && mouse.down.y === y) {
       const { height, width } = mainContainer;
       const { x, y, z } = position;
-      navionicsDetails.fetch({
+      void navionicsDetails.fetch({
         x: x + (mouse.x - width / 2) / tileSize,
         y: y + (mouse.y - height / 2) / tileSize,
         z,
       });
     }
-    else navionicsDetails.fetch(position);
+    else void navionicsDetails.fetch(position);
   }
 
   mouse.down.state = isDown;
