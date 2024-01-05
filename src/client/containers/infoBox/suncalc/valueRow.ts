@@ -2,13 +2,13 @@ import type { AddDuration } from './types/addDuration';
 import type { AddIncrement } from './types/addIncrement';
 import type { DurationKeys } from './types/durationKeys';
 import type { Appendable } from '../../../globals/appendable';
-import { stylesheet } from '../../../globals/stylesheet';
+import { Stylesheet } from '../../../globals/stylesheet';
 import { formatDateValue } from '../../../utils/formatDateValue';
 import { Container } from '../../../utils/htmlElements/container';
 import { SolarTimes } from './solarTimes';
 import { SolarTimesStatsCanvas } from './solarTimesStatsCanvas';
 
-stylesheet.addClass({
+Stylesheet.addClass({
   SolarTimesStats: {
     backgroundColor: '#ffffff',
     borderColor: '#000000',

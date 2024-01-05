@@ -1,18 +1,19 @@
 import { markers } from '../globals/marker';
 import { position } from '../globals/position';
-import { stylesheet } from '../globals/stylesheet';
+import { Stylesheet } from '../globals/stylesheet';
 import { Container } from '../utils/htmlElements/container';
 import { drawCrosshair } from './overlay/crosshairs';
 import { drawMarkers } from './overlay/markers';
 import { drawNet } from './overlay/net';
 
-stylesheet.addClass({
+Stylesheet.addClass({
   OverlayContainerCanvas: {
     height: '100%',
     position: 'absolute',
     width: '100%',
   },
 });
+
 class OverlayContainer extends Container {
   constructor () {
     super(Container.from('div', {

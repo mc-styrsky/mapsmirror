@@ -1,5 +1,5 @@
 import type express from 'express';
-import { castObject } from '../../common/extractProperties';
+import { castObject } from '../../common/castObject';
 import { PI, max, min } from '../../common/math';
 import { x2lonCommon } from '../../common/x2lon';
 import { y2latCommon } from '../../common/y2lat';

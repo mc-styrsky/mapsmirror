@@ -1,5 +1,5 @@
 import { StyQueue } from '@mc-styrsky/queue';
-import { castObject } from '../../../../../common/extractProperties';
+import { castObject } from '../../../../../common/castObject';
 import { abs, ceil, log2, max, min } from '../../../../../common/math';
 import { position } from '../../../../globals/position';
 import { deg2rad } from '../../../../utils/deg2rad';

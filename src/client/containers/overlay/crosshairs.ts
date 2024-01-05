@@ -1,5 +1,5 @@
 import type { Overlay } from '../../../common/types/overlay';
-import { floor, frac, log10, max, piHalf, pow, sqrt } from '../../../common/math';
+import { PIhalf, floor, frac, log10, max, pow, sqrt } from '../../../common/math';
 import { settings } from '../../globals/settings';
 import { tileSize } from '../../globals/tileSize';
 import { lat2y } from '../../utils/lat2y';
@@ -72,12 +72,12 @@ export function drawCrosshair ({
 
     for (let minDiv = minLast + milesPerDiv; minDiv < minArc; minDiv += milesPerDiv) {
       const zeta = nm2rad(minDiv);
-      if (lat + zeta < piHalf) {
+      if (lat + zeta < PIhalf) {
         const top = (lat2y(lat + zeta) - y) * tileSize;
         context.moveTo(-5, top);
         context.lineTo(5, top);
       }
-      if (lat - zeta > -piHalf) {
+      if (lat - zeta > -PIhalf) {
         const bottom = (lat2y(lat - zeta) - y) * tileSize;
         context.moveTo(-5, bottom);
         context.lineTo(5, bottom);
@@ -85,7 +85,7 @@ export function drawCrosshair ({
       const { cosOmega2, lat2, lon2 } = radiusOmega2LatLon({
         lat,
         lon,
-        omega: piHalf,
+        omega: PIhalf,
         zeta,
       });
       const sinOmega2 = sqrt(1 - cosOmega2 * cosOmega2);

@@ -1,7 +1,7 @@
 import type { Layer } from '../../../common/types/layer';
 import { settings } from '../../globals/settings';
 import { IconButton } from '../../utils/htmlElements/iconButton';
-import { mapContainer } from '../tilesContainer';
+import { TilesContainer } from '../tilesContainer';
 
 export class OverlayToggle extends IconButton {
   constructor (source: Layer) {
@@ -9,7 +9,7 @@ export class OverlayToggle extends IconButton {
       active: () => Boolean(settings.show[source]),
       onclick: () => {
         settings.show[source] = !settings.show[source];
-        mapContainer.rebuild(`overlay ${source} toggle`);
+        TilesContainer.instance.rebuild(`overlay ${source} toggle`);
       },
       src: `icons/${source}.svg`,
     });

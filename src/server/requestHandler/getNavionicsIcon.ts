@@ -1,5 +1,5 @@
 import type express from 'express';
-import { castObject } from '../../common/extractProperties';
+import { castObject } from '../../common/castObject';
 
 const iconCache = new Map<string, Buffer>();
 

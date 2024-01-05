@@ -4,7 +4,7 @@ import { crosshairToggle } from '../containers/menu/crosshairToggle';
 import { navionicsDetailsToggle } from '../containers/menu/navionicsDetailsToggle';
 import { navionicsToggle } from '../containers/menu/navionicsToggle';
 import { vfdensityToggle } from '../containers/menu/vfdensityToggle';
-import { mapContainer } from '../containers/tilesContainer';
+import { TilesContainer } from '../containers/tilesContainer';
 import { baselayers } from '../globals/baselayers';
 import { markers } from '../globals/marker';
 import { mouse } from '../globals/mouse';
@@ -44,7 +44,7 @@ export function inputListener (
     const { key } = event;
     if (key >= '0' && key <= '9') {
       const baselayer = baselayers[parseInt(key)];
-      if (typeof baselayer !== 'undefined') mapContainer.baselayer = baselayer;
+      if (typeof baselayer !== 'undefined') TilesContainer.instance.baselayer = baselayer;
     }
     else if (key === 'c') crosshairToggle.html.click();
     else if (key === 'd') coordsToggle.html.click();

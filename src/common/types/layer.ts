@@ -19,4 +19,4 @@ export type Layer = Baselayer | Overlay;
 export type VirtLayer = Layer
 | 'transparent'
 
-export interface LayerSettings {alpha: number, source: Layer}
+export interface LayerShowSettings {alpha: number, source: Layer}

@@ -1,7 +1,7 @@
-import { stylesheet } from '../../../../globals/stylesheet';
+import { Stylesheet } from '../../../../globals/stylesheet';
 import { Container } from '../../../../utils/htmlElements/container';
 
-stylesheet.addClass({
+Stylesheet.addClass({
   NavionicsIconDiv: {
     display: 'flex',
     flexGrow: '0',

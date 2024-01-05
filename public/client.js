@@ -574,7 +574,7 @@ var require_implementation2 = __commonJS({
     "use strict";
     var ERROR_MESSAGE = "Function.prototype.bind called on incompatible ";
     var toStr = Object.prototype.toString;
-    var max4 = Math.max;
+    var max3 = Math.max;
     var funcType = "[object Function]";
     var concatty = function concatty2(a, b) {
       var arr = [];
@@ -626,7 +626,7 @@ var require_implementation2 = __commonJS({
           concatty(args, arguments)
         );
       };
-      var boundLength = max4(0, target.length - args.length);
+      var boundLength = max3(0, target.length - args.length);
       var boundArgs = [];
       for (var i = 0; i < boundLength; i++) {
         boundArgs[i] = "$" + i;
@@ -1780,15 +1780,12 @@ var require_coordinates = __commonJS({
   }
 });
 
-// src/common/fromEntriesTyped.ts
-function fromEntriesTyped(entries) {
-  return Object.fromEntries(entries);
-}
+// src/common/entriesTyped.ts
 function entriesTyped(o) {
   return Object.entries(o);
 }
 
-// src/common/extractProperties.ts
+// src/common/castObject.ts
 function castObject(obj, transformer) {
   const objSave = Object(obj);
   return entriesTyped(transformer).reduce((ret, entry) => {
@@ -1878,6 +1875,11 @@ var Settings = class {
 };
 var settings = new Settings();
 
+// src/common/fromEntriesTyped.ts
+function fromEntriesTyped(entries) {
+  return Object.fromEntries(entries);
+}
+
 // src/client/utils/kebabify.ts
 var kebabify = (str) => str.replace(/[a-z][A-Z]/g, ($) => {
   return $.split("").join("-");
@@ -1914,10 +1916,18 @@ var Container = class _Container {
   }
   append(...items) {
     items.forEach((item) => {
-      if (item instanceof _Container)
-        this.html.append(item.html);
-      else if (item)
+      if (!item)
+        return;
+      else if (typeof item === "string" || item instanceof Node)
         this.html.append(item);
+      else if (item instanceof _Container)
+        this.html.append(item.html);
+      else if (item.isMonoContainer === MonoContainer.isMonoContainer) {
+        this.html.append(item.html);
+      } else {
+        console.error("item", item, "is not appendable");
+        throw Error("item is not appendable");
+      }
     });
     return this;
   }
@@ -1925,32 +1935,52 @@ var Container = class _Container {
     return this.html.getBoundingClientRect();
   }
 };
+var MonoContainer = class _MonoContainer extends Container {
+  constructor() {
+    super();
+  }
+  static copyInstance(cont, parentClass) {
+    console.log(parentClass);
+    parentClass.isMonoContainer = _MonoContainer.isMonoContainer;
+    parentClass._html = cont.html;
+    parentClass.clear = () => cont.clear();
+    parentClass.append = (...items) => cont.append(...items);
+    parentClass.getBoundingClientRect = () => cont.getBoundingClientRect();
+  }
+  static _html;
+  static get html() {
+    return this._html;
+  }
+  static clear;
+  static append;
+  static getBoundingClientRect;
+  static isMonoContainer = Symbol();
+};
 
 // src/client/globals/stylesheet.ts
-var Stylesheet = class extends Container {
-  constructor() {
-    super(Container.from("style"));
+var Stylesheet = class _Stylesheet extends MonoContainer {
+  static {
+    this.copyInstance(Container.from("style"), this);
   }
-  keys = /* @__PURE__ */ new Set();
-  add(elements) {
+  static keys = /* @__PURE__ */ new Set();
+  static add(elements) {
     entriesTyped(elements).map(([keyRaw, style]) => {
       const key = kebabify(keyRaw);
-      if (this.keys.has(key))
+      if (_Stylesheet.keys.has(key))
         throw Error(`"${key}" already defined`);
-      this.keys.add(key);
+      _Stylesheet.keys.add(key);
       const rules = entriesTyped(style).map(([k, v]) => `${kebabify(k)}: ${v?.toString()}`);
       this.append(`${key} { ${rules.join("; ")} }
 `);
     });
   }
-  addClass(classes) {
+  static addClass(classes) {
     this.add(fromEntriesTyped(
       entriesTyped(classes).map(([className, style]) => [`.${className}`, style])
     ));
   }
 };
-var stylesheet = new Stylesheet();
-stylesheet.addClass({
+Stylesheet.addClass({
   AccordionLabel: {
     backgroundColor: "#ffffff40 !important"
   },
@@ -2013,6 +2043,7 @@ stylesheet.addClass({
     marginTop: "auto"
   }
 });
+console.log(Stylesheet.html?.innerHTML, MonoContainer.html?.innerHTML);
 
 // src/client/containers/infoBox/imagesToFetch.ts
 var ImagesToFetch = class extends Container {
@@ -2049,42 +2080,39 @@ var imagesToFetch = new ImagesToFetch();
 
 // src/common/math.ts
 var { abs, acos, asin, asinh, atan2, ceil, cos, floor, log2, log10, max, min, PI, pow, round, sin, sqrt, tan, tanh } = Math;
-var PI2 = 2 * PI;
-var piHalf = PI / 2;
+var PI2 = PI * 2;
+var PIhalf = PI / 2;
 function frac(x) {
   return x - floor(x);
+}
+function modulo(val, mod) {
+  const ret = val % mod;
+  return ret < 0 ? ret + mod : ret;
 }
 
 // src/common/layers.ts
 var zoomMax = 20;
 var zoomMin = 2;
-var min2 = zoomMin;
-var max2 = zoomMax;
-var Layers = class {
+var LayerSetup = class _LayerSetup {
+  static layers = {
+    "": { label: "- none -" },
+    bingsat: { label: "bSat" },
+    gebco: { label: "Depth", max: 9 },
+    googlehybrid: { label: "gHybrid" },
+    googlesat: { label: "gSat" },
+    googlestreet: { label: "gStreet" },
+    navionics: { label: "Navionics", max: 17 },
+    openseamap: { label: "oSea", max: 18 },
+    opentopomap: { label: "oTopo", max: 17 },
+    osm: { label: "oStreet", max: 19 },
+    vfdensity: { label: "Density", max: 12, min: 3 },
+    worthit: { label: "Worthit" }
+  };
   static get(layer) {
-    return {
-      "": { label: "- none -", max: max2, min: min2 },
-      bingsat: { label: "bSat", max: max2, min: min2 },
-      gebco: { label: "Depth", max: 9, min: min2 },
-      googlehybrid: { label: "gHybrid", max: max2, min: min2 },
-      googlesat: { label: "gSat", max: max2, min: min2 },
-      googlestreet: { label: "gStreet", max: max2, min: min2 },
-      navionics: { label: "Navionics", max: 17, min: min2 },
-      openseamap: { label: "oSea", max: 18, min: min2 },
-      opentopomap: { label: "oTopo", max: 17, min: min2 },
-      osm: { label: "oStreet", max: 19, min: min2 },
-      vfdensity: { label: "Density", max: 12, min: 3 },
-      worthit: { label: "Worthit", max: max2, min: min2 }
-    }[layer] ?? { label: "unknown provider", max: zoomMax, min: zoomMin };
+    const { label = "unknown layer", max: max3 = zoomMax, min: min3 = zoomMin } = _LayerSetup.layers[layer];
+    return { label, max: max3, min: min3 };
   }
 };
-console.log("Layers", entriesTyped(Layers));
-
-// src/common/modulo.ts
-function modulo(val, mod) {
-  const ret = val % mod;
-  return ret < 0 ? ret + mod : ret;
-}
 
 // src/client/utils/deg2rad.ts
 function deg2rad(val) {
@@ -2098,7 +2126,7 @@ function lon2x(lon2, tiles = position.tiles) {
 
 // src/common/x2lon.ts
 function x2lonCommon(x, tiles) {
-  return (x / tiles - 0.5) * PI * 2;
+  return (x / tiles - 0.5) * PI2;
 }
 
 // src/client/utils/x2lon.ts
@@ -2108,7 +2136,7 @@ function x2lon(x, tiles = position.tiles) {
 
 // src/common/y2lat.ts
 function y2latCommon(y, tiles) {
-  return asin(tanh((0.5 - y / tiles) * 2 * PI));
+  return asin(tanh((0.5 - y / tiles) * PI2));
 }
 
 // src/client/utils/y2lat.ts
@@ -2333,9 +2361,9 @@ var rad2stringFuncs = {
   dms: ({ axis = " -", pad: pad2 = 0, phi }) => {
     const deg = round(rad2ModuloDeg(phi) * 36e4) / 36e4;
     const degrees = deg | 0;
-    const min4 = round((abs(deg) - abs(degrees)) * 36e4) / 6e3;
-    const minutes = min4 | 0;
-    const seconds = (min4 - minutes) * 60;
+    const min3 = round((abs(deg) - abs(degrees)) * 36e4) / 6e3;
+    const minutes = min3 | 0;
+    const seconds = (min3 - minutes) * 60;
     return `${axis[deg < 0 ? 1 : 0] ?? ""}${(deg < 0 ? -degrees : degrees).toFixed(0).padStart(pad2, "0")}\xB0${minutes.toFixed(0).padStart(2, "0")}'${seconds.toFixed(2).padStart(5, "0")}`;
   }
 };
@@ -2644,8 +2672,8 @@ function getBasePlacement(placement) {
 }
 
 // node_modules/@popperjs/core/lib/utils/math.js
-var max3 = Math.max;
-var min3 = Math.min;
+var max2 = Math.max;
+var min2 = Math.min;
 var round2 = Math.round;
 
 // node_modules/@popperjs/core/lib/utils/userAgent.js
@@ -2817,12 +2845,12 @@ function getMainAxisFromPlacement(placement) {
 }
 
 // node_modules/@popperjs/core/lib/utils/within.js
-function within(min4, value, max4) {
-  return max3(min4, min3(value, max4));
+function within(min3, value, max3) {
+  return max2(min3, min2(value, max3));
 }
-function withinMaxClamp(min4, value, max4) {
-  var v = within(min4, value, max4);
-  return v > max4 ? max4 : v;
+function withinMaxClamp(min3, value, max3) {
+  var v = within(min3, value, max3);
+  return v > max3 ? max3 : v;
 }
 
 // node_modules/@popperjs/core/lib/utils/getFreshSideObject.js
@@ -2876,10 +2904,10 @@ function arrow(_ref) {
   var arrowOffsetParent = getOffsetParent(arrowElement);
   var clientSize = arrowOffsetParent ? axis === "y" ? arrowOffsetParent.clientHeight || 0 : arrowOffsetParent.clientWidth || 0 : 0;
   var centerToReference = endDiff / 2 - startDiff / 2;
-  var min4 = paddingObject[minProp];
-  var max4 = clientSize - arrowRect[len] - paddingObject[maxProp];
+  var min3 = paddingObject[minProp];
+  var max3 = clientSize - arrowRect[len] - paddingObject[maxProp];
   var center = clientSize / 2 - arrowRect[len] / 2 + centerToReference;
-  var offset2 = within(min4, center, max4);
+  var offset2 = within(min3, center, max3);
   var axisProp = axis;
   state.modifiersData[name] = (_state$modifiersData$ = {}, _state$modifiersData$[axisProp] = offset2, _state$modifiersData$.centerOffset = offset2 - center, _state$modifiersData$);
 }
@@ -3146,12 +3174,12 @@ function getDocumentRect(element) {
   var html = getDocumentElement(element);
   var winScroll = getWindowScroll(element);
   var body = (_element$ownerDocumen = element.ownerDocument) == null ? void 0 : _element$ownerDocumen.body;
-  var width = max3(html.scrollWidth, html.clientWidth, body ? body.scrollWidth : 0, body ? body.clientWidth : 0);
-  var height = max3(html.scrollHeight, html.clientHeight, body ? body.scrollHeight : 0, body ? body.clientHeight : 0);
+  var width = max2(html.scrollWidth, html.clientWidth, body ? body.scrollWidth : 0, body ? body.clientWidth : 0);
+  var height = max2(html.scrollHeight, html.clientHeight, body ? body.scrollHeight : 0, body ? body.clientHeight : 0);
   var x = -winScroll.scrollLeft + getWindowScrollBarX(element);
   var y = -winScroll.scrollTop;
   if (getComputedStyle2(body || html).direction === "rtl") {
-    x += max3(html.clientWidth, body ? body.clientWidth : 0) - width;
+    x += max2(html.clientWidth, body ? body.clientWidth : 0) - width;
   }
   return {
     width,
@@ -3238,10 +3266,10 @@ function getClippingRect(element, boundary, rootBoundary, strategy) {
   var firstClippingParent = clippingParents2[0];
   var clippingRect = clippingParents2.reduce(function(accRect, clippingParent) {
     var rect = getClientRectFromMixedType(element, clippingParent, strategy);
-    accRect.top = max3(rect.top, accRect.top);
-    accRect.right = min3(rect.right, accRect.right);
-    accRect.bottom = min3(rect.bottom, accRect.bottom);
-    accRect.left = max3(rect.left, accRect.left);
+    accRect.top = max2(rect.top, accRect.top);
+    accRect.right = min2(rect.right, accRect.right);
+    accRect.bottom = min2(rect.bottom, accRect.bottom);
+    accRect.left = max2(rect.left, accRect.left);
     return accRect;
   }, getClientRectFromMixedType(element, firstClippingParent, strategy));
   clippingRect.width = clippingRect.right - clippingRect.left;
@@ -3638,8 +3666,8 @@ function preventOverflow(_ref) {
     var altSide = mainAxis === "y" ? bottom : right;
     var len = mainAxis === "y" ? "height" : "width";
     var offset2 = popperOffsets2[mainAxis];
-    var min4 = offset2 + overflow[mainSide];
-    var max4 = offset2 - overflow[altSide];
+    var min3 = offset2 + overflow[mainSide];
+    var max3 = offset2 - overflow[altSide];
     var additive = tether ? -popperRect[len] / 2 : 0;
     var minLen = variation === start ? referenceRect[len] : popperRect[len];
     var maxLen = variation === start ? -popperRect[len] : -referenceRect[len];
@@ -3659,7 +3687,7 @@ function preventOverflow(_ref) {
     var offsetModifierValue = (_offsetModifierState$ = offsetModifierState == null ? void 0 : offsetModifierState[mainAxis]) != null ? _offsetModifierState$ : 0;
     var tetherMin = offset2 + minOffset - offsetModifierValue - clientOffset;
     var tetherMax = offset2 + maxOffset - offsetModifierValue;
-    var preventedOffset = within(tether ? min3(min4, tetherMin) : min4, offset2, tether ? max3(max4, tetherMax) : max4);
+    var preventedOffset = within(tether ? min2(min3, tetherMin) : min3, offset2, tether ? max2(max3, tetherMax) : max3);
     popperOffsets2[mainAxis] = preventedOffset;
     data[mainAxis] = preventedOffset - offset2;
   }
@@ -7778,7 +7806,7 @@ function drawImage({
   y,
   z: z2
 }) {
-  if (z2 < Layers.get(source).min)
+  if (z2 < LayerSetup.get(source).min)
     return Promise.resolve(false);
   const src = `/tile/${source}/${[
     z2,
@@ -7827,7 +7855,7 @@ function drawImage({
         resolve(false);
       }
     };
-    if (z2 > Layers.get(source).max)
+    if (z2 > LayerSetup.get(source).max)
       void onerror();
     else {
       img.src = src;
@@ -7981,7 +8009,7 @@ async function drawCachedImage({
 
 // src/client/containers/map/mapTile.ts
 var pad = (1 << zoomMax).toString().length + 1;
-stylesheet.addClass({
+Stylesheet.addClass({
   MapTile: {
     height: `${tileSize}px`,
     left: "50%",
@@ -8042,7 +8070,7 @@ var MapTile = class _MapTile extends Container {
 
 // src/client/containers/menu/baselayerMenu.ts
 var BaselayerMenu = class _BaselayerMenu extends Container {
-  static baselayerLabel = (source) => `${Layers.get(source).label} (${baselayers.indexOf(source)})`;
+  static baselayerLabel = (source) => `${LayerSetup.get(source).label} (${baselayers.indexOf(source)})`;
   constructor() {
     super(Container.from("div", {
       classes: ["dropdown"]
@@ -8056,7 +8084,7 @@ var BaselayerMenu = class _BaselayerMenu extends Container {
           ...baselayers.map((source) => {
             return Container.from("a", {
               classes: ["dropdown-item"],
-              onclick: () => mapContainer.baselayer = source
+              onclick: () => TilesContainer.instance.baselayer = source
             }).append(_BaselayerMenu.baselayerLabel(source));
           })
         )
@@ -8078,6 +8106,12 @@ var baselayerMenu = new BaselayerMenu();
 
 // src/client/containers/tilesContainer.ts
 var TilesContainer = class _TilesContainer extends Container {
+  static get instance() {
+    if (!_TilesContainer._instance)
+      _TilesContainer._instance = new _TilesContainer();
+    return _TilesContainer._instance;
+  }
+  static _instance;
   constructor() {
     super(Container.from("div", {
       classes: ["MapContainerStyle"],
@@ -8086,6 +8120,9 @@ var TilesContainer = class _TilesContainer extends Container {
     window.addEventListener("resize", () => this.refresh("resize"));
     position.listeners.add(() => this.refresh("position"));
     this.rebuild("initial");
+  }
+  get instance() {
+    throw new Error("Method not implemented.");
   }
   mapTiles = /* @__PURE__ */ new Map();
   rebuild(type) {
@@ -8169,10 +8206,9 @@ var TilesContainer = class _TilesContainer extends Container {
     })();
   }
 };
-var mapContainer = new TilesContainer();
 
 // src/client/utils/htmlElements/iconButton.ts
-stylesheet.addClass({
+Stylesheet.addClass({
   BootstrapIcon: { fontSize: "175%" },
   IconButton: {
     flexGrow: "0",
@@ -8216,13 +8252,13 @@ var IconButton = class extends Container {
         this.html.classList.add("btn-secondary");
         this.html.classList.remove("btn-success");
       }
-      mapContainer.refresh("icon clicked");
+      TilesContainer.instance.refresh("icon clicked");
     };
   }
 };
 
 // src/client/containers/infoBox/navionicsDetails/navionicsItem/goto.ts
-stylesheet.addClass({
+Stylesheet.addClass({
   NavionicsGoto: {
     margin: "auto 0",
     padding: "0.25rem"
@@ -8245,7 +8281,7 @@ var NavionicsGoto = class extends Container {
 };
 
 // src/client/containers/infoBox/navionicsDetails/navionicsItem/icon.ts
-stylesheet.addClass({
+Stylesheet.addClass({
   NavionicsIconDiv: {
     display: "flex",
     flexGrow: "0",
@@ -8341,7 +8377,7 @@ var Distance = class extends DistanceElement {
 };
 
 // src/client/containers/infoBox/navionicsDetails/navionicsItem/label.ts
-stylesheet.addClass({
+Stylesheet.addClass({
   NavionicsItemLabel: {
     display: "flex",
     flexGrow: "1",
@@ -8522,15 +8558,15 @@ var NavionicsDetails = class extends Container {
       const abortController = new AbortController();
       this.abortControllers.add(abortController);
       const { signal } = abortController;
-      const max4 = 4;
+      const max3 = 4;
       const perTile = 20;
       const points = [{
         dx: round(x * tileSize) / tileSize,
         dy: round(y * tileSize) / tileSize,
         radius: 0
       }];
-      for (let iX = -max4; iX < max4; iX++) {
-        for (let iY = -max4; iY < max4; iY++) {
+      for (let iX = -max3; iX < max3; iX++) {
+        for (let iY = -max3; iY < max3; iY++) {
           const dx = ceil(x * perTile + iX) / perTile;
           const dy = ceil(y * perTile + iY) / perTile;
           const radius = sqrt((dx - x) * (dx - x) + (dy - y) * (dy - y));
@@ -10219,7 +10255,7 @@ function formatDateValue(val) {
 }
 
 // src/client/containers/infoBox/suncalc/solarTimesStatsCanvas.ts
-stylesheet.addClass({
+Stylesheet.addClass({
   SolarTimesStatsCanvas: {
     backgroundColor: "#ffffff",
     height: "30px",
@@ -10260,7 +10296,7 @@ var SolarTimesStatsCanvas = class extends Container {
 };
 
 // src/client/containers/infoBox/suncalc/valueRow.ts
-stylesheet.addClass({
+Stylesheet.addClass({
   SolarTimesStats: {
     backgroundColor: "#ffffff",
     borderColor: "#000000",
@@ -10459,7 +10495,7 @@ var NavionicsDetailsToggle = class extends IconButton {
 var navionicsDetailsToggle = new NavionicsDetailsToggle();
 
 // src/client/containers/infoBox.ts
-stylesheet.addClass(
+Stylesheet.addClass(
   {
     InfoBox: {
       backgroundColor: "#aaaa",
@@ -10494,8 +10530,8 @@ var InfoBox = class extends Container {
 var infoBox = new InfoBox();
 
 // src/client/utils/min2rad.ts
-function nm2rad(min4) {
-  return min4 / 21600 * PI2;
+function nm2rad(min3) {
+  return min3 / 21600 * PI2;
 }
 
 // src/client/utils/nm2px.ts
@@ -10599,12 +10635,12 @@ function drawCrosshair({
     context.strokeStyle = "#ff0000";
     for (let minDiv = minLast + milesPerDiv; minDiv < minArc; minDiv += milesPerDiv) {
       const zeta = nm2rad(minDiv);
-      if (lat2 + zeta < piHalf) {
+      if (lat2 + zeta < PIhalf) {
         const top2 = (lat2y(lat2 + zeta) - y) * tileSize;
         context.moveTo(-5, top2);
         context.lineTo(5, top2);
       }
-      if (lat2 - zeta > -piHalf) {
+      if (lat2 - zeta > -PIhalf) {
         const bottom2 = (lat2y(lat2 - zeta) - y) * tileSize;
         context.moveTo(-5, bottom2);
         context.lineTo(5, bottom2);
@@ -10612,7 +10648,7 @@ function drawCrosshair({
       const { cosOmega2, lat2: lat22, lon2: lon22 } = radiusOmega2LatLon({
         lat: lat2,
         lon: lon2,
-        omega: piHalf,
+        omega: PIhalf,
         zeta
       });
       const sinOmega2 = sqrt(1 - cosOmega2 * cosOmega2);
@@ -10785,7 +10821,7 @@ var drawNet = ({
 };
 
 // src/client/containers/overlayContainer.ts
-stylesheet.addClass({
+Stylesheet.addClass({
   OverlayContainerCanvas: {
     height: "100%",
     position: "absolute",
@@ -11111,7 +11147,7 @@ var SavedPositions = class _SavedPositions extends Container {
 var savedPositions = new SavedPositions();
 
 // src/client/containers/menu/gotoMenu.ts
-stylesheet.addClass({
+Stylesheet.addClass({
   GotoForm: {
     margin: "0",
     minWidth: "20em"
@@ -11160,7 +11196,7 @@ var OverlayToggle = class extends IconButton {
       active: () => Boolean(settings.show[source]),
       onclick: () => {
         settings.show[source] = !settings.show[source];
-        mapContainer.rebuild(`overlay ${source} toggle`);
+        TilesContainer.instance.rebuild(`overlay ${source} toggle`);
       },
       src: `icons/${source}.svg`
     });
@@ -11265,7 +11301,7 @@ function inputListener(event, { x, y } = { x: 0, y: 0 }) {
     if (key >= "0" && key <= "9") {
       const baselayer = baselayers[parseInt(key)];
       if (typeof baselayer !== "undefined")
-        mapContainer.baselayer = baselayer;
+        TilesContainer.instance.baselayer = baselayer;
     } else if (key === "c")
       crosshairToggle.html.click();
     else if (key === "d")
@@ -11370,8 +11406,8 @@ mouseContainer.html.tagName;
 // src/client/index.ts
 mainContainer.clear();
 mainContainer.append(
-  stylesheet,
-  mapContainer,
+  Stylesheet,
+  TilesContainer.instance,
   overlayContainer,
   mouseContainer,
   infoBox,

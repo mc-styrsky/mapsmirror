@@ -14,7 +14,13 @@ import { MapTile } from './map/mapTile';
 import { BaselayerMenu, baselayerMenu } from './menu/baselayerMenu';
 
 export class TilesContainer extends Container {
-  constructor () {
+  static get instance () {
+    if (!TilesContainer._instance) TilesContainer._instance = new TilesContainer();
+    return TilesContainer._instance;
+  }
+  private static _instance: TilesContainer;
+
+  private constructor () {
     super(Container.from('div', {
       classes: ['MapContainerStyle'],
       id: TilesContainer.name,
@@ -22,6 +28,9 @@ export class TilesContainer extends Container {
     window.addEventListener('resize', () => this.refresh('resize'));
     position.listeners.add(() => this.refresh('position'));
     this.rebuild('initial');
+  }
+  get instance (): any {
+    throw new Error('Method not implemented.');
   }
   private mapTiles = new Map<string, MapTile>();
 
@@ -112,5 +121,3 @@ export class TilesContainer extends Container {
     })();
   }
 }
-
-export const mapContainer = new TilesContainer();

@@ -1,5 +1,4 @@
-import { PI, abs, round } from '../../common/math';
-import { modulo } from '../../common/modulo';
+import { PI, abs, modulo, round } from '../../common/math';
 import { settings } from '../globals/settings';
 
 const rad2ModuloDeg = (phi: number) => modulo(phi * 180 / PI + 180, 360) - 180;

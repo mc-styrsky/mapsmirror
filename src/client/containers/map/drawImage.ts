@@ -1,5 +1,5 @@
 import type { DrawImage } from '../../../common/types/drawImage';
-import { Layers } from '../../../common/layers';
+import { LayerSetup } from '../../../common/layers';
 import { floor } from '../../../common/math';
 import { tileSize } from '../../globals/tileSize';
 import { imagesToFetch } from '../infoBox/imagesToFetch';
@@ -8,7 +8,7 @@ import { drawCachedImage } from './drawCachedImage';
 export function drawImage ({
   context, source, ttl, x, y, z,
 }: DrawImage): PromiseLike<boolean> {
-  if (z < Layers.get(source).min) return Promise.resolve(false);
+  if (z < LayerSetup.get(source).min) return Promise.resolve(false);
   const src = `/tile/${source}/${[
     z,
     x.toString(16),
@@ -55,7 +55,7 @@ export function drawImage ({
         resolve(false);
       }
     };
-    if (z > Layers.get(source).max) void onerror();
+    if (z > LayerSetup.get(source).max) void onerror();
     else {
       img.src = src;
       img.onload = onload;

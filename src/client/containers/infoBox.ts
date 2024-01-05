@@ -1,5 +1,5 @@
 import { settings } from '../globals/settings';
-import { stylesheet } from '../globals/stylesheet';
+import { Stylesheet } from '../globals/stylesheet';
 import { Container } from '../utils/htmlElements/container';
 import { imagesToFetch } from './infoBox/imagesToFetch';
 import { InfoBoxCoords } from './infoBox/infoBoxCoords';
@@ -7,7 +7,7 @@ import { navionicsDetails } from './infoBox/navionicsDetails';
 import { solarTimes } from './infoBox/suncalc/solarTimes';
 import { navionicsDetailsToggle } from './menu/navionicsDetailsToggle';
 
-stylesheet.addClass({
+Stylesheet.addClass({
   InfoBox: {
     backgroundColor: '#aaaa',
     borderBottomLeftRadius: 'var(--bs-border-radius)',

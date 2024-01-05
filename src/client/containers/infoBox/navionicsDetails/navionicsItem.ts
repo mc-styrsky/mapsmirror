@@ -1,5 +1,5 @@
 import type { LatLon } from '../../../utils/spheric/latLon';
-import { castObject } from '../../../../common/extractProperties';
+import { castObject } from '../../../../common/castObject';
 import { markers } from '../../../globals/marker';
 import { position } from '../../../globals/position';
 import { AccordionItem } from '../../../utils/htmlElements/accordion/accordionItem';

@@ -1,5 +1,5 @@
-import type { Baselayer, LayerSettings, Overlay } from '../../common/types/layer';
-import { castObject } from '../../common/extractProperties';
+import type { Baselayer, LayerShowSettings, Overlay } from '../../common/types/layer';
+import { castObject } from '../../common/castObject';
 import { LocalStorageItem } from '../utils/localStorageItem';
 import { baselayers } from './baselayers';
 
@@ -37,7 +37,7 @@ class Settings {
   } & Record<Overlay, boolean>;
   baselayer: Baselayer;
   get tiles () {
-    const ret: LayerSettings[] = this.overlayOrder
+    const ret: LayerShowSettings[] = this.overlayOrder
     .filter(l => this.show[l])
     .map(source => ({ alpha: this.alpha[source] ?? 1, source }));
 

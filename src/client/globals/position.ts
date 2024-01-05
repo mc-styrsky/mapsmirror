@@ -1,10 +1,9 @@
 import type { XYZ } from '../../common/types/xyz';
 import type { LatLon } from '../utils/spheric/latLon';
-import { castObject } from '../../common/extractProperties';
+import { castObject } from '../../common/castObject';
 import { fromEntriesTyped } from '../../common/fromEntriesTyped';
 import { zoomMax, zoomMin } from '../../common/layers';
-import { max, min } from '../../common/math';
-import { modulo } from '../../common/modulo';
+import { max, min, modulo } from '../../common/math';
 import { deg2rad } from '../utils/deg2rad';
 import { lat2y } from '../utils/lat2y';
 import { lon2x } from '../utils/lon2x';

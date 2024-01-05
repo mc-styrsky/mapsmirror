@@ -3,14 +3,14 @@ import { zoomMax } from '../../../common/layers';
 import { floor, max, min, sqrt } from '../../../common/math';
 import { position } from '../../globals/position';
 import { settings } from '../../globals/settings';
-import { stylesheet } from '../../globals/stylesheet';
+import { Stylesheet } from '../../globals/stylesheet';
 import { tileSize } from '../../globals/tileSize';
 import { Container } from '../../utils/htmlElements/container';
 import { drawCachedImage } from './drawCachedImage';
 
 const pad = (1 << zoomMax).toString().length + 1;
 
-stylesheet.addClass({
+Stylesheet.addClass({
   MapTile: {
     height: `${tileSize}px`,
     left: '50%',

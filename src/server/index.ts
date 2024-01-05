@@ -1,6 +1,6 @@
 import { StyQueue } from '@mc-styrsky/queue';
 import express from 'express';
-import { port } from '../common/consts';
+import { port } from '../common/port';
 import { getNavionicsIcon } from './requestHandler/getNavionicsIcon';
 import { getNavionicsObjectinfo } from './requestHandler/getNavionicsObjectinfo';
 import { getNavionicsQuickinfo } from './requestHandler/getNavionicsQuickinfo';

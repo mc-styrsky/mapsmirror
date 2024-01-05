@@ -1,9 +1,9 @@
 import type { NavionicsItemConstructor } from '../navionicsItem';
-import { stylesheet } from '../../../../globals/stylesheet';
+import { Stylesheet } from '../../../../globals/stylesheet';
 import { Container } from '../../../../utils/htmlElements/container';
 import { Distance } from '../../../../utils/htmlElements/distance';
 
-stylesheet.addClass({
+Stylesheet.addClass({
   NavionicsItemLabel: {
     display: 'flex',
     flexGrow: '1',

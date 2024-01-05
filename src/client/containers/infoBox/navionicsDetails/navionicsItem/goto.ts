@@ -1,11 +1,11 @@
 import { position } from '../../../../globals/position';
-import { stylesheet } from '../../../../globals/stylesheet';
+import { Stylesheet } from '../../../../globals/stylesheet';
 import { Container } from '../../../../utils/htmlElements/container';
 import { BootstrapIcon } from '../../../../utils/htmlElements/iconButton';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
 
-stylesheet.addClass({
+Stylesheet.addClass({
   NavionicsGoto: {
     margin: 'auto 0',
     padding: '0.25rem',

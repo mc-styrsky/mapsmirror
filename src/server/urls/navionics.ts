@@ -1,5 +1,4 @@
-import type { ConstructorParameters } from '../../common/types/constructorParameters';
-import { Layers } from '../../common/layers';
+import { LayerSetup } from '../../common/layers';
 import { XYZ2Url } from './default';
 
 let navtoken: null | string = null;
@@ -39,7 +38,7 @@ export class XYZ2UrlNavionics extends XYZ2Url {
   constructor (params: ConstructorParameters<typeof XYZ2Url>[0]) {
     super(params);
     const { x, y, z } = params;
-    const { max, min } = Layers.get(params.provider);
+    const { max, min } = LayerSetup.get(params.provider);
     if ([
       z >= min && z <= max,
       z >= 5 && y >= 14922 >> 17 - z,

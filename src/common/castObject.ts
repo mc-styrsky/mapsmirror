@@ -1,7 +1,7 @@
-import { entriesTyped } from './fromEntriesTyped';
+import { entriesTyped } from './entriesTyped';
 
 export function castObject<T extends object> (
-  obj: any,
+  obj: unknown,
   transformer: { [P in keyof T]: (val?: unknown) => T[P] },
 ): T {
   const objSave = Object(obj) as object;

@@ -2,15 +2,15 @@ import { infoBox } from './containers/infoBox';
 import { menuContainer } from './containers/menuContainer';
 import { mouseContainer } from './containers/mouseContainer';
 import { overlayContainer } from './containers/overlayContainer';
-import { mapContainer } from './containers/tilesContainer';
+import { TilesContainer } from './containers/tilesContainer';
 import { inputListener } from './events/inputListener';
-import { stylesheet } from './globals/stylesheet';
+import { Stylesheet } from './globals/stylesheet';
 import { mainContainer } from './mainContainer';
 
 mainContainer.clear();
 mainContainer.append(
-  stylesheet,
-  mapContainer,
+  Stylesheet,
+  TilesContainer.instance,
   overlayContainer,
   mouseContainer,
   infoBox,

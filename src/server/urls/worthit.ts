@@ -1,7 +1,6 @@
-import type { ConstructorParameters } from '../../common/types/constructorParameters';
 import sharp from 'sharp';
 import { tileSize } from '../../client/globals/tileSize';
-import { Layers } from '../../common/layers';
+import { LayerSetup } from '../../common/layers';
 import { min } from '../../common/math';
 import { XYZ2Url } from './default';
 
@@ -9,7 +8,7 @@ export class XYZ2UrlWorthit extends XYZ2Url {
   constructor (params: ConstructorParameters<typeof XYZ2Url>[0]) {
     super(params);
     const { x, y, z } = this;
-    const { max, min } = Layers.get(params.provider);
+    const { max, min } = LayerSetup.get(params.provider);
     if (z >= min && z <= max) this.url = `./worthit/tiles/${z}/${x}/${y}.png`;
   }
   fetchFromTileServer = async () => {

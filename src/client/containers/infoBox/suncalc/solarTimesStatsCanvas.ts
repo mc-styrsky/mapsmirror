@@ -1,11 +1,11 @@
 import type { DurationKeys } from './types/durationKeys';
 import type { SolarDuration } from './types/solarDuration';
 import { max, min } from '../../../../common/math';
-import { stylesheet } from '../../../globals/stylesheet';
+import { Stylesheet } from '../../../globals/stylesheet';
 import { Container } from '../../../utils/htmlElements/container';
 import { SolarTimes } from './solarTimes';
 
-stylesheet.addClass({
+Stylesheet.addClass({
   SolarTimesStatsCanvas: {
     backgroundColor: '#ffffff',
     height: '30px',

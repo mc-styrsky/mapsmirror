@@ -1,5 +1,5 @@
 import type { DrawImage } from '../../../common/types/drawImage';
-import { modulo } from '../../../common/modulo';
+import { modulo } from '../../../common/math';
 import { position } from '../../globals/position';
 import { tileSize } from '../../globals/tileSize';
 import { drawImage } from './drawImage';

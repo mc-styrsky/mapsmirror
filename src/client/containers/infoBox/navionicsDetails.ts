@@ -1,6 +1,6 @@
 import type { XYZ } from '../../../common/types/xyz';
 import { StyQueue } from '@mc-styrsky/queue';
-import { castObject } from '../../../common/extractProperties';
+import { castObject } from '../../../common/castObject';
 import { ceil, round, sqrt } from '../../../common/math';
 import { mouse } from '../../globals/mouse';
 import { position } from '../../globals/position';

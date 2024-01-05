@@ -1,8 +1,9 @@
 import type { Layer } from '../../common/types/layer';
 import type express from 'express';
 import { StyQueue } from '@mc-styrsky/queue';
-import { castObject } from '../../common/extractProperties';
-import { modulo } from '../../common/modulo';
+import { inspect } from 'util';
+import { castObject } from '../../common/castObject';
+import { modulo } from '../../common/math';
 import { queues } from '../index';
 import { getXYZ2Url } from '../utils/getXYZ2Url';
 import { getMaxzoom, setMaxzoom } from '../utils/printStats';
@@ -15,19 +16,28 @@ export const getTile = (
 ) => {
   try {
     const { z } = castObject(req.params, {
-      z: val => parseInt(String(val)),
+      z: val => {
+        const n = parseInt(String(val));
+        if (Number.isNaN(n)) throw Error(`z ${inspect(val)} is NaN`);
+        return n;
+      },
     });
     if (z > getMaxzoom()) setMaxzoom(z);
     const parsePosition = (val: any) => {
+      const n = parseInt(String(val), 16);
+      if (Number.isNaN(n)) throw Error(`val ${inspect(val)} is NaN`);
       return modulo(parseInt(String(val), 16), 1 << z);
     };
     const { source, x, y } = castObject(req.params, {
-      source: (val: any) => String(val) as Layer,
+      source: val => String(val) as Layer,
       x: parsePosition,
       y: parsePosition,
     });
     const { ttl } = castObject(req.query, {
-      ttl: val => parseInt(String(val ?? 3)),
+      ttl: val => {
+        const n = parseInt(String(val));
+        return Number.isNaN(n) ? 0 : n;
+      },
     });
 
     void fetchTile({ source, ttl, x, y, z }, res)
@@ -73,6 +83,7 @@ async function fetchChildTile ({ dx, dy, source: provider, ttl, x, y, z }: { dx:
   })
   .catch(e => console.log(e));
 }
+
 async function fetchChilds ({ source: provider, ttl, x, y, z }: TileParams) {
   queues.childsCollapsed[z] ??= 0;
   queues.childs[z] ??= new StyQueue(1000);

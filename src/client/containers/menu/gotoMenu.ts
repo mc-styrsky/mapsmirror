@@ -1,12 +1,12 @@
 import { position } from '../../globals/position';
-import { stylesheet } from '../../globals/stylesheet';
+import { Stylesheet } from '../../globals/stylesheet';
 import { Container } from '../../utils/htmlElements/container';
 import { BootstrapIcon } from '../../utils/htmlElements/iconButton';
 import { addressContainer } from './goto/address/container';
 import { coordForm } from './goto/coord/form';
 import { savedPositions } from './goto/savedPositions';
 
-stylesheet.addClass({
+Stylesheet.addClass({
   GotoForm: {
     margin: '0',
     minWidth: '20em',

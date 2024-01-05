@@ -1,4 +1,4 @@
-import { modulo } from '../../common/modulo';
+import { modulo } from '../../common/math';
 
 export const getTileParams = ({ x, y, z }: { x: number; y: number; z: number; }) => {
   const length = z + 3 >> 2;
@@ -13,6 +13,5 @@ export const getTileParams = ({ x, y, z }: { x: number; y: number; z: number; })
     tileFileId,
     tileId,
     tilePath,
-    z,
   };
 };

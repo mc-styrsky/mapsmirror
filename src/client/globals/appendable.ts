@@ -1,3 +1,3 @@
-import type { Container } from '../utils/htmlElements/container';
+import type { Container, MonoContainer } from '../utils/htmlElements/container';
 
-export type Appendable = Container<HTMLElement> | string | null | undefined
+export type Appendable = Container<HTMLElement> | typeof MonoContainer<HTMLElement> | Node | string | null | undefined

@@ -1,6 +1,6 @@
 import type { XYZ } from '../../../../common/types/xyz';
 import stringify from 'json-stable-stringify';
-import { castObject } from '../../../../common/extractProperties';
+import { castObject } from '../../../../common/castObject';
 import { round } from '../../../../common/math';
 import { position } from '../../../globals/position';
 import { tileSize } from '../../../globals/tileSize';

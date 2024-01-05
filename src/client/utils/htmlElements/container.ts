@@ -1,4 +1,5 @@
-import { entriesTyped } from '../../../common/fromEntriesTyped';
+import type { Appendable } from '../../globals/appendable';
+import { entriesTyped } from '../../../common/entriesTyped';
 import { kebabify } from '../kebabify';
 
 type HtmlProps<E extends HTMLElement> = Partial<Omit<E, 'dataset' | 'style'>> & {
@@ -10,6 +11,7 @@ type HtmlProps<E extends HTMLElement> = Partial<Omit<E, 'dataset' | 'style'>> & 
 declare const _: unique symbol;
 interface Forbidden { [_]: typeof _; }
 type NoOverride<T=void> = T & Forbidden;
+export type Override<T=void> = Omit<T, '_'>
 
 export class Container<Selector extends HTMLElement = HTMLDivElement> {
   static from <T extends keyof HTMLElementTagNameMap> (
@@ -55,10 +57,18 @@ export class Container<Selector extends HTMLElement = HTMLDivElement> {
     this.html.innerHTML = '';
   }
 
-  append (...items: (string | Node | Container<HTMLElement> | undefined | null)[]): NoOverride<this> {
+  append (...items: (Appendable)[]): NoOverride<this> {
     items.forEach(item => {
-      if (item instanceof Container) this.html.append(item.html);
-      else if (item) this.html.append(item);
+      if (!item) return;
+      else if (typeof item === 'string' || item instanceof Node) this.html.append(item);
+      else if (item instanceof Container) this.html.append(item.html);
+      else if (item.isMonoContainer === MonoContainer.isMonoContainer) {
+        this.html.append(item.html);
+      }
+      else {
+        console.error('item', item, 'is not appendable');
+        throw Error('item is not appendable');
+      }
     });
     return this as NoOverride<this>;
   }
@@ -66,4 +76,27 @@ export class Container<Selector extends HTMLElement = HTMLDivElement> {
   getBoundingClientRect (): NoOverride<DOMRect> {
     return this.html.getBoundingClientRect() as NoOverride<DOMRect>;
   }
+}
+
+
+export class MonoContainer<Selector extends HTMLElement = HTMLElement> extends Container<Selector> {
+  protected constructor () {
+    super();
+  }
+  protected static copyInstance (cont: Container<HTMLElement>, parentClass: typeof MonoContainer<HTMLElement>) {
+    console.log(parentClass);
+    parentClass.isMonoContainer = MonoContainer.isMonoContainer;
+    parentClass._html = cont.html;
+    parentClass.clear = () => cont.clear();
+    parentClass.append = (...items) => cont.append(...items);
+    parentClass.getBoundingClientRect = () => cont.getBoundingClientRect();
+  }
+  private static _html: Container<HTMLElement>['html'];
+  static get html (): HTMLElement {
+    return this._html;
+  }
+  static clear: Container<HTMLElement>['clear'];
+  static append: Container<HTMLElement>['append'];
+  static getBoundingClientRect: Container<HTMLElement>['getBoundingClientRect'];
+  static isMonoContainer = Symbol();
 }

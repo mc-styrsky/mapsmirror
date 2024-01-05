@@ -1,5 +1,5 @@
 import type express from 'express';
-import { castObject } from '../../common/extractProperties';
+import { castObject } from '../../common/castObject';
 import { navionicsQueue } from '../utils/navionicsQueue';
 
 const objectinfoCache = new Map<string, Record<string, any>>();

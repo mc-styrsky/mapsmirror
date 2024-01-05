@@ -1,6 +1,6 @@
 import type BootstrapIcons from 'bootstrap-icons/font/bootstrap-icons.json';
-import { mapContainer } from '../../containers/tilesContainer';
-import { stylesheet } from '../../globals/stylesheet';
+import { TilesContainer } from '../../containers/tilesContainer';
+import { Stylesheet } from '../../globals/stylesheet';
 import { Container } from './container';
 
 interface BsIcon {
@@ -12,7 +12,7 @@ interface SvgIcon {
   src: string;
 }
 
-stylesheet.addClass({
+Stylesheet.addClass({
   BootstrapIcon: { fontSize: '175%' },
   IconButton: {
     flexGrow: '0',
@@ -63,7 +63,7 @@ export class IconButton extends Container<HTMLAnchorElement> {
         this.html.classList.add('btn-secondary');
         this.html.classList.remove('btn-success');
       }
-      mapContainer.refresh('icon clicked');
+      TilesContainer.instance.refresh('icon clicked');
     };
   }
 }
