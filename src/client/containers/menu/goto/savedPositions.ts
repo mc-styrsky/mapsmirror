@@ -7,20 +7,25 @@ import { tileSize } from '../../../globals/tileSize';
 import { Container } from '../../../utils/htmlElements/container';
 import { Distance } from '../../../utils/htmlElements/distance';
 import { IconButton } from '../../../utils/htmlElements/iconButton';
+import { MonoContainer } from '../../../utils/htmlElements/monoContainer';
 import { LocalStorageItem } from '../../../utils/localStorageItem';
 import { rad2string } from '../../../utils/rad2string';
 import { x2lon } from '../../../utils/x2lon';
 import { xyz2latLon } from '../../../utils/xyz2latLon';
 import { y2lat } from '../../../utils/y2lat';
 
-class SavedPositions extends Container {
-  static item2xyz = (item: XYZ) => castObject(item, {
+export class SavedPositions extends MonoContainer {
+  private static item2xyz = (item: XYZ) => castObject(item, {
     x: val => Number(val) / tileSize,
     y: val => Number(val) / tileSize,
     z: Number,
   });
-  constructor () {
-    super('div');
+
+  private static readonly localStorageItem = new LocalStorageItem<XYZ[]>('savedPositions');
+  private static readonly list = new Map<string, XYZ>();
+
+  static {
+    this.copyInstance(new Container('div'), this);
 
     const list = this.localStorageItem.get();
     if (Array.isArray(list)) {
@@ -37,16 +42,13 @@ class SavedPositions extends Container {
     this.refresh();
   }
 
-  private readonly list = new Map<string, XYZ>();
-  private readonly localStorageItem = new LocalStorageItem<XYZ[]>('savedPositions');
-
-  add ({ x, y, z }: XYZ) {
+  static add ({ x, y, z }: XYZ) {
     this.edit({ func: 'add', x, y, z });
   }
-  delete ({ x, y, z }: XYZ) {
+  static delete ({ x, y, z }: XYZ) {
     this.edit({ func: 'delete', x, y, z });
   }
-  refresh () {
+  static refresh () {
     this.clear();
     this.list.forEach(item => {
       const { x, y, z } = SavedPositions.item2xyz(item);
@@ -85,7 +87,7 @@ class SavedPositions extends Container {
       );
     });
   }
-  private edit ({ func, x, y, z }: XYZ & { func: 'add' | 'delete'; }) {
+  private static edit ({ func, x, y, z }: XYZ & { func: 'add' | 'delete'; }) {
     const xyz = {
       x: round(x * tileSize),
       y: round(y * tileSize),
@@ -98,5 +100,3 @@ class SavedPositions extends Container {
     this.refresh();
   }
 }
-
-export const savedPositions = new SavedPositions;

@@ -1,11 +1,11 @@
 import { PI, abs, modulo, round } from '../../common/math';
-import { settings } from '../globals/settings';
+import { Settings } from '../globals/settings';
 
 const rad2ModuloDeg = (phi: number) => modulo(phi * 180 / PI + 180, 360) - 180;
 
 type Axis = ' -' | 'NS' | 'EW'
 interface CoordsParams {phi: number, pad: number, axis: Axis}
-export const rad2stringFuncs: Record<typeof settings.units.coords, (params: CoordsParams) => string> = {
+export const rad2stringFuncs: Record<typeof Settings.units.coords, (params: CoordsParams) => string> = {
   d: ({ axis = ' -', pad = 0, phi }) => {
     const deg = round(rad2ModuloDeg(phi) * 100000) / 100000;
 
@@ -48,5 +48,5 @@ export const rad2stringFuncs: Record<typeof settings.units.coords, (params: Coor
 };
 
 export function rad2string ({ axis = ' -', pad = 0, phi }: CoordsParams) {
-  return rad2stringFuncs[settings.units.coords]({ axis, pad, phi });
+  return rad2stringFuncs[Settings.units.coords]({ axis, pad, phi });
 }

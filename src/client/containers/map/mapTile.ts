@@ -2,7 +2,7 @@ import type { XYZ } from '../../../common/types/xyz';
 import { zoomMax } from '../../../common/layers';
 import { floor, max, min, sqrt } from '../../../common/math';
 import { position } from '../../globals/position';
-import { settings } from '../../globals/settings';
+import { Settings } from '../../globals/settings';
 import { Stylesheet } from '../../globals/stylesheet';
 import { tileSize } from '../../globals/tileSize';
 import { Container } from '../../utils/htmlElements/container';
@@ -57,7 +57,7 @@ export class MapTile extends Container<'canvas'> {
     const context = this.html.getContext('2d');
 
     if (context) {
-      void Promise.all(settings.tiles.map(async (entry) => {
+      void Promise.all(Settings.tiles.map(async (entry) => {
         const { alpha, source } = entry;
         return await drawCachedImage({ alpha, context, source, ttl, x, y, z });
       }))

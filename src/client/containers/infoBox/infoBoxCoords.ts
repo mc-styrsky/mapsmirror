@@ -1,24 +1,25 @@
-import { markers } from '../../globals/marker';
+import { Markers } from '../../globals/marker';
 import { mouse } from '../../globals/mouse';
 import { position } from '../../globals/position';
 import { tileSize } from '../../globals/tileSize';
-import { mainContainer } from '../../mainContainer';
+import { MainContainer } from '../../mainContainer';
 import { Container } from '../../utils/htmlElements/container';
+import { MonoContainer } from '../../utils/htmlElements/monoContainer';
 import { px2nm } from '../../utils/px2nm';
 import { rad2string } from '../../utils/rad2string';
 import { x2lon } from '../../utils/x2lon';
 import { y2lat } from '../../utils/y2lat';
-import { coordsToggle } from '../menu/coordsToggle';
+import { CoordsToggle } from '../menu/coordsToggle';
 
-export class InfoBoxCoords extends Container {
-  constructor () {
-    super('div');
+export class InfoBoxCoords extends MonoContainer {
+  static {
+    this.copyInstance(new Container('div'), this);
     this.refresh();
     position.listeners.add(() => this.refresh());
-    coordsToggle.listeners.add(() => this.refresh());
+    CoordsToggle.listeners.add(() => this.refresh());
   }
-  refresh () {
-    const { height, width } = mainContainer;
+  static refresh () {
+    const { height, width } = MainContainer;
 
     const { lat, lon, x, y } = position;
 
@@ -43,7 +44,7 @@ export class InfoBoxCoords extends Container {
     this.row('Scale', `${scale} (Zoom ${position.z})`);
     this.row('Lat/Lon', `${rad2string({ axis: 'NS', pad: 2, phi: lat })} ${rad2string({ axis: 'EW', pad: 3, phi: lon })}`);
     this.row('Mouse', `${rad2string({ axis: 'NS', pad: 2, phi: latMouse })} ${rad2string({ axis: 'EW', pad: 3, phi: lonMouse })}`);
-    markers.set().forEach((marker, key) => {
+    Markers.set().forEach((marker, key) => {
       this.row(
         key,
         `${
@@ -55,7 +56,7 @@ export class InfoBoxCoords extends Container {
     });
   }
 
-  private row (left: string, right: string) {
+  private static row (left: string, right: string) {
     this.append(
       new Container('div', {
         classes: [

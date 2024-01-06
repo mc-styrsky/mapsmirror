@@ -1,24 +1,25 @@
 import type { VirtLayer } from '../../../common/types/layer';
 import type { XYZ } from '../../../common/types/xyz';
 import { Container } from '../../utils/htmlElements/container';
+import { MonoContainer } from '../../utils/htmlElements/monoContainer';
 
-class ImagesToFetch extends Container {
-  constructor () {
-    super('div');
+export class ImagesToFetch extends MonoContainer {
+  static {
+    this.copyInstance(new Container('div'), this);
   }
-  private xyz2string = ({ x, y, z }: XYZ) => `${z.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
+  private static xyz2string = ({ x, y, z }: XYZ) => `${z.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
 
-  private data: Partial<Record<VirtLayer, Set<string>>> = {};
-  private total: Partial<Record<VirtLayer, number>> = {};
+  private static data: Partial<Record<VirtLayer, Set<string>>> = {};
+  private static total: Partial<Record<VirtLayer, number>> = {};
 
-  private getSet = (source: VirtLayer) => this.data[source] ??= new Set();
+  private static getSet = (source: VirtLayer) => this.data[source] ??= new Set();
 
-  add = ({ source, ...xyz }: XYZ & {source: VirtLayer}) => {
+  static add = ({ source, ...xyz }: XYZ & {source: VirtLayer}) => {
     this.getSet(source).add(this.xyz2string(xyz));
     this.total[source] = (this.total[source] ?? 0) + 1;
     this.refresh();
   };
-  delete = ({ source, ...xyz }: XYZ & {source: VirtLayer}) => {
+  static delete = ({ source, ...xyz }: XYZ & {source: VirtLayer}) => {
     this.getSet(source).delete(this.xyz2string(xyz));
     if (this.getSet(source).size === 0) {
       delete this.data[source];
@@ -27,7 +28,7 @@ class ImagesToFetch extends Container {
     this.refresh();
   };
 
-  refresh = () => {
+  static refresh = () => {
     this.clear();
     Object.entries(this.data)
     .map(([key, val]) => [key, val.size])
@@ -37,5 +38,3 @@ class ImagesToFetch extends Container {
     });
   };
 }
-
-export const imagesToFetch = new ImagesToFetch();

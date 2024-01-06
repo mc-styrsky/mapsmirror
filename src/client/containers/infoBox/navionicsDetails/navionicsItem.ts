@@ -1,6 +1,6 @@
 import type { LatLon } from '../../../utils/spheric/latLon';
 import { castObject } from '../../../../common/castObject';
-import { markers } from '../../../globals/marker';
+import { Markers } from '../../../globals/marker';
 import { position } from '../../../globals/position';
 import { AccordionItem } from '../../../utils/htmlElements/accordion/accordionItem';
 import { Container } from '../../../utils/htmlElements/container';
@@ -69,7 +69,7 @@ export class NavionicsItem extends AccordionItem {
     this.itemId = itemId;
     this.labelContainer = labelContainer;
     this.head.html.onmousemove = () => {
-      markers.add({
+      Markers.add({
         lat: itemPosition.lat,
         lon: itemPosition.lon,
         type: 'navionics',

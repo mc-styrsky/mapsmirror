@@ -1,52 +1,27 @@
-import type { DurationKeys } from './types/durationKeys';
 import type { SolarDuration } from './types/solarDuration';
-import type { Appendable } from '../../../globals/appendable';
-import { add, format } from 'date-fns';
+import { add } from 'date-fns';
 import { getPosition, getTimes } from 'suncalc';
 import { halfDay } from '../../../globals/halfDay';
 import { position } from '../../../globals/position';
 import { Container } from '../../../utils/htmlElements/container';
+import { MonoContainer } from '../../../utils/htmlElements/monoContainer';
 import { rad2deg } from '../../../utils/rad2deg';
 import { x2lon } from '../../../utils/x2lon';
 import { y2lat } from '../../../utils/y2lat';
 import { intervalValueOf } from './intervalValueOf';
 import { ValueRow } from './valueRow';
 
-export class SolarTimes extends Container {
-  constructor () {
-    super('div');
+export class SolarTimes extends MonoContainer {
+  static {
+    this.copyInstance(new Container('div'), this);
     this.html.id = 'SolarTimes';
   }
-  lat = 0;
-  lon = 0;
-  x = -1;
-  y = -1;
-  static increment = ({ durations, keys }: {
-    durations: SolarDuration;
-    keys: DurationKeys[];
-  }) => keys.reduce((sum, key) => sum + durations[key], 0);
+  static lat = 0;
+  static lon = 0;
+  static x = -1;
+  static y = -1;
 
-  static formatDates = (dates: Date[]) => dates
-  .sort((a, b) => a.valueOf() - b.valueOf())
-  .reduce((ret: { start: Date; end: Date; }[], date) => {
-    const { end = date, start = date } = ret.pop() ?? {};
-    if (date.valueOf() - end.valueOf() <= halfDay * 2) ret.push({ end: date, start });
-    else {
-      ret.push({ end, start });
-      ret.push({ end: date, start: date });
-    }
-    return ret;
-  }, [])
-  .reduce((ret: (Appendable)[], { end, start }, idx) => {
-    if (idx !== 0) ret.push(new Container('br'));
-    ret.push(start.valueOf() === end.valueOf() ?
-      format(start, 'dd.MM.yyyy') :
-      `${format(start, 'dd.MM.yyyy')} - ${format(end, 'dd.MM.yyyy')}`,
-    );
-    return ret;
-  }, []);
-
-  private getDurations = ({ date }: { date: Date; }): SolarDuration => {
+  private static getDurations = ({ date }: { date: Date; }): SolarDuration => {
     const { dawn, dusk, nauticalDawn, nauticalDusk, night, nightEnd, solarNoon, sunrise, sunriseEnd, sunset, sunsetStart } = getTimes(date, this.lat, this.lon);
     const dayRaw = intervalValueOf({ end: sunsetStart, solarNoon, start: sunriseEnd });
     const isPolarDay = dayRaw === 0 && getPosition(solarNoon, this.lat, this.lon).altitude >= 0;
@@ -62,7 +37,7 @@ export class SolarTimes extends Container {
       sunset: intervalValueOf({ end: sunset, solarNoon, start: sunsetStart }),
     };
   };
-  private getDurationsStat = ({ year }: {
+  private static getDurationsStat = ({ year }: {
     year: number;
   }) => {
     let date = new Date(year, 0);
@@ -74,7 +49,7 @@ export class SolarTimes extends Container {
     }
     return ret;
   };
-  refresh = () => {
+  static refresh = () => {
     if (this.x !== position.x || this.y !== position.y) {
       this.x = position.x;
       this.y = position.y;
@@ -123,5 +98,3 @@ export class SolarTimes extends Container {
     }
   };
 }
-
-export const solarTimes = new SolarTimes();

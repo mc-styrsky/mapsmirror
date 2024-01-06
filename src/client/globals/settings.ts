@@ -5,12 +5,38 @@ import { baselayers } from './baselayers';
 
 export type CoordUnit = 'd' | 'dm' | 'dms';
 
-class Settings {
-  constructor () {
-    const localStorageSettings = new LocalStorageItem<Settings>('settings').get();
+export class Settings {
+  static show: {
+    crosshair: boolean
+    navionicsDetails: boolean
+    suncalc: boolean
+  } & Record<Overlay, boolean>;
+  static baselayer: Baselayer;
+  static get tiles () {
+    const ret: LayerShowSettings[] = this.overlayOrder
+    .filter(l => this.show[l])
+    .map(source => ({ alpha: this.alpha[source] ?? 1, source }));
+
+    if (this.baselayer) ret.unshift({ alpha: 1, source: this.baselayer });
+    return ret;
+  }
+  static units:{
+    coords: CoordUnit
+  };
+  private static overlayOrder: Overlay[] = [
+    'openseamap',
+    'navionics',
+    'vfdensity',
+  ];
+  private static alpha: Partial<Record<Overlay, number>> = {
+    vfdensity: 0.5,
+  };
+
+  static {
+    const localStorageSettings = new LocalStorageItem<typeof Settings>('settings').get();
 
 
-    const baselayer = localStorageSettings?.baselayer ?? 'osm';
+    const baselayer: Baselayer = localStorageSettings?.baselayer ?? 'osm';
     this.baselayer = baselayers.includes(baselayer) ? baselayer : 'osm';
 
     this.show = castObject(localStorageSettings?.show, {
@@ -29,32 +55,4 @@ class Settings {
       },
     });
   }
-
-  readonly show: {
-    crosshair: boolean
-    navionicsDetails: boolean
-    suncalc: boolean
-  } & Record<Overlay, boolean>;
-  baselayer: Baselayer;
-  get tiles () {
-    const ret: LayerShowSettings[] = this.overlayOrder
-    .filter(l => this.show[l])
-    .map(source => ({ alpha: this.alpha[source] ?? 1, source }));
-
-    if (this.baselayer) ret.unshift({ alpha: 1, source: this.baselayer });
-    return ret;
-  }
-  units:{
-    coords: CoordUnit
-  };
-  private overlayOrder: Overlay[] = [
-    'openseamap',
-    'navionics',
-    'vfdensity',
-  ];
-  private alpha: Partial<Record<Overlay, number>> = {
-    vfdensity: 0.5,
-  };
 }
-
-export const settings = new Settings();

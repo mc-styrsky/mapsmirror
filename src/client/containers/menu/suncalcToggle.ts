@@ -1,8 +1,13 @@
-import { settings } from '../../globals/settings';
+import { Settings } from '../../globals/settings';
 import { IconButton } from '../../utils/htmlElements/iconButton';
+import { MonoContainer } from '../../utils/htmlElements/monoContainer';
 
-export const suncalcToggle = new IconButton({
-  active: () => settings.show.suncalc,
-  icon: 'sunrise',
-  onclick: () => settings.show.suncalc = !settings.show.suncalc,
-});
+export class SuncalcToggle extends MonoContainer {
+  static {
+    this.copyInstance<'a'>(new IconButton({
+      active: () => Settings.show.suncalc,
+      icon: 'sunrise',
+      onclick: () => Settings.show.suncalc = !Settings.show.suncalc,
+    }), this);
+  }
+}

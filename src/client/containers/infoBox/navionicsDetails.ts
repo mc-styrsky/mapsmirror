@@ -4,22 +4,27 @@ import { castObject } from '../../../common/castObject';
 import { ceil, round, sqrt } from '../../../common/math';
 import { mouse } from '../../globals/mouse';
 import { position } from '../../globals/position';
-import { settings } from '../../globals/settings';
+import { Settings } from '../../globals/settings';
 import { tileSize } from '../../globals/tileSize';
 import { deg2rad } from '../../utils/deg2rad';
 import { Accordion } from '../../utils/htmlElements/accordion';
 import { AccordionItem } from '../../utils/htmlElements/accordion/accordionItem';
 import { Container } from '../../utils/htmlElements/container';
+import { MonoContainer } from '../../utils/htmlElements/monoContainer';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
 import { xyz2latLon } from '../../utils/xyz2latLon';
 import { NavionicsItem } from './navionicsDetails/navionicsItem';
 
 
-export class NavionicsDetails extends Container {
-  constructor () {
-    super('div');
-    this.mainAccordion = new Accordion({ accordionId: this.accordionIdPrefix });
+export class NavionicsDetails extends MonoContainer {
+  private static readonly accordionIdPrefix = 'navionicsDetailsList';
+  private static readonly mainAccordion = new Accordion({
+    accordionId: this.accordionIdPrefix,
+  });
+  private static readonly queue = new StyQueue(1);
+  static {
+    this.copyInstance(new Container('div'), this);
     this.append(this.mainAccordion);
     position.listeners.add(() => {
       if (!mouse.down.state) void this.fetch(position);
@@ -27,22 +32,19 @@ export class NavionicsDetails extends Container {
     void this.queue.enqueue(() => new Promise(r => setInterval(r, 1)));
   }
 
-  private readonly abortControllers = new Set<AbortController>();
-  private readonly accordionIdPrefix = 'navionicsDetailsList';
-  private readonly accordions = new Map<string, Accordion>([]);
-  private readonly fetchProgress = new AccordionItem({ headLabel: '', itemId: 'fetchProgress' });
-  private readonly items = new Map<string, NavionicsItem>();
-  private readonly itemsCache = new Map<string, NavionicsItem>();
-  private readonly mainAccordion: Accordion;
-  private readonly mainAccordionItems = new Map<string, AccordionItem>();
-  private readonly queue = new StyQueue(1);
+  private static readonly abortControllers = new Set<AbortController>();
+  private static readonly accordions = new Map<string, Accordion>([]);
+  private static readonly fetchProgress = new AccordionItem({ headLabel: '', itemId: 'fetchProgress' });
+  private static readonly items = new Map<string, NavionicsItem>();
+  private static readonly itemsCache = new Map<string, NavionicsItem>();
+  private static readonly mainAccordionItems = new Map<string, AccordionItem>();
 
-  private add = (itemId: string, item: NavionicsItem) => {
+  private static add = (itemId: string, item: NavionicsItem) => {
     this.items.set(itemId, item);
     this.refresh();
   };
 
-  refresh = () => {
+  static refresh = () => {
     const items = [...this.items.values()].sort((a, b) => a.distance - b.distance);
 
     const accordionKeys = new Set(this.mainAccordionItems.keys());
@@ -87,14 +89,14 @@ export class NavionicsDetails extends Container {
     else this.fetchProgress.html.parentNode?.removeChild(this.fetchProgress.html);
   };
 
-  async fetch (
+  static async fetch (
     { x, y, z }: XYZ,
   ) {
     while (this.queue.shift()) (() => void 0)();
     this.abortControllers.forEach(ac => {
       ac.abort();
     });
-    if (!settings.show.navionicsDetails) return;
+    if (!Settings.show.navionicsDetails) return;
     await this.queue.enqueue(async () => {
       const { lat, lon } = xyz2latLon({ x, y, z });
       this.items.clear();
@@ -190,5 +192,3 @@ export class NavionicsDetails extends Container {
     this.refresh();
   }
 }
-
-export const navionicsDetails = new NavionicsDetails();

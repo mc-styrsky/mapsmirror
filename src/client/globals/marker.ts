@@ -38,26 +38,24 @@ class Marker {
   }
 }
 
-class Markers {
-  readonly _markers = new Map<Marker['type'], Marker>();
+export class Markers {
+  static readonly _markers = new Map<Marker['type'], Marker>();
+  static readonly listeners = new Set<() => void>();
 
-  add = (params: MarkerConstructorParameters) => {
+  static add = (params: MarkerConstructorParameters) => {
     this._markers.set(params.type, new Marker(params));
     this.refresh();
   };
-  delete = (type: Marker['type']) => {
+  static delete = (type: Marker['type']) => {
     if (this._markers.has(type)) {
       this._markers.delete(type);
       this.refresh();
     }
   };
-  get = (type: Marker['type']) => this._markers.get(type);
-  set = () => this._markers;
+  static get = (type: Marker['type']) => this._markers.get(type);
+  static set = () => this._markers;
 
-  readonly listeners = new Set<() => void>();
-  refresh () {
+  static refresh () {
     this.listeners.forEach(callback => callback());
   }
 }
-
-export const markers = new Markers();

@@ -1,21 +1,21 @@
-import { infoBox } from './containers/infoBox';
-import { menuContainer } from './containers/menuContainer';
-import { mouseContainer } from './containers/mouseContainer';
-import { overlayContainer } from './containers/overlayContainer';
+import { InfoBox } from './containers/infoBox';
+import { MenuContainer } from './containers/menuContainer';
+import { MouseContainer } from './containers/mouseContainer';
+import { OverlayContainer } from './containers/overlayContainer';
 import { TilesContainer } from './containers/tilesContainer';
 import { inputListener } from './events/inputListener';
 import { Stylesheet } from './globals/stylesheet';
-import { mainContainer } from './mainContainer';
+import { MainContainer } from './mainContainer';
 
-mainContainer.clear();
-mainContainer.append(
+MainContainer.clear();
+MainContainer.append(
   Stylesheet,
   TilesContainer.instance,
-  overlayContainer,
-  mouseContainer,
-  infoBox,
-  menuContainer,
+  OverlayContainer,
+  MouseContainer,
+  InfoBox,
+  MenuContainer,
 );
-mainContainer.refresh();
+MainContainer.refresh();
 
 window.addEventListener('keydown', inputListener);

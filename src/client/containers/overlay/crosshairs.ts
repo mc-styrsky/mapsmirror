@@ -1,6 +1,6 @@
 import type { Overlay } from '../../../common/types/overlay';
 import { PIhalf, floor, frac, log10, max, pow, sqrt } from '../../../common/math';
-import { settings } from '../../globals/settings';
+import { Settings } from '../../globals/settings';
 import { tileSize } from '../../globals/tileSize';
 import { lat2y } from '../../utils/lat2y';
 import { lon2x } from '../../utils/lon2x';
@@ -17,7 +17,7 @@ export function drawCrosshair ({
   x,
   y,
 }: Overlay) {
-  if (!settings.show.crosshair) return ;
+  if (!Settings.show.crosshair) return ;
   const lat = y2lat(y);
   const lon = x2lon(x);
 

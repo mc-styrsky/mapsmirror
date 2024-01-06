@@ -1,17 +1,17 @@
 import { round } from '../../common/math';
-import { coordsToggle } from '../containers/menu/coordsToggle';
-import { crosshairToggle } from '../containers/menu/crosshairToggle';
-import { navionicsDetailsToggle } from '../containers/menu/navionicsDetailsToggle';
-import { navionicsToggle } from '../containers/menu/navionicsToggle';
-import { vfdensityToggle } from '../containers/menu/vfdensityToggle';
+import { CoordsToggle } from '../containers/menu/coordsToggle';
+import { CrosshairToggle } from '../containers/menu/crosshairToggle';
+import { NavionicsDetailsToggle } from '../containers/menu/navionicsDetailsToggle';
+import { NavionicsToggle } from '../containers/menu/navionicsToggle';
+import { VfdensityToggle } from '../containers/menu/vfdensityToggle';
 import { TilesContainer } from '../containers/tilesContainer';
 import { baselayers } from '../globals/baselayers';
-import { markers } from '../globals/marker';
+import { Markers } from '../globals/marker';
 import { mouse } from '../globals/mouse';
 import { position } from '../globals/position';
-import { settings } from '../globals/settings';
+import { Settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
-import { mainContainer } from '../mainContainer';
+import { MainContainer } from '../mainContainer';
 import { updateUserLocation } from '../updateUserLocation';
 
 
@@ -19,7 +19,7 @@ export function inputListener (
   event: KeyboardEvent | WheelEvent | MouseEvent | UIEvent,
   { x, y }: {x: number, y: number} = { x: 0, y: 0 },
 ) {
-  const { height, width } = mainContainer;
+  const { height, width } = MainContainer;
   const { type } = event;
 
   console.log(event.target);
@@ -46,18 +46,18 @@ export function inputListener (
       const baselayer = baselayers[parseInt(key)];
       if (typeof baselayer !== 'undefined') TilesContainer.instance.baselayer = baselayer;
     }
-    else if (key === 'c') crosshairToggle.html.click();
-    else if (key === 'd') coordsToggle.html.click();
+    else if (key === 'c') CrosshairToggle.html.click();
+    else if (key === 'd') CoordsToggle.html.click();
     else if (key === 'l') updateUserLocation();
     else if (key === 'n') {
-      if (settings.show.navionicsDetails && settings.show.navionics) {
-        navionicsDetailsToggle.html.click();
-        navionicsToggle.html.click();
+      if (Settings.show.navionicsDetails && Settings.show.navionics) {
+        NavionicsDetailsToggle.html.click();
+        NavionicsToggle.html.click();
       }
-      else if (settings.show.navionics) navionicsDetailsToggle.html.click();
-      else navionicsToggle.html.click();
+      else if (Settings.show.navionics) NavionicsDetailsToggle.html.click();
+      else NavionicsToggle.html.click();
     }
-    else if (key === 'v') vfdensityToggle.html.click();
+    else if (key === 'v') VfdensityToggle.html.click();
     else if (key === 'r') {
       position.xyz = {
         x: round(position.x),
@@ -65,7 +65,7 @@ export function inputListener (
       };
     }
     else if (key === 'u') {
-      const userMarker = markers.get('user');
+      const userMarker = Markers.get('user');
       if (userMarker) position.xyz = userMarker;
     }
     else if (key === 'ArrowLeft') position.xyz = { x: position.x - 1 };

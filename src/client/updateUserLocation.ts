@@ -1,4 +1,4 @@
-import { markers } from './globals/marker';
+import { Markers } from './globals/marker';
 import { deg2rad } from './utils/deg2rad';
 
 let geolocationBlocked = false;
@@ -6,7 +6,7 @@ export function updateUserLocation () {
   if (geolocationBlocked) return;
   navigator.geolocation.getCurrentPosition(
     ({ coords: { accuracy, latitude, longitude }, timestamp }) => {
-      markers.add({
+      Markers.add({
         accuracy,
         lat: deg2rad(latitude),
         lon: deg2rad(longitude),

@@ -2,16 +2,16 @@ import type { Baselayer } from '../../common/types/layer';
 import { zoomMin } from '../../common/layers';
 import { ceil, floor } from '../../common/math';
 import { position } from '../globals/position';
-import { settings } from '../globals/settings';
+import { Settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
-import { mainContainer } from '../mainContainer';
+import { MainContainer } from '../mainContainer';
 import { Container } from '../utils/htmlElements/container';
 import { LocalStorageItem } from '../utils/localStorageItem';
 import { rad2deg } from '../utils/rad2deg';
 import { x2lon } from '../utils/x2lon';
 import { y2lat } from '../utils/y2lat';
 import { MapTile } from './map/mapTile';
-import { BaselayerMenu, baselayerMenu } from './menu/baselayerMenu';
+import { BaselayerMenu } from './menu/baselayerMenu';
 
 export class TilesContainer extends Container {
   static get instance () {
@@ -40,15 +40,15 @@ export class TilesContainer extends Container {
   }
 
   set baselayer (baselayer: Baselayer) {
-    settings.baselayer = baselayer;
-    baselayerMenu.baselayerLabel = BaselayerMenu.baselayerLabel(baselayer);
+    Settings.baselayer = baselayer;
+    BaselayerMenu.baselayerLabel = baselayer;
     this.rebuild('changed baselayer');
   }
 
   refresh (type: string) {
     console.log(`${type} redraw@${new Date().toISOString()}`);
 
-    const { height, width } = mainContainer;
+    const { height, width } = MainContainer;
     const { tiles, ttl, x, y, z } = position;
 
     const maxdx = ceil(x + width / 2 / tileSize);
@@ -117,7 +117,7 @@ export class TilesContainer extends Container {
         const newlocation = `${origin}${pathname}${newsearch}`;
         window.history.pushState({ path: newlocation }, '', newlocation);
       }
-      new LocalStorageItem<typeof settings>('settings').set(settings);
+      new LocalStorageItem<typeof Settings>('settings').set(Settings);
     })();
   }
 }

@@ -1,6 +1,6 @@
 import type { DrawImage } from '../../../common/types/drawImage';
 import { tileSize } from '../../globals/tileSize';
-import { imagesToFetch } from '../infoBox/imagesToFetch';
+import { ImagesToFetch } from '../infoBox/imagesToFetch';
 import { drawImage } from './drawImage';
 import { navionicsWatermark } from './navionicsWatermark';
 
@@ -54,7 +54,7 @@ export async function drawNavionics ({ context, source, ttl, x, y, z }: DrawImag
   const drawProm = drawImage({ context: workerContext, source, ttl, x, y, z });
   const draw = await drawProm;
   if (!draw) return false;
-  imagesToFetch.add({ source: 'transparent', x, y, z });
+  ImagesToFetch.add({ source: 'transparent', x, y, z });
   const img = workerContext.getImageData(0, 0, tileSize, tileSize);
 
   const { data } = img;
@@ -69,7 +69,7 @@ export async function drawNavionics ({ context, source, ttl, x, y, z }: DrawImag
     subData[3] = backgroundColors.get(color) ?? a;
   }
   workerContext.putImageData(img, 0, 0);
-  imagesToFetch.delete({ source: 'transparent', x, y, z });
+  ImagesToFetch.delete({ source: 'transparent', x, y, z });
 
   context.drawImage(workerCanvas, 0, 0);
   return true;

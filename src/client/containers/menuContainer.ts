@@ -1,40 +1,39 @@
 import { Container } from '../utils/htmlElements/container';
-import { baselayerMenu } from './menu/baselayerMenu';
-import { coordsToggle } from './menu/coordsToggle';
-import { crosshairToggle } from './menu/crosshairToggle';
+import { MonoContainer } from '../utils/htmlElements/monoContainer';
+import { BaselayerMenu } from './menu/baselayerMenu';
+import { CoordsToggle } from './menu/coordsToggle';
+import { CrosshairToggle } from './menu/crosshairToggle';
 import { GotoMenu } from './menu/gotoMenu';
-import { navionicsDetailsToggle } from './menu/navionicsDetailsToggle';
-import { navionicsToggle } from './menu/navionicsToggle';
+import { NavionicsDetailsToggle } from './menu/navionicsDetailsToggle';
+import { NavionicsToggle } from './menu/navionicsToggle';
 import { OverlayToggle } from './menu/overlayToggle';
-import { suncalcToggle } from './menu/suncalcToggle';
-import { vfdensityToggle } from './menu/vfdensityToggle';
+import { SuncalcToggle } from './menu/suncalcToggle';
+import { VfdensityToggle } from './menu/vfdensityToggle';
 
-class MenuContainer extends Container {
-  constructor () {
-    super('div', {
+export class MenuContainer extends MonoContainer {
+  static {
+    this.copyInstance(new Container('div', {
       classes: ['d-flex', 'gap-2', 'm-2'],
       dataset: {
         bsTheme: 'dark',
       },
-    });
+    }), this);
     this.append(
-      baselayerMenu,
+      BaselayerMenu,
       new Container('div', {
         classes: ['btn-group'],
         role: 'group',
       })
       .append(
         new OverlayToggle('openseamap'),
-        vfdensityToggle,
-        navionicsToggle,
-        navionicsDetailsToggle,
-        crosshairToggle,
-        suncalcToggle,
-        coordsToggle,
+        VfdensityToggle,
+        NavionicsToggle,
+        NavionicsDetailsToggle,
+        CrosshairToggle,
+        SuncalcToggle,
+        CoordsToggle,
       ),
       new GotoMenu(),
     );
   }
 }
-
-export const menuContainer = new MenuContainer();

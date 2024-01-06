@@ -1,5 +1,10 @@
 import { Container } from '../../../../utils/htmlElements/container';
+import { MonoContainer } from '../../../../utils/htmlElements/monoContainer';
 
-export const addressSearchContainer = new Container('div', {
-  classes: ['dropdown-menu'],
-});
+export class addressSearchContainer extends MonoContainer {
+  static {
+    this.copyInstance(new Container('div', {
+      classes: ['dropdown-menu'],
+    }), this);
+  }
+}

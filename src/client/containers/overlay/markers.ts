@@ -1,13 +1,13 @@
 import type { Overlay } from '../../../common/types/overlay';
 import { PI2 } from '../../../common/math';
-import { markers } from '../../globals/marker';
+import { Markers } from '../../globals/marker';
 import { tileSize } from '../../globals/tileSize';
 
 
 export const drawMarkers = ({
   context, x, y,
 }: Overlay) => {
-  markers.set().forEach(marker => {
+  Markers.set().forEach(marker => {
     const markerX = (marker.x - x) * tileSize;
     const markerY = (marker.y - y) * tileSize;
     const from = 40;

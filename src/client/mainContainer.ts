@@ -1,11 +1,22 @@
 import { position } from './globals/position';
 import { Container } from './utils/htmlElements/container';
+import { MonoContainer } from './utils/htmlElements/monoContainer';
 
-export class MainContainer extends Container {
-  constructor () {
+export class MainContainer extends MonoContainer {
+  static refresh = () => {
+    const { height, width } = this.html.getBoundingClientRect();
+    console.log('new bounding rect', { height, width });
+    this._height = height;
+    this._width = width;
+    position.refresh();
+  };
+
+  static {
     const containerId = new URL(import.meta.url).searchParams.get('container') ?? '';
     const container = document.getElementById(containerId);
-    if (container instanceof HTMLDivElement) super(container);
+    if (container instanceof HTMLDivElement) {
+      this.copyInstance(new Container(container), this);
+    }
     else throw Error('mainContainer needs to be a div');
 
     window.addEventListener('resize', () => {
@@ -14,22 +25,13 @@ export class MainContainer extends Container {
     this.refresh();
   }
 
-  refresh = () => {
-    const { height, width } = this.html.getBoundingClientRect();
-    console.log('new bounding rect', { height, width });
-    this._height = height;
-    this._width = width;
-    position.refresh();
-  };
+  private static _height = NaN;
+  private static _width = NaN;
 
-  private _height = NaN;
-  private _width = NaN;
-  get height () {
+  static get height () {
     return this._height;
   }
-  get width () {
+  static get width () {
     return this._width;
   }
 }
-
-export const mainContainer = new MainContainer();

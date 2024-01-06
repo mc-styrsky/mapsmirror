@@ -969,8 +969,8 @@ var require_get_intrinsic = __commonJS({
         throw new $SyntaxError("invalid intrinsic syntax, expected opening `%`");
       }
       var result = [];
-      $replace(string, rePropName, function(match2, number, quote, subString) {
-        result[result.length] = quote ? $replace(subString, reEscapeChar, "$1") : number || match2;
+      $replace(string, rePropName, function(match, number, quote, subString) {
+        result[result.length] = quote ? $replace(subString, reEscapeChar, "$1") : number || match;
       });
       return result;
     };
@@ -1542,15 +1542,15 @@ var require_validator = __commonJS({
     var Validator;
     Validator = class Validator {
       isValid(coordinates) {
-        var isValid2, validationError;
-        isValid2 = true;
+        var isValid, validationError;
+        isValid = true;
         try {
           this.validate(coordinates);
-          return isValid2;
+          return isValid;
         } catch (error) {
           validationError = error;
-          isValid2 = false;
-          return isValid2;
+          isValid = false;
+          return isValid;
         }
       }
       validate(coordinates) {
@@ -1833,7 +1833,24 @@ var baselayers = [
 
 // src/client/globals/settings.ts
 var Settings = class {
-  constructor() {
+  static show;
+  static baselayer;
+  static get tiles() {
+    const ret = this.overlayOrder.filter((l) => this.show[l]).map((source) => ({ alpha: this.alpha[source] ?? 1, source }));
+    if (this.baselayer)
+      ret.unshift({ alpha: 1, source: this.baselayer });
+    return ret;
+  }
+  static units;
+  static overlayOrder = [
+    "openseamap",
+    "navionics",
+    "vfdensity"
+  ];
+  static alpha = {
+    vfdensity: 0.5
+  };
+  static {
     const localStorageSettings = new LocalStorageItem("settings").get();
     const baselayer = localStorageSettings?.baselayer ?? "osm";
     this.baselayer = baselayers.includes(baselayer) ? baselayer : "osm";
@@ -1855,25 +1872,7 @@ var Settings = class {
       }
     });
   }
-  show;
-  baselayer;
-  get tiles() {
-    const ret = this.overlayOrder.filter((l) => this.show[l]).map((source) => ({ alpha: this.alpha[source] ?? 1, source }));
-    if (this.baselayer)
-      ret.unshift({ alpha: 1, source: this.baselayer });
-    return ret;
-  }
-  units;
-  overlayOrder = [
-    "openseamap",
-    "navionics",
-    "vfdensity"
-  ];
-  alpha = {
-    vfdensity: 0.5
-  };
 };
-var settings = new Settings();
 
 // src/common/fromEntriesTyped.ts
 function fromEntriesTyped(entries) {
@@ -1933,13 +1932,33 @@ var Container = class {
   }
 };
 
-// src/client/globals/stylesheet.ts
-var StylesheetClass = class extends Container {
+// src/client/utils/htmlElements/monoContainer.ts
+var MonoContainer = class extends Container {
   constructor() {
-    super("style");
+    super("div", {});
   }
-  keys = /* @__PURE__ */ new Set();
-  add(elements) {
+  static copyInstance(cont, target) {
+    target._html = cont.html;
+    target.clear = () => cont.clear();
+    target.append = (...items) => cont.append(...items);
+    target.getBoundingClientRect = () => cont.getBoundingClientRect();
+  }
+  static _html;
+  static get html() {
+    return this._html;
+  }
+  static clear;
+  static append;
+  static getBoundingClientRect;
+};
+
+// src/client/globals/stylesheet.ts
+var Stylesheet = class extends MonoContainer {
+  static {
+    this.copyInstance(new Container("style"), this);
+  }
+  static keys = /* @__PURE__ */ new Set();
+  static add(elements) {
     entriesTyped(elements).map(([keyRaw, style]) => {
       const key = kebabify(keyRaw);
       if (this.keys.has(key))
@@ -1950,13 +1969,12 @@ var StylesheetClass = class extends Container {
 `);
     });
   }
-  addClass(classes) {
+  static addClass(classes) {
     this.add(fromEntriesTyped(
       entriesTyped(classes).map(([className, style]) => [`.${className}`, style])
     ));
   }
 };
-var Stylesheet = new StylesheetClass();
 Stylesheet.addClass({
   AccordionLabel: {
     backgroundColor: "#ffffff40 !important"
@@ -2022,20 +2040,20 @@ Stylesheet.addClass({
 });
 
 // src/client/containers/infoBox/imagesToFetch.ts
-var ImagesToFetch = class extends Container {
-  constructor() {
-    super("div");
+var ImagesToFetch = class extends MonoContainer {
+  static {
+    this.copyInstance(new Container("div"), this);
   }
-  xyz2string = ({ x, y, z: z2 }) => `${z2.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
-  data = {};
-  total = {};
-  getSet = (source) => this.data[source] ??= /* @__PURE__ */ new Set();
-  add = ({ source, ...xyz }) => {
+  static xyz2string = ({ x, y, z: z2 }) => `${z2.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
+  static data = {};
+  static total = {};
+  static getSet = (source) => this.data[source] ??= /* @__PURE__ */ new Set();
+  static add = ({ source, ...xyz }) => {
     this.getSet(source).add(this.xyz2string(xyz));
     this.total[source] = (this.total[source] ?? 0) + 1;
     this.refresh();
   };
-  delete = ({ source, ...xyz }) => {
+  static delete = ({ source, ...xyz }) => {
     this.getSet(source).delete(this.xyz2string(xyz));
     if (this.getSet(source).size === 0) {
       delete this.data[source];
@@ -2043,7 +2061,7 @@ var ImagesToFetch = class extends Container {
     }
     this.refresh();
   };
-  refresh = () => {
+  static refresh = () => {
     this.clear();
     Object.entries(this.data).map(([key, val]) => [key, val.size]).forEach(([source, size], idx) => {
       if (idx !== 0)
@@ -2052,7 +2070,6 @@ var ImagesToFetch = class extends Container {
     });
   };
 };
-var imagesToFetch = new ImagesToFetch();
 
 // src/common/math.ts
 var { abs, acos, asin, asinh, atan2, ceil, cos, floor, log2, log10, max, min, PI, pow, round, sin, sqrt, tan, tanh } = Math;
@@ -2249,25 +2266,24 @@ var Marker = class {
   }
 };
 var Markers = class {
-  _markers = /* @__PURE__ */ new Map();
-  add = (params) => {
+  static _markers = /* @__PURE__ */ new Map();
+  static listeners = /* @__PURE__ */ new Set();
+  static add = (params) => {
     this._markers.set(params.type, new Marker(params));
     this.refresh();
   };
-  delete = (type) => {
+  static delete = (type) => {
     if (this._markers.has(type)) {
       this._markers.delete(type);
       this.refresh();
     }
   };
-  get = (type) => this._markers.get(type);
-  set = () => this._markers;
-  listeners = /* @__PURE__ */ new Set();
-  refresh() {
+  static get = (type) => this._markers.get(type);
+  static set = () => this._markers;
+  static refresh() {
     this.listeners.forEach((callback) => callback());
   }
 };
-var markers = new Markers();
 
 // src/client/globals/mouse.ts
 var mouse = {
@@ -2284,36 +2300,35 @@ var mouse = {
 var tileSize = 256;
 
 // src/client/mainContainer.ts
-var MainContainer = class extends Container {
-  constructor() {
-    const containerId = new URL(import.meta.url).searchParams.get("container") ?? "";
-    const container = document.getElementById(containerId);
-    if (container instanceof HTMLDivElement)
-      super(container);
-    else
-      throw Error("mainContainer needs to be a div");
-    window.addEventListener("resize", () => {
-      this.refresh();
-    });
-    this.refresh();
-  }
-  refresh = () => {
+var MainContainer = class extends MonoContainer {
+  static refresh = () => {
     const { height, width } = this.html.getBoundingClientRect();
     console.log("new bounding rect", { height, width });
     this._height = height;
     this._width = width;
     position.refresh();
   };
-  _height = NaN;
-  _width = NaN;
-  get height() {
+  static {
+    const containerId = new URL(import.meta.url).searchParams.get("container") ?? "";
+    const container = document.getElementById(containerId);
+    if (container instanceof HTMLDivElement) {
+      this.copyInstance(new Container(container), this);
+    } else
+      throw Error("mainContainer needs to be a div");
+    window.addEventListener("resize", () => {
+      this.refresh();
+    });
+    this.refresh();
+  }
+  static _height = NaN;
+  static _width = NaN;
+  static get height() {
     return this._height;
   }
-  get width() {
+  static get width() {
     return this._width;
   }
 };
-var mainContainer = new MainContainer();
 
 // src/client/utils/px2nm.ts
 function px2nm(lat2) {
@@ -2344,51 +2359,50 @@ var rad2stringFuncs = {
   }
 };
 function rad2string({ axis = " -", pad: pad2 = 0, phi }) {
-  return rad2stringFuncs[settings.units.coords]({ axis, pad: pad2, phi });
+  return rad2stringFuncs[Settings.units.coords]({ axis, pad: pad2, phi });
 }
 
 // src/client/containers/menu/coordsToggle.ts
-var CoordsToggle = class _CoordsToggle extends Container {
+var CoordsToggle = class _CoordsToggle extends MonoContainer {
+  static listeners = /* @__PURE__ */ new Set();
+  static {
+    this.copyInstance(new Container("a", {
+      classes: ["btn", "btn-secondary"],
+      onclick: () => {
+        Settings.units.coords = {
+          d: "dm",
+          dm: "dms",
+          dms: "d"
+        }[Settings.units.coords] ?? "dm";
+        this.refresh();
+      },
+      role: "button"
+    }), this);
+  }
   static toString = () => {
     return {
       d: "Dec",
       dm: "D\xB0M'",
       dms: "DMS"
-    }[settings.units.coords];
+    }[Settings.units.coords];
   };
-  constructor() {
-    super("a", {
-      classes: ["btn", "btn-secondary"],
-      onclick: () => {
-        settings.units.coords = {
-          d: "dm",
-          dm: "dms",
-          dms: "d"
-        }[settings.units.coords] ?? "dm";
-        this.refresh();
-      },
-      role: "button"
-    });
-  }
-  listeners = /* @__PURE__ */ new Set();
-  refresh() {
+  static refresh() {
     this.listeners.forEach((callback) => callback());
     this.clear();
     this.append(_CoordsToggle.toString());
   }
 };
-var coordsToggle = new CoordsToggle();
 
 // src/client/containers/infoBox/infoBoxCoords.ts
-var InfoBoxCoords = class extends Container {
-  constructor() {
-    super("div");
+var InfoBoxCoords = class extends MonoContainer {
+  static {
+    this.copyInstance(new Container("div"), this);
     this.refresh();
     position.listeners.add(() => this.refresh());
-    coordsToggle.listeners.add(() => this.refresh());
+    CoordsToggle.listeners.add(() => this.refresh());
   }
-  refresh() {
-    const { height, width } = mainContainer;
+  static refresh() {
+    const { height, width } = MainContainer;
     const { lat: lat2, lon: lon2, x, y } = position;
     const latMouse = y2lat(y + (mouse.y - height / 2) / tileSize);
     const lonMouse = x2lon(x + (mouse.x - width / 2) / tileSize);
@@ -2407,14 +2421,14 @@ var InfoBoxCoords = class extends Container {
     this.row("Scale", `${scale} (Zoom ${position.z})`);
     this.row("Lat/Lon", `${rad2string({ axis: "NS", pad: 2, phi: lat2 })} ${rad2string({ axis: "EW", pad: 3, phi: lon2 })}`);
     this.row("Mouse", `${rad2string({ axis: "NS", pad: 2, phi: latMouse })} ${rad2string({ axis: "EW", pad: 3, phi: lonMouse })}`);
-    markers.set().forEach((marker, key) => {
+    Markers.set().forEach((marker, key) => {
       this.row(
         key,
         `${rad2string({ axis: "NS", pad: 2, phi: marker.lat })} ${rad2string({ axis: "EW", pad: 3, phi: marker.lon })}`
       );
     });
   }
-  row(left2, right2) {
+  static row(left2, right2) {
     this.append(
       new Container("div", {
         classes: [
@@ -3840,15 +3854,15 @@ function popperGenerator(generatorOptions) {
   if (generatorOptions === void 0) {
     generatorOptions = {};
   }
-  var _generatorOptions = generatorOptions, _generatorOptions$def = _generatorOptions.defaultModifiers, defaultModifiers3 = _generatorOptions$def === void 0 ? [] : _generatorOptions$def, _generatorOptions$def2 = _generatorOptions.defaultOptions, defaultOptions2 = _generatorOptions$def2 === void 0 ? DEFAULT_OPTIONS : _generatorOptions$def2;
+  var _generatorOptions = generatorOptions, _generatorOptions$def = _generatorOptions.defaultModifiers, defaultModifiers3 = _generatorOptions$def === void 0 ? [] : _generatorOptions$def, _generatorOptions$def2 = _generatorOptions.defaultOptions, defaultOptions = _generatorOptions$def2 === void 0 ? DEFAULT_OPTIONS : _generatorOptions$def2;
   return function createPopper4(reference2, popper2, options) {
     if (options === void 0) {
-      options = defaultOptions2;
+      options = defaultOptions;
     }
     var state = {
       placement: "bottom",
       orderedModifiers: [],
-      options: Object.assign({}, DEFAULT_OPTIONS, defaultOptions2),
+      options: Object.assign({}, DEFAULT_OPTIONS, defaultOptions),
       modifiersData: {},
       elements: {
         reference: reference2,
@@ -3864,7 +3878,7 @@ function popperGenerator(generatorOptions) {
       setOptions: function setOptions(setOptionsAction) {
         var options2 = typeof setOptionsAction === "function" ? setOptionsAction(state.options) : setOptionsAction;
         cleanupModifierEffects();
-        state.options = Object.assign({}, defaultOptions2, state.options, options2);
+        state.options = Object.assign({}, defaultOptions, state.options, options2);
         state.scrollParents = {
           reference: isElement(reference2) ? listScrollParents(reference2) : reference2.contextElement ? listScrollParents(reference2.contextElement) : [],
           popper: listScrollParents(popper2)
@@ -4011,7 +4025,7 @@ var MILLISECONDS_MULTIPLIER = 1e3;
 var TRANSITION_END = "transitionend";
 var parseSelector = (selector) => {
   if (selector && window.CSS && window.CSS.escape) {
-    selector = selector.replace(/#([^\s"#']+)/g, (match2, id) => `#${CSS.escape(id)}`);
+    selector = selector.replace(/#([^\s"#']+)/g, (match, id) => `#${CSS.escape(id)}`);
   }
   return selector;
 };
@@ -7789,12 +7803,12 @@ function drawImage({
     x.toString(16),
     y.toString(16)
   ].join("/")}?ttl=${ttl2}`;
-  imagesToFetch.add({ source, x, y, z: z2 });
+  ImagesToFetch.add({ source, x, y, z: z2 });
   return new Promise((resolve) => {
     const img = new Image();
     const onload = () => {
       context.drawImage(img, 0, 0);
-      imagesToFetch.delete({ source, x, y, z: z2 });
+      ImagesToFetch.delete({ source, x, y, z: z2 });
       resolve(true);
     };
     const onerror = async () => {
@@ -7824,10 +7838,10 @@ function drawImage({
             tileSize,
             tileSize
           );
-        imagesToFetch.delete({ source, x, y, z: z2 });
+        ImagesToFetch.delete({ source, x, y, z: z2 });
         resolve(success);
       } else {
-        imagesToFetch.delete({ source, x, y, z: z2 });
+        ImagesToFetch.delete({ source, x, y, z: z2 });
         resolve(false);
       }
     };
@@ -7923,7 +7937,7 @@ async function drawNavionics({ context, source, ttl: ttl2, x, y, z: z2 }) {
   const draw = await drawProm;
   if (!draw)
     return false;
-  imagesToFetch.add({ source: "transparent", x, y, z: z2 });
+  ImagesToFetch.add({ source: "transparent", x, y, z: z2 });
   const img = workerContext.getImageData(0, 0, tileSize, tileSize);
   const { data } = img;
   for (let i = 0; i < watermark.length; i++) {
@@ -7937,7 +7951,7 @@ async function drawNavionics({ context, source, ttl: ttl2, x, y, z: z2 }) {
     subData[3] = backgroundColors.get(color) ?? a;
   }
   workerContext.putImageData(img, 0, 0);
-  imagesToFetch.delete({ source: "transparent", x, y, z: z2 });
+  ImagesToFetch.delete({ source: "transparent", x, y, z: z2 });
   context.drawImage(workerCanvas, 0, 0);
   return true;
 }
@@ -8022,7 +8036,7 @@ var MapTile = class _MapTile extends Container {
     this.html.height = tileSize;
     const context = this.html.getContext("2d");
     if (context) {
-      void Promise.all(settings.tiles.map(async (entry) => {
+      void Promise.all(Settings.tiles.map(async (entry) => {
         const { alpha, source } = entry;
         return await drawCachedImage({ alpha, context, source, ttl: ttl2, x, y, z: z2 });
       })).then((draws) => draws.reduce(
@@ -8045,12 +8059,19 @@ var MapTile = class _MapTile extends Container {
 };
 
 // src/client/containers/menu/baselayerMenu.ts
-var BaselayerMenu = class _BaselayerMenu extends Container {
-  static baselayerLabel = (source) => `${LayerSetup.get(source).label} (${baselayers.indexOf(source)})`;
-  constructor() {
-    super("div", {
+var BaselayerMenu = class _BaselayerMenu extends MonoContainer {
+  static labelForSource = (source) => `${LayerSetup.get(source).label} (${baselayers.indexOf(source)})`;
+  static baselayerMenuButton = new Container("a", {
+    classes: ["btn", "btn-secondary", "dropdown-toggle"],
+    dataset: {
+      bsToggle: "dropdown"
+    },
+    role: "button"
+  }).append(_BaselayerMenu.labelForSource(Settings.baselayer));
+  static {
+    this.copyInstance(new Container("div", {
       classes: ["dropdown"]
-    });
+    }), this);
     this.append(
       this.baselayerMenuButton,
       new Container("ul", {
@@ -8061,24 +8082,16 @@ var BaselayerMenu = class _BaselayerMenu extends Container {
             return new Container("a", {
               classes: ["dropdown-item"],
               onclick: () => TilesContainer.instance.baselayer = source
-            }).append(_BaselayerMenu.baselayerLabel(source));
+            }).append(_BaselayerMenu.labelForSource(source));
           })
         )
       )
     );
   }
-  set baselayerLabel(val) {
-    this.baselayerMenuButton.html.innerText = val;
+  static set baselayerLabel(val) {
+    this.baselayerMenuButton.html.innerText = _BaselayerMenu.labelForSource(val);
   }
-  baselayerMenuButton = new Container("a", {
-    classes: ["btn", "btn-secondary", "dropdown-toggle"],
-    dataset: {
-      bsToggle: "dropdown"
-    },
-    role: "button"
-  }).append(_BaselayerMenu.baselayerLabel(settings.baselayer));
 };
-var baselayerMenu = new BaselayerMenu();
 
 // src/client/containers/tilesContainer.ts
 var TilesContainer = class _TilesContainer extends Container {
@@ -8106,13 +8119,13 @@ var TilesContainer = class _TilesContainer extends Container {
     this.refresh(type);
   }
   set baselayer(baselayer) {
-    settings.baselayer = baselayer;
-    baselayerMenu.baselayerLabel = BaselayerMenu.baselayerLabel(baselayer);
+    Settings.baselayer = baselayer;
+    BaselayerMenu.baselayerLabel = baselayer;
     this.rebuild("changed baselayer");
   }
   refresh(type) {
     console.log(`${type} redraw@${(/* @__PURE__ */ new Date()).toISOString()}`);
-    const { height, width } = mainContainer;
+    const { height, width } = MainContainer;
     const { tiles, ttl: ttl2, x, y, z: z2 } = position;
     const maxdx = ceil(x + width / 2 / tileSize);
     const maxdy = ceil(y + height / 2 / tileSize);
@@ -8178,7 +8191,7 @@ var TilesContainer = class _TilesContainer extends Container {
         const newlocation = `${origin}${pathname}${newsearch}`;
         window.history.pushState({ path: newlocation }, "", newlocation);
       }
-      new LocalStorageItem("settings").set(settings);
+      new LocalStorageItem("settings").set(Settings);
     })();
   }
 };
@@ -8433,7 +8446,7 @@ var NavionicsItem = class extends AccordionItem {
     this.itemId = itemId;
     this.labelContainer = labelContainer;
     this.head.html.onmousemove = () => {
-      markers.add({
+      Markers.add({
         lat: itemPosition.lat,
         lon: itemPosition.lon,
         type: "navionics"
@@ -8454,10 +8467,14 @@ var NavionicsItem = class extends AccordionItem {
 };
 
 // src/client/containers/infoBox/navionicsDetails.ts
-var NavionicsDetails = class extends Container {
-  constructor() {
-    super("div");
-    this.mainAccordion = new Accordion({ accordionId: this.accordionIdPrefix });
+var NavionicsDetails = class extends MonoContainer {
+  static accordionIdPrefix = "navionicsDetailsList";
+  static mainAccordion = new Accordion({
+    accordionId: this.accordionIdPrefix
+  });
+  static queue = new StyQueue(1);
+  static {
+    this.copyInstance(new Container("div"), this);
     this.append(this.mainAccordion);
     position.listeners.add(() => {
       if (!mouse.down.state)
@@ -8465,20 +8482,17 @@ var NavionicsDetails = class extends Container {
     });
     void this.queue.enqueue(() => new Promise((r) => setInterval(r, 1)));
   }
-  abortControllers = /* @__PURE__ */ new Set();
-  accordionIdPrefix = "navionicsDetailsList";
-  accordions = /* @__PURE__ */ new Map([]);
-  fetchProgress = new AccordionItem({ headLabel: "", itemId: "fetchProgress" });
-  items = /* @__PURE__ */ new Map();
-  itemsCache = /* @__PURE__ */ new Map();
-  mainAccordion;
-  mainAccordionItems = /* @__PURE__ */ new Map();
-  queue = new StyQueue(1);
-  add = (itemId, item) => {
+  static abortControllers = /* @__PURE__ */ new Set();
+  static accordions = /* @__PURE__ */ new Map([]);
+  static fetchProgress = new AccordionItem({ headLabel: "", itemId: "fetchProgress" });
+  static items = /* @__PURE__ */ new Map();
+  static itemsCache = /* @__PURE__ */ new Map();
+  static mainAccordionItems = /* @__PURE__ */ new Map();
+  static add = (itemId, item) => {
     this.items.set(itemId, item);
     this.refresh();
   };
-  refresh = () => {
+  static refresh = () => {
     const items = [...this.items.values()].sort((a, b) => a.distance - b.distance);
     const accordionKeys = new Set(this.mainAccordionItems.keys());
     const itemKeys = new Set(this.itemsCache.keys());
@@ -8519,13 +8533,13 @@ var NavionicsDetails = class extends Container {
     else
       this.fetchProgress.html.parentNode?.removeChild(this.fetchProgress.html);
   };
-  async fetch({ x, y, z: z2 }) {
+  static async fetch({ x, y, z: z2 }) {
     while (this.queue.shift())
       /* @__PURE__ */ (() => void 0)();
     this.abortControllers.forEach((ac) => {
       ac.abort();
     });
-    if (!settings.show.navionicsDetails)
+    if (!Settings.show.navionicsDetails)
       return;
     await this.queue.enqueue(async () => {
       const { lat: lat2, lon: lon2 } = xyz2latLon({ x, y, z: z2 });
@@ -8615,7 +8629,6 @@ var NavionicsDetails = class extends Container {
     this.refresh();
   }
 };
-var navionicsDetails = new NavionicsDetails();
 
 // node_modules/date-fns/toDate.mjs
 function toDate(argument) {
@@ -8695,1504 +8708,6 @@ function add(date, duration) {
   return finalDate;
 }
 
-// node_modules/date-fns/constants.mjs
-var daysInYear = 365.2425;
-var maxTime = Math.pow(10, 8) * 24 * 60 * 60 * 1e3;
-var minTime = -maxTime;
-var millisecondsInWeek = 6048e5;
-var millisecondsInDay = 864e5;
-var secondsInHour = 3600;
-var secondsInDay = secondsInHour * 24;
-var secondsInWeek = secondsInDay * 7;
-var secondsInYear = secondsInDay * daysInYear;
-var secondsInMonth = secondsInYear / 12;
-var secondsInQuarter = secondsInMonth * 3;
-
-// node_modules/date-fns/_lib/defaultOptions.mjs
-var defaultOptions = {};
-function getDefaultOptions() {
-  return defaultOptions;
-}
-
-// node_modules/date-fns/startOfWeek.mjs
-function startOfWeek(date, options) {
-  const defaultOptions2 = getDefaultOptions();
-  const weekStartsOn = options?.weekStartsOn ?? options?.locale?.options?.weekStartsOn ?? defaultOptions2.weekStartsOn ?? defaultOptions2.locale?.options?.weekStartsOn ?? 0;
-  const _date = toDate(date);
-  const day = _date.getDay();
-  const diff = (day < weekStartsOn ? 7 : 0) + day - weekStartsOn;
-  _date.setDate(_date.getDate() - diff);
-  _date.setHours(0, 0, 0, 0);
-  return _date;
-}
-
-// node_modules/date-fns/startOfISOWeek.mjs
-function startOfISOWeek(date) {
-  return startOfWeek(date, { weekStartsOn: 1 });
-}
-
-// node_modules/date-fns/getISOWeekYear.mjs
-function getISOWeekYear(date) {
-  const _date = toDate(date);
-  const year = _date.getFullYear();
-  const fourthOfJanuaryOfNextYear = constructFrom(date, 0);
-  fourthOfJanuaryOfNextYear.setFullYear(year + 1, 0, 4);
-  fourthOfJanuaryOfNextYear.setHours(0, 0, 0, 0);
-  const startOfNextYear = startOfISOWeek(fourthOfJanuaryOfNextYear);
-  const fourthOfJanuaryOfThisYear = constructFrom(date, 0);
-  fourthOfJanuaryOfThisYear.setFullYear(year, 0, 4);
-  fourthOfJanuaryOfThisYear.setHours(0, 0, 0, 0);
-  const startOfThisYear = startOfISOWeek(fourthOfJanuaryOfThisYear);
-  if (_date.getTime() >= startOfNextYear.getTime()) {
-    return year + 1;
-  } else if (_date.getTime() >= startOfThisYear.getTime()) {
-    return year;
-  } else {
-    return year - 1;
-  }
-}
-
-// node_modules/date-fns/startOfDay.mjs
-function startOfDay(date) {
-  const _date = toDate(date);
-  _date.setHours(0, 0, 0, 0);
-  return _date;
-}
-
-// node_modules/date-fns/_lib/getTimezoneOffsetInMilliseconds.mjs
-function getTimezoneOffsetInMilliseconds(date) {
-  const utcDate = new Date(
-    Date.UTC(
-      date.getFullYear(),
-      date.getMonth(),
-      date.getDate(),
-      date.getHours(),
-      date.getMinutes(),
-      date.getSeconds(),
-      date.getMilliseconds()
-    )
-  );
-  utcDate.setUTCFullYear(date.getFullYear());
-  return date.getTime() - utcDate.getTime();
-}
-
-// node_modules/date-fns/differenceInCalendarDays.mjs
-function differenceInCalendarDays(dateLeft, dateRight) {
-  const startOfDayLeft = startOfDay(dateLeft);
-  const startOfDayRight = startOfDay(dateRight);
-  const timestampLeft = startOfDayLeft.getTime() - getTimezoneOffsetInMilliseconds(startOfDayLeft);
-  const timestampRight = startOfDayRight.getTime() - getTimezoneOffsetInMilliseconds(startOfDayRight);
-  return Math.round((timestampLeft - timestampRight) / millisecondsInDay);
-}
-
-// node_modules/date-fns/startOfISOWeekYear.mjs
-function startOfISOWeekYear(date) {
-  const year = getISOWeekYear(date);
-  const fourthOfJanuary = constructFrom(date, 0);
-  fourthOfJanuary.setFullYear(year, 0, 4);
-  fourthOfJanuary.setHours(0, 0, 0, 0);
-  return startOfISOWeek(fourthOfJanuary);
-}
-
-// node_modules/date-fns/isDate.mjs
-function isDate(value) {
-  return value instanceof Date || typeof value === "object" && Object.prototype.toString.call(value) === "[object Date]";
-}
-
-// node_modules/date-fns/isValid.mjs
-function isValid(date) {
-  if (!isDate(date) && typeof date !== "number") {
-    return false;
-  }
-  const _date = toDate(date);
-  return !isNaN(Number(_date));
-}
-
-// node_modules/date-fns/startOfYear.mjs
-function startOfYear(date) {
-  const cleanDate = toDate(date);
-  const _date = constructFrom(date, 0);
-  _date.setFullYear(cleanDate.getFullYear(), 0, 1);
-  _date.setHours(0, 0, 0, 0);
-  return _date;
-}
-
-// node_modules/date-fns/locale/en-US/_lib/formatDistance.mjs
-var formatDistanceLocale = {
-  lessThanXSeconds: {
-    one: "less than a second",
-    other: "less than {{count}} seconds"
-  },
-  xSeconds: {
-    one: "1 second",
-    other: "{{count}} seconds"
-  },
-  halfAMinute: "half a minute",
-  lessThanXMinutes: {
-    one: "less than a minute",
-    other: "less than {{count}} minutes"
-  },
-  xMinutes: {
-    one: "1 minute",
-    other: "{{count}} minutes"
-  },
-  aboutXHours: {
-    one: "about 1 hour",
-    other: "about {{count}} hours"
-  },
-  xHours: {
-    one: "1 hour",
-    other: "{{count}} hours"
-  },
-  xDays: {
-    one: "1 day",
-    other: "{{count}} days"
-  },
-  aboutXWeeks: {
-    one: "about 1 week",
-    other: "about {{count}} weeks"
-  },
-  xWeeks: {
-    one: "1 week",
-    other: "{{count}} weeks"
-  },
-  aboutXMonths: {
-    one: "about 1 month",
-    other: "about {{count}} months"
-  },
-  xMonths: {
-    one: "1 month",
-    other: "{{count}} months"
-  },
-  aboutXYears: {
-    one: "about 1 year",
-    other: "about {{count}} years"
-  },
-  xYears: {
-    one: "1 year",
-    other: "{{count}} years"
-  },
-  overXYears: {
-    one: "over 1 year",
-    other: "over {{count}} years"
-  },
-  almostXYears: {
-    one: "almost 1 year",
-    other: "almost {{count}} years"
-  }
-};
-var formatDistance = (token, count, options) => {
-  let result;
-  const tokenValue = formatDistanceLocale[token];
-  if (typeof tokenValue === "string") {
-    result = tokenValue;
-  } else if (count === 1) {
-    result = tokenValue.one;
-  } else {
-    result = tokenValue.other.replace("{{count}}", count.toString());
-  }
-  if (options?.addSuffix) {
-    if (options.comparison && options.comparison > 0) {
-      return "in " + result;
-    } else {
-      return result + " ago";
-    }
-  }
-  return result;
-};
-
-// node_modules/date-fns/locale/_lib/buildFormatLongFn.mjs
-function buildFormatLongFn(args) {
-  return (options = {}) => {
-    const width = options.width ? String(options.width) : args.defaultWidth;
-    const format2 = args.formats[width] || args.formats[args.defaultWidth];
-    return format2;
-  };
-}
-
-// node_modules/date-fns/locale/en-US/_lib/formatLong.mjs
-var dateFormats = {
-  full: "EEEE, MMMM do, y",
-  long: "MMMM do, y",
-  medium: "MMM d, y",
-  short: "MM/dd/yyyy"
-};
-var timeFormats = {
-  full: "h:mm:ss a zzzz",
-  long: "h:mm:ss a z",
-  medium: "h:mm:ss a",
-  short: "h:mm a"
-};
-var dateTimeFormats = {
-  full: "{{date}} 'at' {{time}}",
-  long: "{{date}} 'at' {{time}}",
-  medium: "{{date}}, {{time}}",
-  short: "{{date}}, {{time}}"
-};
-var formatLong = {
-  date: buildFormatLongFn({
-    formats: dateFormats,
-    defaultWidth: "full"
-  }),
-  time: buildFormatLongFn({
-    formats: timeFormats,
-    defaultWidth: "full"
-  }),
-  dateTime: buildFormatLongFn({
-    formats: dateTimeFormats,
-    defaultWidth: "full"
-  })
-};
-
-// node_modules/date-fns/locale/en-US/_lib/formatRelative.mjs
-var formatRelativeLocale = {
-  lastWeek: "'last' eeee 'at' p",
-  yesterday: "'yesterday at' p",
-  today: "'today at' p",
-  tomorrow: "'tomorrow at' p",
-  nextWeek: "eeee 'at' p",
-  other: "P"
-};
-var formatRelative = (token, _date, _baseDate, _options) => formatRelativeLocale[token];
-
-// node_modules/date-fns/locale/_lib/buildLocalizeFn.mjs
-function buildLocalizeFn(args) {
-  return (value, options) => {
-    const context = options?.context ? String(options.context) : "standalone";
-    let valuesArray;
-    if (context === "formatting" && args.formattingValues) {
-      const defaultWidth = args.defaultFormattingWidth || args.defaultWidth;
-      const width = options?.width ? String(options.width) : defaultWidth;
-      valuesArray = args.formattingValues[width] || args.formattingValues[defaultWidth];
-    } else {
-      const defaultWidth = args.defaultWidth;
-      const width = options?.width ? String(options.width) : args.defaultWidth;
-      valuesArray = args.values[width] || args.values[defaultWidth];
-    }
-    const index = args.argumentCallback ? args.argumentCallback(value) : value;
-    return valuesArray[index];
-  };
-}
-
-// node_modules/date-fns/locale/en-US/_lib/localize.mjs
-var eraValues = {
-  narrow: ["B", "A"],
-  abbreviated: ["BC", "AD"],
-  wide: ["Before Christ", "Anno Domini"]
-};
-var quarterValues = {
-  narrow: ["1", "2", "3", "4"],
-  abbreviated: ["Q1", "Q2", "Q3", "Q4"],
-  wide: ["1st quarter", "2nd quarter", "3rd quarter", "4th quarter"]
-};
-var monthValues = {
-  narrow: ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"],
-  abbreviated: [
-    "Jan",
-    "Feb",
-    "Mar",
-    "Apr",
-    "May",
-    "Jun",
-    "Jul",
-    "Aug",
-    "Sep",
-    "Oct",
-    "Nov",
-    "Dec"
-  ],
-  wide: [
-    "January",
-    "February",
-    "March",
-    "April",
-    "May",
-    "June",
-    "July",
-    "August",
-    "September",
-    "October",
-    "November",
-    "December"
-  ]
-};
-var dayValues = {
-  narrow: ["S", "M", "T", "W", "T", "F", "S"],
-  short: ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"],
-  abbreviated: ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
-  wide: [
-    "Sunday",
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday"
-  ]
-};
-var dayPeriodValues = {
-  narrow: {
-    am: "a",
-    pm: "p",
-    midnight: "mi",
-    noon: "n",
-    morning: "morning",
-    afternoon: "afternoon",
-    evening: "evening",
-    night: "night"
-  },
-  abbreviated: {
-    am: "AM",
-    pm: "PM",
-    midnight: "midnight",
-    noon: "noon",
-    morning: "morning",
-    afternoon: "afternoon",
-    evening: "evening",
-    night: "night"
-  },
-  wide: {
-    am: "a.m.",
-    pm: "p.m.",
-    midnight: "midnight",
-    noon: "noon",
-    morning: "morning",
-    afternoon: "afternoon",
-    evening: "evening",
-    night: "night"
-  }
-};
-var formattingDayPeriodValues = {
-  narrow: {
-    am: "a",
-    pm: "p",
-    midnight: "mi",
-    noon: "n",
-    morning: "in the morning",
-    afternoon: "in the afternoon",
-    evening: "in the evening",
-    night: "at night"
-  },
-  abbreviated: {
-    am: "AM",
-    pm: "PM",
-    midnight: "midnight",
-    noon: "noon",
-    morning: "in the morning",
-    afternoon: "in the afternoon",
-    evening: "in the evening",
-    night: "at night"
-  },
-  wide: {
-    am: "a.m.",
-    pm: "p.m.",
-    midnight: "midnight",
-    noon: "noon",
-    morning: "in the morning",
-    afternoon: "in the afternoon",
-    evening: "in the evening",
-    night: "at night"
-  }
-};
-var ordinalNumber = (dirtyNumber, _options) => {
-  const number = Number(dirtyNumber);
-  const rem100 = number % 100;
-  if (rem100 > 20 || rem100 < 10) {
-    switch (rem100 % 10) {
-      case 1:
-        return number + "st";
-      case 2:
-        return number + "nd";
-      case 3:
-        return number + "rd";
-    }
-  }
-  return number + "th";
-};
-var localize = {
-  ordinalNumber,
-  era: buildLocalizeFn({
-    values: eraValues,
-    defaultWidth: "wide"
-  }),
-  quarter: buildLocalizeFn({
-    values: quarterValues,
-    defaultWidth: "wide",
-    argumentCallback: (quarter) => quarter - 1
-  }),
-  month: buildLocalizeFn({
-    values: monthValues,
-    defaultWidth: "wide"
-  }),
-  day: buildLocalizeFn({
-    values: dayValues,
-    defaultWidth: "wide"
-  }),
-  dayPeriod: buildLocalizeFn({
-    values: dayPeriodValues,
-    defaultWidth: "wide",
-    formattingValues: formattingDayPeriodValues,
-    defaultFormattingWidth: "wide"
-  })
-};
-
-// node_modules/date-fns/locale/_lib/buildMatchFn.mjs
-function buildMatchFn(args) {
-  return (string, options = {}) => {
-    const width = options.width;
-    const matchPattern = width && args.matchPatterns[width] || args.matchPatterns[args.defaultMatchWidth];
-    const matchResult = string.match(matchPattern);
-    if (!matchResult) {
-      return null;
-    }
-    const matchedString = matchResult[0];
-    const parsePatterns = width && args.parsePatterns[width] || args.parsePatterns[args.defaultParseWidth];
-    const key = Array.isArray(parsePatterns) ? findIndex(parsePatterns, (pattern) => pattern.test(matchedString)) : (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- I challange you to fix the type
-      findKey(parsePatterns, (pattern) => pattern.test(matchedString))
-    );
-    let value;
-    value = args.valueCallback ? args.valueCallback(key) : key;
-    value = options.valueCallback ? (
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- I challange you to fix the type
-      options.valueCallback(value)
-    ) : value;
-    const rest = string.slice(matchedString.length);
-    return { value, rest };
-  };
-}
-function findKey(object, predicate) {
-  for (const key in object) {
-    if (Object.prototype.hasOwnProperty.call(object, key) && predicate(object[key])) {
-      return key;
-    }
-  }
-  return void 0;
-}
-function findIndex(array, predicate) {
-  for (let key = 0; key < array.length; key++) {
-    if (predicate(array[key])) {
-      return key;
-    }
-  }
-  return void 0;
-}
-
-// node_modules/date-fns/locale/_lib/buildMatchPatternFn.mjs
-function buildMatchPatternFn(args) {
-  return (string, options = {}) => {
-    const matchResult = string.match(args.matchPattern);
-    if (!matchResult)
-      return null;
-    const matchedString = matchResult[0];
-    const parseResult = string.match(args.parsePattern);
-    if (!parseResult)
-      return null;
-    let value = args.valueCallback ? args.valueCallback(parseResult[0]) : parseResult[0];
-    value = options.valueCallback ? options.valueCallback(value) : value;
-    const rest = string.slice(matchedString.length);
-    return { value, rest };
-  };
-}
-
-// node_modules/date-fns/locale/en-US/_lib/match.mjs
-var matchOrdinalNumberPattern = /^(\d+)(th|st|nd|rd)?/i;
-var parseOrdinalNumberPattern = /\d+/i;
-var matchEraPatterns = {
-  narrow: /^(b|a)/i,
-  abbreviated: /^(b\.?\s?c\.?|b\.?\s?c\.?\s?e\.?|a\.?\s?d\.?|c\.?\s?e\.?)/i,
-  wide: /^(before christ|before common era|anno domini|common era)/i
-};
-var parseEraPatterns = {
-  any: [/^b/i, /^(a|c)/i]
-};
-var matchQuarterPatterns = {
-  narrow: /^[1234]/i,
-  abbreviated: /^q[1234]/i,
-  wide: /^[1234](th|st|nd|rd)? quarter/i
-};
-var parseQuarterPatterns = {
-  any: [/1/i, /2/i, /3/i, /4/i]
-};
-var matchMonthPatterns = {
-  narrow: /^[jfmasond]/i,
-  abbreviated: /^(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)/i,
-  wide: /^(january|february|march|april|may|june|july|august|september|october|november|december)/i
-};
-var parseMonthPatterns = {
-  narrow: [
-    /^j/i,
-    /^f/i,
-    /^m/i,
-    /^a/i,
-    /^m/i,
-    /^j/i,
-    /^j/i,
-    /^a/i,
-    /^s/i,
-    /^o/i,
-    /^n/i,
-    /^d/i
-  ],
-  any: [
-    /^ja/i,
-    /^f/i,
-    /^mar/i,
-    /^ap/i,
-    /^may/i,
-    /^jun/i,
-    /^jul/i,
-    /^au/i,
-    /^s/i,
-    /^o/i,
-    /^n/i,
-    /^d/i
-  ]
-};
-var matchDayPatterns = {
-  narrow: /^[smtwf]/i,
-  short: /^(su|mo|tu|we|th|fr|sa)/i,
-  abbreviated: /^(sun|mon|tue|wed|thu|fri|sat)/i,
-  wide: /^(sunday|monday|tuesday|wednesday|thursday|friday|saturday)/i
-};
-var parseDayPatterns = {
-  narrow: [/^s/i, /^m/i, /^t/i, /^w/i, /^t/i, /^f/i, /^s/i],
-  any: [/^su/i, /^m/i, /^tu/i, /^w/i, /^th/i, /^f/i, /^sa/i]
-};
-var matchDayPeriodPatterns = {
-  narrow: /^(a|p|mi|n|(in the|at) (morning|afternoon|evening|night))/i,
-  any: /^([ap]\.?\s?m\.?|midnight|noon|(in the|at) (morning|afternoon|evening|night))/i
-};
-var parseDayPeriodPatterns = {
-  any: {
-    am: /^a/i,
-    pm: /^p/i,
-    midnight: /^mi/i,
-    noon: /^no/i,
-    morning: /morning/i,
-    afternoon: /afternoon/i,
-    evening: /evening/i,
-    night: /night/i
-  }
-};
-var match = {
-  ordinalNumber: buildMatchPatternFn({
-    matchPattern: matchOrdinalNumberPattern,
-    parsePattern: parseOrdinalNumberPattern,
-    valueCallback: (value) => parseInt(value, 10)
-  }),
-  era: buildMatchFn({
-    matchPatterns: matchEraPatterns,
-    defaultMatchWidth: "wide",
-    parsePatterns: parseEraPatterns,
-    defaultParseWidth: "any"
-  }),
-  quarter: buildMatchFn({
-    matchPatterns: matchQuarterPatterns,
-    defaultMatchWidth: "wide",
-    parsePatterns: parseQuarterPatterns,
-    defaultParseWidth: "any",
-    valueCallback: (index) => index + 1
-  }),
-  month: buildMatchFn({
-    matchPatterns: matchMonthPatterns,
-    defaultMatchWidth: "wide",
-    parsePatterns: parseMonthPatterns,
-    defaultParseWidth: "any"
-  }),
-  day: buildMatchFn({
-    matchPatterns: matchDayPatterns,
-    defaultMatchWidth: "wide",
-    parsePatterns: parseDayPatterns,
-    defaultParseWidth: "any"
-  }),
-  dayPeriod: buildMatchFn({
-    matchPatterns: matchDayPeriodPatterns,
-    defaultMatchWidth: "any",
-    parsePatterns: parseDayPeriodPatterns,
-    defaultParseWidth: "any"
-  })
-};
-
-// node_modules/date-fns/locale/en-US.mjs
-var enUS = {
-  code: "en-US",
-  formatDistance,
-  formatLong,
-  formatRelative,
-  localize,
-  match,
-  options: {
-    weekStartsOn: 0,
-    firstWeekContainsDate: 1
-  }
-};
-
-// node_modules/date-fns/getDayOfYear.mjs
-function getDayOfYear(date) {
-  const _date = toDate(date);
-  const diff = differenceInCalendarDays(_date, startOfYear(_date));
-  const dayOfYear = diff + 1;
-  return dayOfYear;
-}
-
-// node_modules/date-fns/getISOWeek.mjs
-function getISOWeek(date) {
-  const _date = toDate(date);
-  const diff = startOfISOWeek(_date).getTime() - startOfISOWeekYear(_date).getTime();
-  return Math.round(diff / millisecondsInWeek) + 1;
-}
-
-// node_modules/date-fns/getWeekYear.mjs
-function getWeekYear(date, options) {
-  const _date = toDate(date);
-  const year = _date.getFullYear();
-  const defaultOptions2 = getDefaultOptions();
-  const firstWeekContainsDate = options?.firstWeekContainsDate ?? options?.locale?.options?.firstWeekContainsDate ?? defaultOptions2.firstWeekContainsDate ?? defaultOptions2.locale?.options?.firstWeekContainsDate ?? 1;
-  const firstWeekOfNextYear = constructFrom(date, 0);
-  firstWeekOfNextYear.setFullYear(year + 1, 0, firstWeekContainsDate);
-  firstWeekOfNextYear.setHours(0, 0, 0, 0);
-  const startOfNextYear = startOfWeek(firstWeekOfNextYear, options);
-  const firstWeekOfThisYear = constructFrom(date, 0);
-  firstWeekOfThisYear.setFullYear(year, 0, firstWeekContainsDate);
-  firstWeekOfThisYear.setHours(0, 0, 0, 0);
-  const startOfThisYear = startOfWeek(firstWeekOfThisYear, options);
-  if (_date.getTime() >= startOfNextYear.getTime()) {
-    return year + 1;
-  } else if (_date.getTime() >= startOfThisYear.getTime()) {
-    return year;
-  } else {
-    return year - 1;
-  }
-}
-
-// node_modules/date-fns/startOfWeekYear.mjs
-function startOfWeekYear(date, options) {
-  const defaultOptions2 = getDefaultOptions();
-  const firstWeekContainsDate = options?.firstWeekContainsDate ?? options?.locale?.options?.firstWeekContainsDate ?? defaultOptions2.firstWeekContainsDate ?? defaultOptions2.locale?.options?.firstWeekContainsDate ?? 1;
-  const year = getWeekYear(date, options);
-  const firstWeek = constructFrom(date, 0);
-  firstWeek.setFullYear(year, 0, firstWeekContainsDate);
-  firstWeek.setHours(0, 0, 0, 0);
-  const _date = startOfWeek(firstWeek, options);
-  return _date;
-}
-
-// node_modules/date-fns/getWeek.mjs
-function getWeek(date, options) {
-  const _date = toDate(date);
-  const diff = startOfWeek(_date, options).getTime() - startOfWeekYear(_date, options).getTime();
-  return Math.round(diff / millisecondsInWeek) + 1;
-}
-
-// node_modules/date-fns/_lib/addLeadingZeros.mjs
-function addLeadingZeros(number, targetLength) {
-  const sign = number < 0 ? "-" : "";
-  const output = Math.abs(number).toString().padStart(targetLength, "0");
-  return sign + output;
-}
-
-// node_modules/date-fns/_lib/format/lightFormatters.mjs
-var lightFormatters = {
-  // Year
-  y(date, token) {
-    const signedYear = date.getFullYear();
-    const year = signedYear > 0 ? signedYear : 1 - signedYear;
-    return addLeadingZeros(token === "yy" ? year % 100 : year, token.length);
-  },
-  // Month
-  M(date, token) {
-    const month = date.getMonth();
-    return token === "M" ? String(month + 1) : addLeadingZeros(month + 1, 2);
-  },
-  // Day of the month
-  d(date, token) {
-    return addLeadingZeros(date.getDate(), token.length);
-  },
-  // AM or PM
-  a(date, token) {
-    const dayPeriodEnumValue = date.getHours() / 12 >= 1 ? "pm" : "am";
-    switch (token) {
-      case "a":
-      case "aa":
-        return dayPeriodEnumValue.toUpperCase();
-      case "aaa":
-        return dayPeriodEnumValue;
-      case "aaaaa":
-        return dayPeriodEnumValue[0];
-      case "aaaa":
-      default:
-        return dayPeriodEnumValue === "am" ? "a.m." : "p.m.";
-    }
-  },
-  // Hour [1-12]
-  h(date, token) {
-    return addLeadingZeros(date.getHours() % 12 || 12, token.length);
-  },
-  // Hour [0-23]
-  H(date, token) {
-    return addLeadingZeros(date.getHours(), token.length);
-  },
-  // Minute
-  m(date, token) {
-    return addLeadingZeros(date.getMinutes(), token.length);
-  },
-  // Second
-  s(date, token) {
-    return addLeadingZeros(date.getSeconds(), token.length);
-  },
-  // Fraction of second
-  S(date, token) {
-    const numberOfDigits = token.length;
-    const milliseconds = date.getMilliseconds();
-    const fractionalSeconds = Math.floor(
-      milliseconds * Math.pow(10, numberOfDigits - 3)
-    );
-    return addLeadingZeros(fractionalSeconds, token.length);
-  }
-};
-
-// node_modules/date-fns/_lib/format/formatters.mjs
-var dayPeriodEnum = {
-  am: "am",
-  pm: "pm",
-  midnight: "midnight",
-  noon: "noon",
-  morning: "morning",
-  afternoon: "afternoon",
-  evening: "evening",
-  night: "night"
-};
-var formatters = {
-  // Era
-  G: function(date, token, localize2) {
-    const era = date.getFullYear() > 0 ? 1 : 0;
-    switch (token) {
-      case "G":
-      case "GG":
-      case "GGG":
-        return localize2.era(era, { width: "abbreviated" });
-      case "GGGGG":
-        return localize2.era(era, { width: "narrow" });
-      case "GGGG":
-      default:
-        return localize2.era(era, { width: "wide" });
-    }
-  },
-  // Year
-  y: function(date, token, localize2) {
-    if (token === "yo") {
-      const signedYear = date.getFullYear();
-      const year = signedYear > 0 ? signedYear : 1 - signedYear;
-      return localize2.ordinalNumber(year, { unit: "year" });
-    }
-    return lightFormatters.y(date, token);
-  },
-  // Local week-numbering year
-  Y: function(date, token, localize2, options) {
-    const signedWeekYear = getWeekYear(date, options);
-    const weekYear = signedWeekYear > 0 ? signedWeekYear : 1 - signedWeekYear;
-    if (token === "YY") {
-      const twoDigitYear = weekYear % 100;
-      return addLeadingZeros(twoDigitYear, 2);
-    }
-    if (token === "Yo") {
-      return localize2.ordinalNumber(weekYear, { unit: "year" });
-    }
-    return addLeadingZeros(weekYear, token.length);
-  },
-  // ISO week-numbering year
-  R: function(date, token) {
-    const isoWeekYear = getISOWeekYear(date);
-    return addLeadingZeros(isoWeekYear, token.length);
-  },
-  // Extended year. This is a single number designating the year of this calendar system.
-  // The main difference between `y` and `u` localizers are B.C. years:
-  // | Year | `y` | `u` |
-  // |------|-----|-----|
-  // | AC 1 |   1 |   1 |
-  // | BC 1 |   1 |   0 |
-  // | BC 2 |   2 |  -1 |
-  // Also `yy` always returns the last two digits of a year,
-  // while `uu` pads single digit years to 2 characters and returns other years unchanged.
-  u: function(date, token) {
-    const year = date.getFullYear();
-    return addLeadingZeros(year, token.length);
-  },
-  // Quarter
-  Q: function(date, token, localize2) {
-    const quarter = Math.ceil((date.getMonth() + 1) / 3);
-    switch (token) {
-      case "Q":
-        return String(quarter);
-      case "QQ":
-        return addLeadingZeros(quarter, 2);
-      case "Qo":
-        return localize2.ordinalNumber(quarter, { unit: "quarter" });
-      case "QQQ":
-        return localize2.quarter(quarter, {
-          width: "abbreviated",
-          context: "formatting"
-        });
-      case "QQQQQ":
-        return localize2.quarter(quarter, {
-          width: "narrow",
-          context: "formatting"
-        });
-      case "QQQQ":
-      default:
-        return localize2.quarter(quarter, {
-          width: "wide",
-          context: "formatting"
-        });
-    }
-  },
-  // Stand-alone quarter
-  q: function(date, token, localize2) {
-    const quarter = Math.ceil((date.getMonth() + 1) / 3);
-    switch (token) {
-      case "q":
-        return String(quarter);
-      case "qq":
-        return addLeadingZeros(quarter, 2);
-      case "qo":
-        return localize2.ordinalNumber(quarter, { unit: "quarter" });
-      case "qqq":
-        return localize2.quarter(quarter, {
-          width: "abbreviated",
-          context: "standalone"
-        });
-      case "qqqqq":
-        return localize2.quarter(quarter, {
-          width: "narrow",
-          context: "standalone"
-        });
-      case "qqqq":
-      default:
-        return localize2.quarter(quarter, {
-          width: "wide",
-          context: "standalone"
-        });
-    }
-  },
-  // Month
-  M: function(date, token, localize2) {
-    const month = date.getMonth();
-    switch (token) {
-      case "M":
-      case "MM":
-        return lightFormatters.M(date, token);
-      case "Mo":
-        return localize2.ordinalNumber(month + 1, { unit: "month" });
-      case "MMM":
-        return localize2.month(month, {
-          width: "abbreviated",
-          context: "formatting"
-        });
-      case "MMMMM":
-        return localize2.month(month, {
-          width: "narrow",
-          context: "formatting"
-        });
-      case "MMMM":
-      default:
-        return localize2.month(month, { width: "wide", context: "formatting" });
-    }
-  },
-  // Stand-alone month
-  L: function(date, token, localize2) {
-    const month = date.getMonth();
-    switch (token) {
-      case "L":
-        return String(month + 1);
-      case "LL":
-        return addLeadingZeros(month + 1, 2);
-      case "Lo":
-        return localize2.ordinalNumber(month + 1, { unit: "month" });
-      case "LLL":
-        return localize2.month(month, {
-          width: "abbreviated",
-          context: "standalone"
-        });
-      case "LLLLL":
-        return localize2.month(month, {
-          width: "narrow",
-          context: "standalone"
-        });
-      case "LLLL":
-      default:
-        return localize2.month(month, { width: "wide", context: "standalone" });
-    }
-  },
-  // Local week of year
-  w: function(date, token, localize2, options) {
-    const week = getWeek(date, options);
-    if (token === "wo") {
-      return localize2.ordinalNumber(week, { unit: "week" });
-    }
-    return addLeadingZeros(week, token.length);
-  },
-  // ISO week of year
-  I: function(date, token, localize2) {
-    const isoWeek = getISOWeek(date);
-    if (token === "Io") {
-      return localize2.ordinalNumber(isoWeek, { unit: "week" });
-    }
-    return addLeadingZeros(isoWeek, token.length);
-  },
-  // Day of the month
-  d: function(date, token, localize2) {
-    if (token === "do") {
-      return localize2.ordinalNumber(date.getDate(), { unit: "date" });
-    }
-    return lightFormatters.d(date, token);
-  },
-  // Day of year
-  D: function(date, token, localize2) {
-    const dayOfYear = getDayOfYear(date);
-    if (token === "Do") {
-      return localize2.ordinalNumber(dayOfYear, { unit: "dayOfYear" });
-    }
-    return addLeadingZeros(dayOfYear, token.length);
-  },
-  // Day of week
-  E: function(date, token, localize2) {
-    const dayOfWeek = date.getDay();
-    switch (token) {
-      case "E":
-      case "EE":
-      case "EEE":
-        return localize2.day(dayOfWeek, {
-          width: "abbreviated",
-          context: "formatting"
-        });
-      case "EEEEE":
-        return localize2.day(dayOfWeek, {
-          width: "narrow",
-          context: "formatting"
-        });
-      case "EEEEEE":
-        return localize2.day(dayOfWeek, {
-          width: "short",
-          context: "formatting"
-        });
-      case "EEEE":
-      default:
-        return localize2.day(dayOfWeek, {
-          width: "wide",
-          context: "formatting"
-        });
-    }
-  },
-  // Local day of week
-  e: function(date, token, localize2, options) {
-    const dayOfWeek = date.getDay();
-    const localDayOfWeek = (dayOfWeek - options.weekStartsOn + 8) % 7 || 7;
-    switch (token) {
-      case "e":
-        return String(localDayOfWeek);
-      case "ee":
-        return addLeadingZeros(localDayOfWeek, 2);
-      case "eo":
-        return localize2.ordinalNumber(localDayOfWeek, { unit: "day" });
-      case "eee":
-        return localize2.day(dayOfWeek, {
-          width: "abbreviated",
-          context: "formatting"
-        });
-      case "eeeee":
-        return localize2.day(dayOfWeek, {
-          width: "narrow",
-          context: "formatting"
-        });
-      case "eeeeee":
-        return localize2.day(dayOfWeek, {
-          width: "short",
-          context: "formatting"
-        });
-      case "eeee":
-      default:
-        return localize2.day(dayOfWeek, {
-          width: "wide",
-          context: "formatting"
-        });
-    }
-  },
-  // Stand-alone local day of week
-  c: function(date, token, localize2, options) {
-    const dayOfWeek = date.getDay();
-    const localDayOfWeek = (dayOfWeek - options.weekStartsOn + 8) % 7 || 7;
-    switch (token) {
-      case "c":
-        return String(localDayOfWeek);
-      case "cc":
-        return addLeadingZeros(localDayOfWeek, token.length);
-      case "co":
-        return localize2.ordinalNumber(localDayOfWeek, { unit: "day" });
-      case "ccc":
-        return localize2.day(dayOfWeek, {
-          width: "abbreviated",
-          context: "standalone"
-        });
-      case "ccccc":
-        return localize2.day(dayOfWeek, {
-          width: "narrow",
-          context: "standalone"
-        });
-      case "cccccc":
-        return localize2.day(dayOfWeek, {
-          width: "short",
-          context: "standalone"
-        });
-      case "cccc":
-      default:
-        return localize2.day(dayOfWeek, {
-          width: "wide",
-          context: "standalone"
-        });
-    }
-  },
-  // ISO day of week
-  i: function(date, token, localize2) {
-    const dayOfWeek = date.getDay();
-    const isoDayOfWeek = dayOfWeek === 0 ? 7 : dayOfWeek;
-    switch (token) {
-      case "i":
-        return String(isoDayOfWeek);
-      case "ii":
-        return addLeadingZeros(isoDayOfWeek, token.length);
-      case "io":
-        return localize2.ordinalNumber(isoDayOfWeek, { unit: "day" });
-      case "iii":
-        return localize2.day(dayOfWeek, {
-          width: "abbreviated",
-          context: "formatting"
-        });
-      case "iiiii":
-        return localize2.day(dayOfWeek, {
-          width: "narrow",
-          context: "formatting"
-        });
-      case "iiiiii":
-        return localize2.day(dayOfWeek, {
-          width: "short",
-          context: "formatting"
-        });
-      case "iiii":
-      default:
-        return localize2.day(dayOfWeek, {
-          width: "wide",
-          context: "formatting"
-        });
-    }
-  },
-  // AM or PM
-  a: function(date, token, localize2) {
-    const hours = date.getHours();
-    const dayPeriodEnumValue = hours / 12 >= 1 ? "pm" : "am";
-    switch (token) {
-      case "a":
-      case "aa":
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "abbreviated",
-          context: "formatting"
-        });
-      case "aaa":
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "abbreviated",
-          context: "formatting"
-        }).toLowerCase();
-      case "aaaaa":
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "narrow",
-          context: "formatting"
-        });
-      case "aaaa":
-      default:
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "wide",
-          context: "formatting"
-        });
-    }
-  },
-  // AM, PM, midnight, noon
-  b: function(date, token, localize2) {
-    const hours = date.getHours();
-    let dayPeriodEnumValue;
-    if (hours === 12) {
-      dayPeriodEnumValue = dayPeriodEnum.noon;
-    } else if (hours === 0) {
-      dayPeriodEnumValue = dayPeriodEnum.midnight;
-    } else {
-      dayPeriodEnumValue = hours / 12 >= 1 ? "pm" : "am";
-    }
-    switch (token) {
-      case "b":
-      case "bb":
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "abbreviated",
-          context: "formatting"
-        });
-      case "bbb":
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "abbreviated",
-          context: "formatting"
-        }).toLowerCase();
-      case "bbbbb":
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "narrow",
-          context: "formatting"
-        });
-      case "bbbb":
-      default:
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "wide",
-          context: "formatting"
-        });
-    }
-  },
-  // in the morning, in the afternoon, in the evening, at night
-  B: function(date, token, localize2) {
-    const hours = date.getHours();
-    let dayPeriodEnumValue;
-    if (hours >= 17) {
-      dayPeriodEnumValue = dayPeriodEnum.evening;
-    } else if (hours >= 12) {
-      dayPeriodEnumValue = dayPeriodEnum.afternoon;
-    } else if (hours >= 4) {
-      dayPeriodEnumValue = dayPeriodEnum.morning;
-    } else {
-      dayPeriodEnumValue = dayPeriodEnum.night;
-    }
-    switch (token) {
-      case "B":
-      case "BB":
-      case "BBB":
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "abbreviated",
-          context: "formatting"
-        });
-      case "BBBBB":
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "narrow",
-          context: "formatting"
-        });
-      case "BBBB":
-      default:
-        return localize2.dayPeriod(dayPeriodEnumValue, {
-          width: "wide",
-          context: "formatting"
-        });
-    }
-  },
-  // Hour [1-12]
-  h: function(date, token, localize2) {
-    if (token === "ho") {
-      let hours = date.getHours() % 12;
-      if (hours === 0)
-        hours = 12;
-      return localize2.ordinalNumber(hours, { unit: "hour" });
-    }
-    return lightFormatters.h(date, token);
-  },
-  // Hour [0-23]
-  H: function(date, token, localize2) {
-    if (token === "Ho") {
-      return localize2.ordinalNumber(date.getHours(), { unit: "hour" });
-    }
-    return lightFormatters.H(date, token);
-  },
-  // Hour [0-11]
-  K: function(date, token, localize2) {
-    const hours = date.getHours() % 12;
-    if (token === "Ko") {
-      return localize2.ordinalNumber(hours, { unit: "hour" });
-    }
-    return addLeadingZeros(hours, token.length);
-  },
-  // Hour [1-24]
-  k: function(date, token, localize2) {
-    let hours = date.getHours();
-    if (hours === 0)
-      hours = 24;
-    if (token === "ko") {
-      return localize2.ordinalNumber(hours, { unit: "hour" });
-    }
-    return addLeadingZeros(hours, token.length);
-  },
-  // Minute
-  m: function(date, token, localize2) {
-    if (token === "mo") {
-      return localize2.ordinalNumber(date.getMinutes(), { unit: "minute" });
-    }
-    return lightFormatters.m(date, token);
-  },
-  // Second
-  s: function(date, token, localize2) {
-    if (token === "so") {
-      return localize2.ordinalNumber(date.getSeconds(), { unit: "second" });
-    }
-    return lightFormatters.s(date, token);
-  },
-  // Fraction of second
-  S: function(date, token) {
-    return lightFormatters.S(date, token);
-  },
-  // Timezone (ISO-8601. If offset is 0, output is always `'Z'`)
-  X: function(date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timezoneOffset = originalDate.getTimezoneOffset();
-    if (timezoneOffset === 0) {
-      return "Z";
-    }
-    switch (token) {
-      case "X":
-        return formatTimezoneWithOptionalMinutes(timezoneOffset);
-      case "XXXX":
-      case "XX":
-        return formatTimezone(timezoneOffset);
-      case "XXXXX":
-      case "XXX":
-      default:
-        return formatTimezone(timezoneOffset, ":");
-    }
-  },
-  // Timezone (ISO-8601. If offset is 0, output is `'+00:00'` or equivalent)
-  x: function(date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timezoneOffset = originalDate.getTimezoneOffset();
-    switch (token) {
-      case "x":
-        return formatTimezoneWithOptionalMinutes(timezoneOffset);
-      case "xxxx":
-      case "xx":
-        return formatTimezone(timezoneOffset);
-      case "xxxxx":
-      case "xxx":
-      default:
-        return formatTimezone(timezoneOffset, ":");
-    }
-  },
-  // Timezone (GMT)
-  O: function(date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timezoneOffset = originalDate.getTimezoneOffset();
-    switch (token) {
-      case "O":
-      case "OO":
-      case "OOO":
-        return "GMT" + formatTimezoneShort(timezoneOffset, ":");
-      case "OOOO":
-      default:
-        return "GMT" + formatTimezone(timezoneOffset, ":");
-    }
-  },
-  // Timezone (specific non-location)
-  z: function(date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timezoneOffset = originalDate.getTimezoneOffset();
-    switch (token) {
-      case "z":
-      case "zz":
-      case "zzz":
-        return "GMT" + formatTimezoneShort(timezoneOffset, ":");
-      case "zzzz":
-      default:
-        return "GMT" + formatTimezone(timezoneOffset, ":");
-    }
-  },
-  // Seconds timestamp
-  t: function(date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timestamp = Math.floor(originalDate.getTime() / 1e3);
-    return addLeadingZeros(timestamp, token.length);
-  },
-  // Milliseconds timestamp
-  T: function(date, token, _localize, options) {
-    const originalDate = options._originalDate || date;
-    const timestamp = originalDate.getTime();
-    return addLeadingZeros(timestamp, token.length);
-  }
-};
-function formatTimezoneShort(offset2, delimiter = "") {
-  const sign = offset2 > 0 ? "-" : "+";
-  const absOffset = Math.abs(offset2);
-  const hours = Math.floor(absOffset / 60);
-  const minutes = absOffset % 60;
-  if (minutes === 0) {
-    return sign + String(hours);
-  }
-  return sign + String(hours) + delimiter + addLeadingZeros(minutes, 2);
-}
-function formatTimezoneWithOptionalMinutes(offset2, delimiter) {
-  if (offset2 % 60 === 0) {
-    const sign = offset2 > 0 ? "-" : "+";
-    return sign + addLeadingZeros(Math.abs(offset2) / 60, 2);
-  }
-  return formatTimezone(offset2, delimiter);
-}
-function formatTimezone(offset2, delimiter = "") {
-  const sign = offset2 > 0 ? "-" : "+";
-  const absOffset = Math.abs(offset2);
-  const hours = addLeadingZeros(Math.floor(absOffset / 60), 2);
-  const minutes = addLeadingZeros(absOffset % 60, 2);
-  return sign + hours + delimiter + minutes;
-}
-
-// node_modules/date-fns/_lib/format/longFormatters.mjs
-var dateLongFormatter = (pattern, formatLong2) => {
-  switch (pattern) {
-    case "P":
-      return formatLong2.date({ width: "short" });
-    case "PP":
-      return formatLong2.date({ width: "medium" });
-    case "PPP":
-      return formatLong2.date({ width: "long" });
-    case "PPPP":
-    default:
-      return formatLong2.date({ width: "full" });
-  }
-};
-var timeLongFormatter = (pattern, formatLong2) => {
-  switch (pattern) {
-    case "p":
-      return formatLong2.time({ width: "short" });
-    case "pp":
-      return formatLong2.time({ width: "medium" });
-    case "ppp":
-      return formatLong2.time({ width: "long" });
-    case "pppp":
-    default:
-      return formatLong2.time({ width: "full" });
-  }
-};
-var dateTimeLongFormatter = (pattern, formatLong2) => {
-  const matchResult = pattern.match(/(P+)(p+)?/) || [];
-  const datePattern = matchResult[1];
-  const timePattern = matchResult[2];
-  if (!timePattern) {
-    return dateLongFormatter(pattern, formatLong2);
-  }
-  let dateTimeFormat;
-  switch (datePattern) {
-    case "P":
-      dateTimeFormat = formatLong2.dateTime({ width: "short" });
-      break;
-    case "PP":
-      dateTimeFormat = formatLong2.dateTime({ width: "medium" });
-      break;
-    case "PPP":
-      dateTimeFormat = formatLong2.dateTime({ width: "long" });
-      break;
-    case "PPPP":
-    default:
-      dateTimeFormat = formatLong2.dateTime({ width: "full" });
-      break;
-  }
-  return dateTimeFormat.replace("{{date}}", dateLongFormatter(datePattern, formatLong2)).replace("{{time}}", timeLongFormatter(timePattern, formatLong2));
-};
-var longFormatters = {
-  p: timeLongFormatter,
-  P: dateTimeLongFormatter
-};
-
-// node_modules/date-fns/_lib/protectedTokens.mjs
-var protectedDayOfYearTokens = ["D", "DD"];
-var protectedWeekYearTokens = ["YY", "YYYY"];
-function isProtectedDayOfYearToken(token) {
-  return protectedDayOfYearTokens.indexOf(token) !== -1;
-}
-function isProtectedWeekYearToken(token) {
-  return protectedWeekYearTokens.indexOf(token) !== -1;
-}
-function throwProtectedError(token, format2, input) {
-  if (token === "YYYY") {
-    throw new RangeError(
-      `Use \`yyyy\` instead of \`YYYY\` (in \`${format2}\`) for formatting years to the input \`${input}\`; see: https://github.com/date-fns/date-fns/blob/master/docs/unicodeTokens.md`
-    );
-  } else if (token === "YY") {
-    throw new RangeError(
-      `Use \`yy\` instead of \`YY\` (in \`${format2}\`) for formatting years to the input \`${input}\`; see: https://github.com/date-fns/date-fns/blob/master/docs/unicodeTokens.md`
-    );
-  } else if (token === "D") {
-    throw new RangeError(
-      `Use \`d\` instead of \`D\` (in \`${format2}\`) for formatting days of the month to the input \`${input}\`; see: https://github.com/date-fns/date-fns/blob/master/docs/unicodeTokens.md`
-    );
-  } else if (token === "DD") {
-    throw new RangeError(
-      `Use \`dd\` instead of \`DD\` (in \`${format2}\`) for formatting days of the month to the input \`${input}\`; see: https://github.com/date-fns/date-fns/blob/master/docs/unicodeTokens.md`
-    );
-  }
-}
-
-// node_modules/date-fns/format.mjs
-var formattingTokensRegExp = /[yYQqMLwIdDecihHKkms]o|(\w)\1*|''|'(''|[^'])+('|$)|./g;
-var longFormattingTokensRegExp = /P+p+|P+|p+|''|'(''|[^'])+('|$)|./g;
-var escapedStringRegExp = /^'([^]*?)'?$/;
-var doubleQuoteRegExp = /''/g;
-var unescapedLatinCharacterRegExp = /[a-zA-Z]/;
-function format(date, formatStr, options) {
-  const defaultOptions2 = getDefaultOptions();
-  const locale = options?.locale ?? defaultOptions2.locale ?? enUS;
-  const firstWeekContainsDate = options?.firstWeekContainsDate ?? options?.locale?.options?.firstWeekContainsDate ?? defaultOptions2.firstWeekContainsDate ?? defaultOptions2.locale?.options?.firstWeekContainsDate ?? 1;
-  const weekStartsOn = options?.weekStartsOn ?? options?.locale?.options?.weekStartsOn ?? defaultOptions2.weekStartsOn ?? defaultOptions2.locale?.options?.weekStartsOn ?? 0;
-  const originalDate = toDate(date);
-  if (!isValid(originalDate)) {
-    throw new RangeError("Invalid time value");
-  }
-  const formatterOptions = {
-    firstWeekContainsDate,
-    weekStartsOn,
-    locale,
-    _originalDate: originalDate
-  };
-  const result = formatStr.match(longFormattingTokensRegExp).map(function(substring) {
-    const firstCharacter = substring[0];
-    if (firstCharacter === "p" || firstCharacter === "P") {
-      const longFormatter = longFormatters[firstCharacter];
-      return longFormatter(substring, locale.formatLong);
-    }
-    return substring;
-  }).join("").match(formattingTokensRegExp).map(function(substring) {
-    if (substring === "''") {
-      return "'";
-    }
-    const firstCharacter = substring[0];
-    if (firstCharacter === "'") {
-      return cleanEscapedString(substring);
-    }
-    const formatter = formatters[firstCharacter];
-    if (formatter) {
-      if (!options?.useAdditionalWeekYearTokens && isProtectedWeekYearToken(substring)) {
-        throwProtectedError(substring, formatStr, String(date));
-      }
-      if (!options?.useAdditionalDayOfYearTokens && isProtectedDayOfYearToken(substring)) {
-        throwProtectedError(substring, formatStr, String(date));
-      }
-      return formatter(
-        originalDate,
-        substring,
-        locale.localize,
-        formatterOptions
-      );
-    }
-    if (firstCharacter.match(unescapedLatinCharacterRegExp)) {
-      throw new RangeError(
-        "Format string contains an unescaped latin alphabet character `" + firstCharacter + "`"
-      );
-    }
-    return substring;
-  }).join("");
-  return result;
-}
-function cleanEscapedString(input) {
-  const matched = input.match(escapedStringRegExp);
-  if (!matched) {
-    return input;
-  }
-  return matched[1].replace(doubleQuoteRegExp, "'");
-}
-
 // src/client/containers/infoBox/suncalc/solarTimes.ts
 var import_suncalc = __toESM(require_suncalc(), 1);
 
@@ -10238,9 +8753,9 @@ Stylesheet.addClass({
     width: "15em"
   }
 });
-var SolarTimesStatsCanvas = class extends Container {
+var SolarTimesStatsCanvas = class _SolarTimesStatsCanvas extends Container {
   constructor({ height, keys, map = (val) => val, stats, width }) {
-    const values = stats.map((durations) => map(SolarTimes.increment({ durations, keys })));
+    const values = stats.map((durations) => map(_SolarTimesStatsCanvas.increment({ durations, keys })));
     const minValue = min(...values);
     const maxValue = max(...values);
     const scaleY = (height - 1) / (maxValue - minValue);
@@ -10267,6 +8782,7 @@ var SolarTimesStatsCanvas = class extends Container {
     this.max = maxValue;
     this.min = minValue;
   }
+  static increment = ({ durations, keys }) => keys.reduce((sum, key) => sum + durations[key], 0);
   min;
   max;
 };
@@ -10303,7 +8819,7 @@ var ValueRow = class extends Container {
     map: (val) => sum - val
   });
   add({ durations, increment, keys, label }) {
-    increment ??= SolarTimes.increment({
+    increment ??= SolarTimesStatsCanvas.increment({
       durations: durations.today,
       keys
     }), this.total += increment;
@@ -10358,34 +8874,16 @@ var ValueRow = class extends Container {
 };
 
 // src/client/containers/infoBox/suncalc/solarTimes.ts
-var SolarTimes = class extends Container {
-  constructor() {
-    super("div");
+var SolarTimes = class extends MonoContainer {
+  static {
+    this.copyInstance(new Container("div"), this);
     this.html.id = "SolarTimes";
   }
-  lat = 0;
-  lon = 0;
-  x = -1;
-  y = -1;
-  static increment = ({ durations, keys }) => keys.reduce((sum, key) => sum + durations[key], 0);
-  static formatDates = (dates) => dates.sort((a, b) => a.valueOf() - b.valueOf()).reduce((ret, date) => {
-    const { end: end2 = date, start: start2 = date } = ret.pop() ?? {};
-    if (date.valueOf() - end2.valueOf() <= halfDay * 2)
-      ret.push({ end: date, start: start2 });
-    else {
-      ret.push({ end: end2, start: start2 });
-      ret.push({ end: date, start: date });
-    }
-    return ret;
-  }, []).reduce((ret, { end: end2, start: start2 }, idx) => {
-    if (idx !== 0)
-      ret.push(new Container("br"));
-    ret.push(
-      start2.valueOf() === end2.valueOf() ? format(start2, "dd.MM.yyyy") : `${format(start2, "dd.MM.yyyy")} - ${format(end2, "dd.MM.yyyy")}`
-    );
-    return ret;
-  }, []);
-  getDurations = ({ date }) => {
+  static lat = 0;
+  static lon = 0;
+  static x = -1;
+  static y = -1;
+  static getDurations = ({ date }) => {
     const { dawn, dusk, nauticalDawn, nauticalDusk, night, nightEnd, solarNoon, sunrise, sunriseEnd, sunset, sunsetStart } = (0, import_suncalc.getTimes)(date, this.lat, this.lon);
     const dayRaw = intervalValueOf({ end: sunsetStart, solarNoon, start: sunriseEnd });
     const isPolarDay = dayRaw === 0 && (0, import_suncalc.getPosition)(solarNoon, this.lat, this.lon).altitude >= 0;
@@ -10401,7 +8899,7 @@ var SolarTimes = class extends Container {
       sunset: intervalValueOf({ end: sunset, solarNoon, start: sunsetStart })
     };
   };
-  getDurationsStat = ({ year }) => {
+  static getDurationsStat = ({ year }) => {
     let date = new Date(year, 0);
     const ret = [];
     while (date.getFullYear() === year) {
@@ -10411,7 +8909,7 @@ var SolarTimes = class extends Container {
     }
     return ret;
   };
-  refresh = () => {
+  static refresh = () => {
     if (this.x !== position.x || this.y !== position.y) {
       this.x = position.x;
       this.y = position.y;
@@ -10447,28 +8945,26 @@ var SolarTimes = class extends Container {
     }
   };
 };
-var solarTimes = new SolarTimes();
 
 // src/client/containers/menu/navionicsDetailsToggle.ts
-var NavionicsDetailsToggle = class extends IconButton {
-  constructor() {
-    super({
-      active: () => settings.show.navionicsDetails,
-      icon: "question-circle",
-      onclick: () => {
-        const newActive = !settings.show.navionicsDetails;
-        settings.show.navionicsDetails = newActive;
-        void navionicsDetails.fetch(position);
-      }
-    });
-    this.refresh();
-  }
-  listeners = /* @__PURE__ */ new Set();
-  refresh() {
+var NavionicsDetailsToggle = class extends MonoContainer {
+  static listeners = /* @__PURE__ */ new Set();
+  static refresh() {
     this.listeners.forEach((callback) => callback());
   }
+  static {
+    this.copyInstance(new IconButton({
+      active: () => Settings.show.navionicsDetails,
+      icon: "question-circle",
+      onclick: () => {
+        const newActive = !Settings.show.navionicsDetails;
+        Settings.show.navionicsDetails = newActive;
+        void NavionicsDetails.fetch(position);
+      }
+    }), this);
+    this.refresh();
+  }
 };
-var navionicsDetailsToggle = new NavionicsDetailsToggle();
 
 // src/client/containers/infoBox.ts
 Stylesheet.addClass(
@@ -10483,27 +8979,24 @@ Stylesheet.addClass(
     }
   }
 );
-var InfoBox = class extends Container {
-  constructor() {
-    super("div", {
+var InfoBox = class extends MonoContainer {
+  static {
+    this.copyInstance(new Container("div", {
       classes: ["InfoBox", "p-2", "mt-2"]
-    });
-    navionicsDetailsToggle.listeners.add(() => this.refresh());
-    this.infoBoxCoords = new InfoBoxCoords();
+    }), this);
+    NavionicsDetailsToggle.listeners.add(() => this.refresh());
     this.refresh();
   }
-  infoBoxCoords;
-  refresh() {
+  static refresh() {
     this.clear();
-    this.append(this.infoBoxCoords);
-    if (settings.show.navionicsDetails)
-      this.append(navionicsDetails);
-    if (settings.show.suncalc)
-      this.append(solarTimes);
-    this.append(imagesToFetch);
+    this.append(InfoBoxCoords);
+    if (Settings.show.navionicsDetails)
+      this.append(NavionicsDetails);
+    if (Settings.show.suncalc)
+      this.append(SolarTimes);
+    this.append(ImagesToFetch);
   }
 };
-var infoBox = new InfoBox();
 
 // src/client/utils/min2rad.ts
 function nm2rad(min3) {
@@ -10564,7 +9057,7 @@ function drawCrosshair({
   x,
   y
 }) {
-  if (!settings.show.crosshair)
+  if (!Settings.show.crosshair)
     return;
   const lat2 = y2lat(y);
   const lon2 = x2lon(x);
@@ -10656,7 +9149,7 @@ var drawMarkers = ({
   x,
   y
 }) => {
-  markers.set().forEach((marker) => {
+  Markers.set().forEach((marker) => {
     const markerX = (marker.x - x) * tileSize;
     const markerY = (marker.y - y) * tileSize;
     const from = 40;
@@ -10804,17 +9297,17 @@ Stylesheet.addClass({
     width: "100%"
   }
 });
-var OverlayContainer = class _OverlayContainer extends Container {
-  constructor() {
-    super("div", {
+var OverlayContainer = class _OverlayContainer extends MonoContainer {
+  static {
+    this.copyInstance(new Container("div", {
       classes: ["MapContainerStyle"],
       id: _OverlayContainer.name
-    });
+    }), this);
     position.listeners.add(() => this.refresh());
-    markers.listeners.add(() => this.refresh());
+    Markers.listeners.add(() => this.refresh());
     this.refresh();
   }
-  refresh() {
+  static refresh() {
     const { height, width } = this.html.getBoundingClientRect();
     const canvas = new Container("canvas", {
       classes: ["OverlayContainerCanvas"],
@@ -10834,38 +9327,47 @@ var OverlayContainer = class _OverlayContainer extends Container {
     }
   }
 };
-var overlayContainer = new OverlayContainer();
 
 // src/client/containers/menu/crosshairToggle.ts
-var crosshairToggle = new IconButton({
-  active: () => settings.show.crosshair,
-  icon: "crosshair",
-  onclick: () => {
-    settings.show.crosshair = !settings.show.crosshair;
-    overlayContainer.refresh();
+var CrosshairToggle = class extends MonoContainer {
+  static {
+    this.copyInstance(new IconButton({
+      active: () => Settings.show.crosshair,
+      icon: "crosshair",
+      onclick: () => {
+        Settings.show.crosshair = !Settings.show.crosshair;
+        OverlayContainer.refresh();
+      }
+    }), this);
   }
-});
+};
 
 // src/client/containers/menu/goto/address/searchContainer.ts
-var addressSearchContainer = new Container("div", {
-  classes: ["dropdown-menu"]
-});
+var addressSearchContainer = class extends MonoContainer {
+  static {
+    this.copyInstance(new Container("div", {
+      classes: ["dropdown-menu"]
+    }), this);
+  }
+};
 
 // src/client/containers/menu/goto/address/input.ts
 var addressQueue = new StyQueue(1);
-var parseNominatim = (input) => {
-  if (Array.isArray(input)) {
-    return input.map(
-      (item) => castObject(item, {
-        boundingbox: (val) => Array.isArray(val) ? val.map(deg2rad) : [],
-        display_name: String,
-        importance: Number,
-        lat: (val) => deg2rad(Number(val)),
-        lon: (val) => deg2rad(Number(val))
-      })
-    );
+var Nominatim = class {
+  static parse(input) {
+    if (Array.isArray(input)) {
+      return input.map(
+        (item) => castObject(item, {
+          boundingbox: (val) => Array.isArray(val) ? val.map(deg2rad) : [],
+          display_name: String,
+          importance: Number,
+          lat: (val) => deg2rad(Number(val)),
+          lon: (val) => deg2rad(Number(val))
+        })
+      );
+    }
+    return [];
   }
-  return [];
 };
 var addressInput = new Container("input", {
   autocomplete: "off",
@@ -10875,10 +9377,10 @@ var addressInput = new Container("input", {
     while (addressQueue.shift())
       ;
     const valid = Boolean(value) && await addressQueue.enqueue(() => {
-      return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${addressInput.html.value}`).then(async (res) => {
+      return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${value}`).then(async (res) => {
         if (!res.ok)
           return false;
-        const items = parseNominatim(await res.json());
+        const items = Nominatim.parse(await res.json());
         if (items.length === 0)
           return false;
         if (value !== addressInput.html.value)
@@ -10910,7 +9412,7 @@ var addressInput = new Container("input", {
                 };
               };
               if (idx === 0)
-                addressForm.html.onsubmit = onclick;
+                AddressForm.html.onsubmit = onclick;
               return new Container("a", {
                 classes: ["list-group-item"],
                 onclick,
@@ -10934,20 +9436,28 @@ var addressInput = new Container("input", {
 });
 
 // src/client/containers/menu/goto/address/form.ts
-var addressForm = new Container("form", {
-  action: "javascript:void(0)",
-  classes: ["GotoForm"]
-});
-addressForm.append(addressInput);
+var AddressForm = class extends MonoContainer {
+  static {
+    this.copyInstance(new Container("form", {
+      action: "javascript:void(0)",
+      classes: ["GotoForm"]
+    }), this);
+    this.append(addressInput);
+  }
+};
 
 // src/client/containers/menu/goto/address/container.ts
-var addressContainer = new Container("div", {
-  classes: ["dropdown"]
-});
-addressContainer.append(
-  addressForm,
-  addressSearchContainer
-);
+var AddressContainer = class extends MonoContainer {
+  static {
+    this.copyInstance(new Container("div", {
+      classes: ["dropdown"]
+    }), this);
+    this.append(
+      AddressForm,
+      addressSearchContainer
+    );
+  }
+};
 
 // src/client/containers/menu/goto/coord/form.ts
 var import_coordinate_parser = __toESM(require_coordinates(), 1);
@@ -10956,47 +9466,22 @@ var import_coordinate_parser = __toESM(require_coordinates(), 1);
 var coordUnits = ["d", "dm", "dms"];
 
 // src/client/containers/menu/goto/coord/form.ts
-var CoordForm = class extends Container {
-  constructor() {
-    super("form", {
-      action: "javascript:void(0)",
-      classes: ["GotoForm"],
-      onsubmit: () => {
-        if (this.valid)
-          position.xyz = {
-            x: lon2x(this.lon),
-            y: lat2y(this.lat)
-          };
-        return this.valid;
-      }
-    });
-    this.append(
-      new Container("div", {
-        classes: ["input-group"]
-      }).append(
-        this.input,
-        this.submit
-      ),
-      this.error,
-      this.info.d,
-      this.info.dm,
-      this.info.dms
-    );
-  }
-  valid = false;
-  lat = NaN;
-  lon = NaN;
-  submit = new IconButton({
+var CoordForm = class extends MonoContainer {
+  static valid = false;
+  static lat = NaN;
+  static lon = NaN;
+  static html;
+  static submit = new IconButton({
     icon: "arrow-right-circle",
     onclick: () => this.html.submit()
   });
-  error = new Container("div", { classes: ["form-text"] });
-  info = {
+  static error = new Container("div", { classes: ["form-text"] });
+  static info = {
     d: new Container("div", { classes: ["form-text", "w-100"] }),
     dm: new Container("div", { classes: ["form-text", "w-100"] }),
     dms: new Container("div", { classes: ["form-text", "w-100"] })
   };
-  input = new Container("input", {
+  static input = new Container("input", {
     autocomplete: "off",
     classes: ["form-control"],
     oninput: () => {
@@ -11006,7 +9491,7 @@ var CoordForm = class extends Container {
     placeholder: "Coordinates",
     type: "text"
   });
-  refresh() {
+  static refresh() {
     coordUnits.forEach((u) => {
       this.info[u].html.style.display = "none";
     });
@@ -11033,19 +9518,46 @@ var CoordForm = class extends Container {
       this.submit.html.classList.add("disabled");
     }
   }
+  static {
+    this.copyInstance(new Container("form", {
+      action: "javascript:void(0)",
+      classes: ["GotoForm"],
+      onsubmit: () => {
+        if (this.valid)
+          position.xyz = {
+            x: lon2x(this.lon),
+            y: lat2y(this.lat)
+          };
+        return this.valid;
+      }
+    }), this);
+    this.append(
+      new Container("div", {
+        classes: ["input-group"]
+      }).append(
+        this.input,
+        this.submit
+      ),
+      this.error,
+      this.info.d,
+      this.info.dm,
+      this.info.dms
+    );
+  }
 };
-var coordForm = new CoordForm();
 
 // src/client/containers/menu/goto/savedPositions.ts
 var import_json_stable_stringify2 = __toESM(require_json_stable_stringify(), 1);
-var SavedPositions = class _SavedPositions extends Container {
+var SavedPositions = class _SavedPositions extends MonoContainer {
   static item2xyz = (item) => castObject(item, {
     x: (val) => Number(val) / tileSize,
     y: (val) => Number(val) / tileSize,
     z: Number
   });
-  constructor() {
-    super("div");
+  static localStorageItem = new LocalStorageItem("savedPositions");
+  static list = /* @__PURE__ */ new Map();
+  static {
+    this.copyInstance(new Container("div"), this);
     const list = this.localStorageItem.get();
     if (Array.isArray(list)) {
       list.forEach(({ x, y, z: z2 }) => {
@@ -11061,15 +9573,13 @@ var SavedPositions = class _SavedPositions extends Container {
     position.listeners.add(() => this.refresh());
     this.refresh();
   }
-  list = /* @__PURE__ */ new Map();
-  localStorageItem = new LocalStorageItem("savedPositions");
-  add({ x, y, z: z2 }) {
+  static add({ x, y, z: z2 }) {
     this.edit({ func: "add", x, y, z: z2 });
   }
-  delete({ x, y, z: z2 }) {
+  static delete({ x, y, z: z2 }) {
     this.edit({ func: "delete", x, y, z: z2 });
   }
-  refresh() {
+  static refresh() {
     this.clear();
     this.list.forEach((item) => {
       const { x, y, z: z2 } = _SavedPositions.item2xyz(item);
@@ -11105,7 +9615,7 @@ var SavedPositions = class _SavedPositions extends Container {
       );
     });
   }
-  edit({ func, x, y, z: z2 }) {
+  static edit({ func, x, y, z: z2 }) {
     const xyz = {
       x: round(x * tileSize),
       y: round(y * tileSize),
@@ -11120,7 +9630,6 @@ var SavedPositions = class _SavedPositions extends Container {
     this.refresh();
   }
 };
-var savedPositions = new SavedPositions();
 
 // src/client/containers/menu/gotoMenu.ts
 Stylesheet.addClass({
@@ -11139,7 +9648,7 @@ var GotoMenu = class extends Container {
       new Container("a", {
         classes: ["btn", "btn-secondary"],
         onclick: () => {
-          savedPositions.add(position.xyz);
+          SavedPositions.add(position.xyz);
         },
         role: "button"
       }).append("Save")
@@ -11148,9 +9657,9 @@ var GotoMenu = class extends Container {
       new Container("div", {
         classes: ["dropdown-menu", "p-2"]
       }).append(
-        coordForm,
-        addressContainer,
-        savedPositions
+        CoordForm,
+        AddressContainer,
+        SavedPositions
       )
     );
     this.append(
@@ -11169,9 +9678,9 @@ var GotoMenu = class extends Container {
 var OverlayToggle = class extends IconButton {
   constructor(source) {
     super({
-      active: () => Boolean(settings.show[source]),
+      active: () => Boolean(Settings.show[source]),
       onclick: () => {
-        settings.show[source] = !settings.show[source];
+        Settings.show[source] = !Settings.show[source];
         TilesContainer.instance.rebuild(`overlay ${source} toggle`);
       },
       src: `icons/${source}.svg`
@@ -11180,46 +9689,57 @@ var OverlayToggle = class extends IconButton {
 };
 
 // src/client/containers/menu/navionicsToggle.ts
-var navionicsToggle = new OverlayToggle("navionics");
+var NavionicsToggle = class extends MonoContainer {
+  static {
+    this.copyInstance(new OverlayToggle("navionics"), this);
+  }
+};
 
 // src/client/containers/menu/suncalcToggle.ts
-var suncalcToggle = new IconButton({
-  active: () => settings.show.suncalc,
-  icon: "sunrise",
-  onclick: () => settings.show.suncalc = !settings.show.suncalc
-});
+var SuncalcToggle = class extends MonoContainer {
+  static {
+    this.copyInstance(new IconButton({
+      active: () => Settings.show.suncalc,
+      icon: "sunrise",
+      onclick: () => Settings.show.suncalc = !Settings.show.suncalc
+    }), this);
+  }
+};
 
 // src/client/containers/menu/vfdensityToggle.ts
-var vfdensityToggle = new OverlayToggle("vfdensity");
+var VfdensityToggle = class extends MonoContainer {
+  static {
+    this.copyInstance(new OverlayToggle("vfdensity"), this);
+  }
+};
 
 // src/client/containers/menuContainer.ts
-var MenuContainer = class extends Container {
-  constructor() {
-    super("div", {
+var MenuContainer = class extends MonoContainer {
+  static {
+    this.copyInstance(new Container("div", {
       classes: ["d-flex", "gap-2", "m-2"],
       dataset: {
         bsTheme: "dark"
       }
-    });
+    }), this);
     this.append(
-      baselayerMenu,
+      BaselayerMenu,
       new Container("div", {
         classes: ["btn-group"],
         role: "group"
       }).append(
         new OverlayToggle("openseamap"),
-        vfdensityToggle,
-        navionicsToggle,
-        navionicsDetailsToggle,
-        crosshairToggle,
-        suncalcToggle,
-        coordsToggle
+        VfdensityToggle,
+        NavionicsToggle,
+        NavionicsDetailsToggle,
+        CrosshairToggle,
+        SuncalcToggle,
+        CoordsToggle
       ),
       new GotoMenu()
     );
   }
 };
-var menuContainer = new MenuContainer();
 
 // src/client/updateUserLocation.ts
 var geolocationBlocked = false;
@@ -11228,7 +9748,7 @@ function updateUserLocation() {
     return;
   navigator.geolocation.getCurrentPosition(
     ({ coords: { accuracy, latitude, longitude }, timestamp }) => {
-      markers.add({
+      Markers.add({
         accuracy,
         lat: deg2rad(latitude),
         lon: deg2rad(longitude),
@@ -11251,7 +9771,7 @@ function updateUserLocation() {
 
 // src/client/events/inputListener.ts
 function inputListener(event, { x, y } = { x: 0, y: 0 }) {
-  const { height, width } = mainContainer;
+  const { height, width } = MainContainer;
   const { type } = event;
   console.log(event.target);
   if (event instanceof WheelEvent) {
@@ -11279,28 +9799,28 @@ function inputListener(event, { x, y } = { x: 0, y: 0 }) {
       if (typeof baselayer !== "undefined")
         TilesContainer.instance.baselayer = baselayer;
     } else if (key === "c")
-      crosshairToggle.html.click();
+      CrosshairToggle.html.click();
     else if (key === "d")
-      coordsToggle.html.click();
+      CoordsToggle.html.click();
     else if (key === "l")
       updateUserLocation();
     else if (key === "n") {
-      if (settings.show.navionicsDetails && settings.show.navionics) {
-        navionicsDetailsToggle.html.click();
-        navionicsToggle.html.click();
-      } else if (settings.show.navionics)
-        navionicsDetailsToggle.html.click();
+      if (Settings.show.navionicsDetails && Settings.show.navionics) {
+        NavionicsDetailsToggle.html.click();
+        NavionicsToggle.html.click();
+      } else if (Settings.show.navionics)
+        NavionicsDetailsToggle.html.click();
       else
-        navionicsToggle.html.click();
+        NavionicsToggle.html.click();
     } else if (key === "v")
-      vfdensityToggle.html.click();
+      VfdensityToggle.html.click();
     else if (key === "r") {
       position.xyz = {
         x: round(position.x),
         y: round(position.y)
       };
     } else if (key === "u") {
-      const userMarker = markers.get("user");
+      const userMarker = Markers.get("user");
       if (userMarker)
         position.xyz = userMarker;
     } else if (key === "ArrowLeft")
@@ -11329,7 +9849,7 @@ function inputListener(event, { x, y } = { x: 0, y: 0 }) {
 
 // src/client/events/mouseInput.ts
 function mouseInput(event) {
-  const rect = mouseContainer.getBoundingClientRect();
+  const rect = MouseContainer.getBoundingClientRect();
   const { x, y } = {
     x: event.clientX - rect.left,
     y: event.clientY - rect.top
@@ -11347,49 +9867,47 @@ function mouseInput(event) {
   }
   if (!isDown && mouse.down.state) {
     if (mouse.down.x === x && mouse.down.y === y) {
-      const { height, width } = mainContainer;
+      const { height, width } = MainContainer;
       const { x: x2, y: y2, z: z2 } = position;
-      void navionicsDetails.fetch({
+      void NavionicsDetails.fetch({
         x: x2 + (mouse.x - width / 2) / tileSize,
         y: y2 + (mouse.y - height / 2) / tileSize,
         z: z2
       });
     } else
-      void navionicsDetails.fetch(position);
+      void NavionicsDetails.fetch(position);
   }
   mouse.down.state = isDown;
   mouse.x = x;
   mouse.y = y;
-  markers.delete("navionics");
+  Markers.delete("navionics");
 }
 
 // src/client/containers/mouseContainer.ts
-var MouseContainer = class extends Container {
-  constructor() {
-    super("div", {
+var MouseContainer = class extends MonoContainer {
+  static {
+    this.copyInstance(new Container("div", {
       classes: ["MapContainerStyle"],
       id: "mouseContainer",
       onmousedown: mouseInput,
       onmousemove: mouseInput,
       onmouseup: mouseInput,
       onwheel: mouseInput
-    });
+    }), this);
   }
 };
-var mouseContainer = new MouseContainer();
-mouseContainer.html.tagName;
 
 // src/client/index.ts
-mainContainer.clear();
-mainContainer.append(
+MainContainer.clear();
+MainContainer.append(
   Stylesheet,
   TilesContainer.instance,
-  overlayContainer,
-  mouseContainer,
-  infoBox,
-  menuContainer
+  OverlayContainer,
+  MouseContainer,
+  InfoBox,
+  MenuContainer
 );
-mainContainer.refresh();
+MainContainer.refresh();
 window.addEventListener("keydown", inputListener);
 /*! Bundled license information:
 

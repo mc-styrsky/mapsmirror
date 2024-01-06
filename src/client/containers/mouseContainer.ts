@@ -1,19 +1,16 @@
 import { mouseInput } from '../events/mouseInput';
 import { Container } from '../utils/htmlElements/container';
+import { MonoContainer } from '../utils/htmlElements/monoContainer';
 
-class MouseContainer extends Container {
-  constructor () {
-    super('div', {
+export class MouseContainer extends MonoContainer {
+  static {
+    this.copyInstance(new Container('div', {
       classes: ['MapContainerStyle'],
       id: 'mouseContainer',
       onmousedown: mouseInput,
       onmousemove: mouseInput,
       onmouseup: mouseInput,
       onwheel: mouseInput,
-    });
+    }), this);
   }
 }
-
-export const mouseContainer = new MouseContainer;
-
-mouseContainer.html.tagName;

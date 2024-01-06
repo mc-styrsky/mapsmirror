@@ -1,7 +1,8 @@
-import { markers } from '../globals/marker';
+import { Markers } from '../globals/marker';
 import { position } from '../globals/position';
 import { Stylesheet } from '../globals/stylesheet';
 import { Container } from '../utils/htmlElements/container';
+import { MonoContainer } from '../utils/htmlElements/monoContainer';
 import { drawCrosshair } from './overlay/crosshairs';
 import { drawMarkers } from './overlay/markers';
 import { drawNet } from './overlay/net';
@@ -14,18 +15,18 @@ Stylesheet.addClass({
   },
 });
 
-class OverlayContainer extends Container {
-  constructor () {
-    super('div', {
+export class OverlayContainer extends MonoContainer {
+  static {
+    this.copyInstance(new Container('div', {
       classes: ['MapContainerStyle'],
       id: OverlayContainer.name,
-    });
+    }), this);
     position.listeners.add(() => this.refresh());
-    markers.listeners.add(() => this.refresh());
+    Markers.listeners.add(() => this.refresh());
     this.refresh();
   }
 
-  refresh () {
+  static refresh () {
     const { height, width } = this.html.getBoundingClientRect();
     const canvas = new Container('canvas', {
       classes: ['OverlayContainerCanvas'],
@@ -46,5 +47,3 @@ class OverlayContainer extends Container {
     }
   }
 }
-
-export const overlayContainer = new OverlayContainer();

@@ -1,11 +1,12 @@
-import { settings } from '../globals/settings';
+import { Settings } from '../globals/settings';
 import { Stylesheet } from '../globals/stylesheet';
 import { Container } from '../utils/htmlElements/container';
-import { imagesToFetch } from './infoBox/imagesToFetch';
+import { MonoContainer } from '../utils/htmlElements/monoContainer';
+import { ImagesToFetch } from './infoBox/imagesToFetch';
 import { InfoBoxCoords } from './infoBox/infoBoxCoords';
-import { navionicsDetails } from './infoBox/navionicsDetails';
-import { solarTimes } from './infoBox/suncalc/solarTimes';
-import { navionicsDetailsToggle } from './menu/navionicsDetailsToggle';
+import { NavionicsDetails } from './infoBox/navionicsDetails';
+import { SolarTimes } from './infoBox/suncalc/solarTimes';
+import { NavionicsDetailsToggle } from './menu/navionicsDetailsToggle';
 
 Stylesheet.addClass({
   InfoBox: {
@@ -18,24 +19,20 @@ Stylesheet.addClass({
   },
 },
 );
-class InfoBox extends Container {
-  constructor () {
-    super('div', {
+export class InfoBox extends MonoContainer {
+  static {
+    this.copyInstance(new Container('div', {
       classes: ['InfoBox', 'p-2', 'mt-2'],
-    });
-    navionicsDetailsToggle.listeners.add(() => this.refresh());
-    this.infoBoxCoords = new InfoBoxCoords();
+    }), this);
+    NavionicsDetailsToggle.listeners.add(() => this.refresh());
     this.refresh();
   }
-  readonly infoBoxCoords: InfoBoxCoords;
-  refresh () {
+  static refresh () {
     this.clear();
-    this.append(this.infoBoxCoords);
-    if (settings.show.navionicsDetails) this.append(navionicsDetails);
-    if (settings.show.suncalc) this.append(solarTimes);
+    this.append(InfoBoxCoords);
+    if (Settings.show.navionicsDetails) this.append(NavionicsDetails);
+    if (Settings.show.suncalc) this.append(SolarTimes);
 
-    this.append(imagesToFetch);
+    this.append(ImagesToFetch);
   }
 }
-
-export const infoBox = new InfoBox();

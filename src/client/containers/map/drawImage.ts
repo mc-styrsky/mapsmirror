@@ -2,7 +2,7 @@ import type { DrawImage } from '../../../common/types/drawImage';
 import { LayerSetup } from '../../../common/layers';
 import { floor } from '../../../common/math';
 import { tileSize } from '../../globals/tileSize';
-import { imagesToFetch } from '../infoBox/imagesToFetch';
+import { ImagesToFetch } from '../infoBox/imagesToFetch';
 import { drawCachedImage } from './drawCachedImage';
 
 export function drawImage ({
@@ -15,13 +15,13 @@ export function drawImage ({
     y.toString(16),
   ].join('/')}?ttl=${ttl}`;
 
-  imagesToFetch.add({ source, x, y, z });
+  ImagesToFetch.add({ source, x, y, z });
 
   return new Promise(resolve => {
     const img = new Image();
     const onload = () => {
       context.drawImage(img, 0, 0);
-      imagesToFetch.delete({ source, x, y, z });
+      ImagesToFetch.delete({ source, x, y, z });
       resolve(true);
     };
     const onerror = async () => {
@@ -47,11 +47,11 @@ export function drawImage ({
           tileSize / 2, tileSize / 2,
           0, 0, tileSize, tileSize,
         );
-        imagesToFetch.delete({ source, x, y, z });
+        ImagesToFetch.delete({ source, x, y, z });
         resolve(success);
       }
       else {
-        imagesToFetch.delete({ source, x, y, z });
+        ImagesToFetch.delete({ source, x, y, z });
         resolve(false);
       }
     };

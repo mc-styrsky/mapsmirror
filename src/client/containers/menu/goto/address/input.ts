@@ -6,25 +6,28 @@ import { deg2rad } from '../../../../utils/deg2rad';
 import { Container } from '../../../../utils/htmlElements/container';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
-import { addressForm } from './form';
+import { AddressForm } from './form';
 import { addressSearchContainer } from './searchContainer';
 
 const addressQueue = new StyQueue(1);
 
-const parseNominatim = (input: any) => {
-  if (Array.isArray(input)) {
-    return input.map(item =>
-      castObject(item, {
-        boundingbox: (val) => Array.isArray(val) ? val.map(deg2rad) : [],
-        display_name: String,
-        importance: Number,
-        lat: (val) => deg2rad(Number(val)),
-        lon: (val) => deg2rad(Number(val)),
-      }),
-    );
+class Nominatim {
+  static parse (input: any) {
+    if (Array.isArray(input)) {
+      return input.map(item =>
+        castObject(item, {
+          boundingbox: (val) => Array.isArray(val) ? val.map(deg2rad) : [],
+          display_name: String,
+          importance: Number,
+          lat: (val) => deg2rad(Number(val)),
+          lon: (val) => deg2rad(Number(val)),
+        }),
+      );
+    }
+    return [];
   }
-  return [];
-};
+}
+
 
 export const addressInput = new Container('input', {
   autocomplete: 'off',
@@ -33,10 +36,10 @@ export const addressInput = new Container('input', {
     const { value } = addressInput.html;
     while (addressQueue.shift()) void 0;
     const valid = Boolean(value) && await addressQueue.enqueue(() => {
-      return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${addressInput.html.value}`)
+      return fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${value}`)
       .then(async res => {
         if (!res.ok) return false;
-        const items = parseNominatim(await res.json());
+        const items = Nominatim.parse(await res.json());
         if (items.length === 0) return false;
         if (value !== addressInput.html.value) return false;
 
@@ -70,7 +73,7 @@ export const addressInput = new Container('input', {
                 };
               };
 
-              if (idx === 0) addressForm.html.onsubmit = onclick;
+              if (idx === 0) AddressForm.html.onsubmit = onclick;
               return new Container('a', {
                 classes: ['list-group-item'],
                 onclick,

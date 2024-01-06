@@ -4,53 +4,28 @@ import { position } from '../../../../globals/position';
 import { deg2rad } from '../../../../utils/deg2rad';
 import { Container } from '../../../../utils/htmlElements/container';
 import { IconButton } from '../../../../utils/htmlElements/iconButton';
+import { MonoContainer } from '../../../../utils/htmlElements/monoContainer';
 import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
 import { rad2stringFuncs } from '../../../../utils/rad2string';
 
-class CoordForm extends Container<'form'> {
-  constructor () {
-    super('form', {
-      action: 'javascript:void(0)',
-      classes: ['GotoForm'],
-      onsubmit: () => {
-        if (this.valid) position.xyz = {
-          x: lon2x(this.lon),
-          y: lat2y(this.lat),
-        };
-        return this.valid;
-      },
-    });
+export class CoordForm extends MonoContainer<'form'> {
+  private static valid = false;
+  private static lat = NaN;
+  private static lon = NaN;
+  static readonly html: HTMLFormElement;
 
-    this.append(
-      new Container('div', {
-        classes: ['input-group'],
-      })
-      .append(
-        this.input,
-        this.submit,
-      ),
-      this.error,
-      this.info.d,
-      this.info.dm,
-      this.info.dms,
-    );
-  }
-  private valid = false;
-  private lat = NaN;
-  private lon = NaN;
-
-  private readonly submit = new IconButton({
+  private static readonly submit = new IconButton({
     icon: 'arrow-right-circle',
     onclick: () => this.html.submit(),
   });
-  private readonly error = new Container('div', { classes: ['form-text'] });
-  private readonly info = {
+  private static readonly error = new Container('div', { classes: ['form-text'] });
+  private static readonly info = {
     d: new Container('div', { classes: ['form-text', 'w-100'] }),
     dm: new Container('div', { classes: ['form-text', 'w-100'] }),
     dms: new Container('div', { classes: ['form-text', 'w-100'] }),
   };
-  private readonly input = new Container('input', {
+  private static readonly input = new Container('input', {
     autocomplete: 'off',
     classes: ['form-control'],
     oninput: () => {
@@ -61,7 +36,7 @@ class CoordForm extends Container<'form'> {
     type: 'text',
   });
 
-  refresh () {
+  static refresh () {
     coordUnits.forEach(u => {
       this.info[u].html.style.display = 'none';
     });
@@ -90,6 +65,32 @@ class CoordForm extends Container<'form'> {
       this.submit.html.classList.add('disabled');
     }
   }
-}
 
-export const coordForm = new CoordForm();
+  static {
+    this.copyInstance(new Container('form', {
+      action: 'javascript:void(0)',
+      classes: ['GotoForm'],
+      onsubmit: () => {
+        if (this.valid) position.xyz = {
+          x: lon2x(this.lon),
+          y: lat2y(this.lat),
+        };
+        return this.valid;
+      },
+    }), this);
+
+    this.append(
+      new Container('div', {
+        classes: ['input-group'],
+      })
+      .append(
+        this.input,
+        this.submit,
+      ),
+      this.error,
+      this.info.d,
+      this.info.dm,
+      this.info.dms,
+    );
+  }
+}

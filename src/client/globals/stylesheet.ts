@@ -1,16 +1,17 @@
 import { entriesTyped } from '../../common/entriesTyped';
 import { fromEntriesTyped } from '../../common/fromEntriesTyped';
 import { Container } from '../utils/htmlElements/container';
+import { MonoContainer } from '../utils/htmlElements/monoContainer';
 import { kebabify } from '../utils/kebabify';
 
 type CSSDeclaration = Partial<CSSStyleDeclaration> & Record<`--${string}`, string>
 
-class StylesheetClass extends Container<'style'> {
-  constructor () {
-    super('style');
+export class Stylesheet extends MonoContainer<'style'> {
+  static {
+    this.copyInstance<'style'>(new Container('style'), this);
   }
-  private readonly keys = new Set<string>();
-  add (elements: Record<string, CSSDeclaration>) {
+  private static readonly keys = new Set<string>();
+  static add (elements: Record<string, CSSDeclaration>) {
     entriesTyped(elements).map(([keyRaw, style]) => {
       const key = kebabify(keyRaw);
 
@@ -21,7 +22,7 @@ class StylesheetClass extends Container<'style'> {
       this.append(`${key} { ${rules.join('; ')} }\n`);
     });
   }
-  addClass (classes: Record<string, CSSDeclaration>) {
+  static addClass (classes: Record<string, CSSDeclaration>) {
     this.add(fromEntriesTyped(
       entriesTyped(classes)
       .map(([className, style]) => [`.${className}`, style]),
@@ -29,7 +30,6 @@ class StylesheetClass extends Container<'style'> {
   }
 }
 
-export const Stylesheet = new StylesheetClass();
 
 Stylesheet.addClass({
   AccordionLabel: {

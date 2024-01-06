@@ -3,7 +3,6 @@ import type { SolarDuration } from './types/solarDuration';
 import { max, min } from '../../../../common/math';
 import { Stylesheet } from '../../../globals/stylesheet';
 import { Container } from '../../../utils/htmlElements/container';
-import { SolarTimes } from './solarTimes';
 
 Stylesheet.addClass({
   SolarTimesStatsCanvas: {
@@ -21,7 +20,7 @@ export class SolarTimesStatsCanvas extends Container<'canvas'> {
     width: number;
     map?: (val: number) => number
   }) {
-    const values = stats.map(durations => map(SolarTimes.increment({ durations, keys })));
+    const values = stats.map(durations => map(SolarTimesStatsCanvas.increment({ durations, keys })));
     const minValue = min(...values);
     const maxValue = max(...values);
     const scaleY = (height - 1) / (maxValue - minValue);
@@ -46,6 +45,11 @@ export class SolarTimesStatsCanvas extends Container<'canvas'> {
     this.max = maxValue;
     this.min = minValue;
   }
+  static increment = ({ durations, keys }: {
+    durations: SolarDuration;
+    keys: DurationKeys[];
+  }) => keys.reduce((sum, key) => sum + durations[key], 0);
+
   min: number;
   max: number;
 }

@@ -1,12 +1,17 @@
-import { settings } from '../../globals/settings';
+import { Settings } from '../../globals/settings';
 import { IconButton } from '../../utils/htmlElements/iconButton';
-import { overlayContainer } from '../overlayContainer';
+import { MonoContainer } from '../../utils/htmlElements/monoContainer';
+import { OverlayContainer } from '../overlayContainer';
 
-export const crosshairToggle = new IconButton({
-  active: () => settings.show.crosshair,
-  icon: 'crosshair',
-  onclick: () => {
-    settings.show.crosshair = !settings.show.crosshair;
-    overlayContainer.refresh();
-  },
-});
+export class CrosshairToggle extends MonoContainer<'a'> {
+  static {
+    this.copyInstance<'a'>(new IconButton({
+      active: () => Settings.show.crosshair,
+      icon: 'crosshair',
+      onclick: () => {
+        Settings.show.crosshair = !Settings.show.crosshair;
+        OverlayContainer.refresh();
+      },
+    }), this);
+  }
+}

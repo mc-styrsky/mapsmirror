@@ -2,9 +2,9 @@ import { position } from '../../globals/position';
 import { Stylesheet } from '../../globals/stylesheet';
 import { Container } from '../../utils/htmlElements/container';
 import { BootstrapIcon } from '../../utils/htmlElements/iconButton';
-import { addressContainer } from './goto/address/container';
-import { coordForm } from './goto/coord/form';
-import { savedPositions } from './goto/savedPositions';
+import { AddressContainer } from './goto/address/container';
+import { CoordForm } from './goto/coord/form';
+import { SavedPositions } from './goto/savedPositions';
 
 Stylesheet.addClass({
   GotoForm: {
@@ -24,7 +24,7 @@ export class GotoMenu extends Container {
       new Container('a', {
         classes: ['btn', 'btn-secondary'],
         onclick: () => {
-          savedPositions.add(position.xyz);
+          SavedPositions.add(position.xyz);
         },
         role: 'button',
       }).append('Save'),
@@ -35,9 +35,9 @@ export class GotoMenu extends Container {
         classes: ['dropdown-menu', 'p-2'],
       })
       .append(
-        coordForm,
-        addressContainer,
-        savedPositions,
+        CoordForm,
+        AddressContainer,
+        SavedPositions,
       ),
     );
 

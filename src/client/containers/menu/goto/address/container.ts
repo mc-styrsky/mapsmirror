@@ -1,12 +1,16 @@
 import { Container } from '../../../../utils/htmlElements/container';
-import { addressForm } from './form';
+import { MonoContainer } from '../../../../utils/htmlElements/monoContainer';
+import { AddressForm } from './form';
 import { addressSearchContainer } from './searchContainer';
 
-export const addressContainer = new Container('div', {
-  classes: ['dropdown'],
-});
-
-addressContainer.append(
-  addressForm,
-  addressSearchContainer,
-);
+export class AddressContainer extends MonoContainer {
+  static {
+    this.copyInstance(new Container('div', {
+      classes: ['dropdown'],
+    }), this);
+    this.append(
+      AddressForm,
+      addressSearchContainer,
+    );
+  }
+}

@@ -1,26 +1,24 @@
 import { position } from '../../globals/position';
-import { settings } from '../../globals/settings';
+import { Settings } from '../../globals/settings';
 import { IconButton } from '../../utils/htmlElements/iconButton';
-import { navionicsDetails } from '../infoBox/navionicsDetails';
+import { MonoContainer } from '../../utils/htmlElements/monoContainer';
+import { NavionicsDetails } from '../infoBox/navionicsDetails';
 
-class NavionicsDetailsToggle extends IconButton {
-  constructor () {
-    super({
-      active: () => settings.show.navionicsDetails,
-      icon: 'question-circle',
-      onclick: () => {
-        const newActive = !settings.show.navionicsDetails;
-        settings.show.navionicsDetails = newActive;
-        void navionicsDetails.fetch(position);
-      },
-    });
-    this.refresh();
-  }
-
-  readonly listeners = new Set<() => void>();
-  refresh () {
+export class NavionicsDetailsToggle extends MonoContainer {
+  static readonly listeners = new Set<() => void>();
+  static refresh () {
     this.listeners.forEach(callback => callback());
   }
+  static {
+    this.copyInstance<'a'>(new IconButton({
+      active: () => Settings.show.navionicsDetails,
+      icon: 'question-circle',
+      onclick: () => {
+        const newActive = !Settings.show.navionicsDetails;
+        Settings.show.navionicsDetails = newActive;
+        void NavionicsDetails.fetch(position);
+      },
+    }), this);
+    this.refresh();
+  }
 }
-
-export const navionicsDetailsToggle = new NavionicsDetailsToggle();
