@@ -13,7 +13,7 @@ Stylesheet.addClass({
   },
 
 });
-export class SolarTimesStatsCanvas extends Container<HTMLCanvasElement> {
+export class SolarTimesStatsCanvas extends Container<'canvas'> {
   constructor ({ height, keys, map = (val) => val, stats, width }: {
     stats: SolarDuration[];
     keys: DurationKeys[];
@@ -26,11 +26,11 @@ export class SolarTimesStatsCanvas extends Container<HTMLCanvasElement> {
     const maxValue = max(...values);
     const scaleY = (height - 1) / (maxValue - minValue);
     const scaleX = width / stats.length;
-    super(Container.from('canvas', {
+    super('canvas', {
       classes: ['SolarTimesStatsCanvas'],
       height,
       width,
-    }));
+    });
     const context = this.html.getContext('2d');
     if (context) {
       context.beginPath();

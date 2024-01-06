@@ -32,7 +32,7 @@ export class NavionicsItem extends AccordionItem {
     itemPosition,
   }: NavionicsItemConstructor) {
     const labelContainer = new NavionicsItemLabel({ itemName, itemPosition });
-    const headLabel = Container.from('div', {
+    const headLabel = new Container('div', {
       classes: ['d-flex', 'w-100'],
     })
     .append(
@@ -56,7 +56,7 @@ export class NavionicsItem extends AccordionItem {
       .then(({ properties }) => {
         bodyLabel.clear();
         if (properties) properties.forEach(prop => {
-          if (prop) bodyLabel.append(Container.from('p').append(prop));
+          if (prop) bodyLabel.append(new Container('p').append(prop));
         });
         this.head.done();
         this.hide();

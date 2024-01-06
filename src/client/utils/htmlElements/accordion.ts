@@ -1,14 +1,15 @@
 import { Collapse } from 'bootstrap';
 import { Container } from './container';
 
-new Collapse(new Container().html);
+// Caveat: Hack to include Bootstrap's JS code
+new Collapse(new Container('div').html);
 export class Accordion extends Container {
   constructor ({ accordionId }: {
     accordionId: string;
   }) {
-    super(Container.from('div', {
+    super('div', {
       classes: ['accordion'],
       id: accordionId,
-    }));
+    });
   }
 }

@@ -2,8 +2,7 @@ import { Container } from '../../../../utils/htmlElements/container';
 
 export class NavionicsItemDetails extends Container {
   constructor () {
-    super(Container.from('div', {
-    }));
+    super('div');
 
     this.append('fetching...');
   }

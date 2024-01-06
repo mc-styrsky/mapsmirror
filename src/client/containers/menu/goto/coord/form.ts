@@ -8,9 +8,9 @@ import { lat2y } from '../../../../utils/lat2y';
 import { lon2x } from '../../../../utils/lon2x';
 import { rad2stringFuncs } from '../../../../utils/rad2string';
 
-class CoordForm extends Container<HTMLFormElement> {
+class CoordForm extends Container<'form'> {
   constructor () {
-    super(Container.from('form', {
+    super('form', {
       action: 'javascript:void(0)',
       classes: ['GotoForm'],
       onsubmit: () => {
@@ -20,10 +20,10 @@ class CoordForm extends Container<HTMLFormElement> {
         };
         return this.valid;
       },
-    }));
+    });
 
     this.append(
-      Container.from('div', {
+      new Container('div', {
         classes: ['input-group'],
       })
       .append(
@@ -44,13 +44,13 @@ class CoordForm extends Container<HTMLFormElement> {
     icon: 'arrow-right-circle',
     onclick: () => this.html.submit(),
   });
-  private readonly error = Container.from('div', { classes: ['form-text'] });
+  private readonly error = new Container('div', { classes: ['form-text'] });
   private readonly info = {
-    d: Container.from('div', { classes: ['form-text', 'w-100'] }),
-    dm: Container.from('div', { classes: ['form-text', 'w-100'] }),
-    dms: Container.from('div', { classes: ['form-text', 'w-100'] }),
+    d: new Container('div', { classes: ['form-text', 'w-100'] }),
+    dm: new Container('div', { classes: ['form-text', 'w-100'] }),
+    dms: new Container('div', { classes: ['form-text', 'w-100'] }),
   };
-  private readonly input = Container.from('input', {
+  private readonly input = new Container('input', {
     autocomplete: 'off',
     classes: ['form-control'],
     oninput: () => {

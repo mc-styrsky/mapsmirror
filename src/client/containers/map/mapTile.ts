@@ -19,7 +19,7 @@ Stylesheet.addClass({
     width: `${tileSize}px`,
   },
 });
-export class MapTile extends Container<HTMLCanvasElement> {
+export class MapTile extends Container<'canvas'> {
   static id ({ x, y, z }: XYZ) {
     return `z:${
       z.toFixed(0).padStart(2, ' ')
@@ -39,14 +39,14 @@ export class MapTile extends Container<HTMLCanvasElement> {
   constructor ({ x, y, z }: XYZ) {
     const ttl = max(min(17, z + max(0, position.ttl)) - z, 0);
 
-    super(Container.from('canvas', {
+    super('canvas', {
       classes: ['MapTile'],
       dataset: {
         x: x.toFixed(0),
         y: y.toFixed(0),
         z: z.toFixed(0),
       },
-    }));
+    });
 
     this.x = x;
     this.y = y;

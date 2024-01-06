@@ -11,15 +11,15 @@ import { vfdensityToggle } from './menu/vfdensityToggle';
 
 class MenuContainer extends Container {
   constructor () {
-    super(Container.from('div', {
+    super('div', {
       classes: ['d-flex', 'gap-2', 'm-2'],
       dataset: {
         bsTheme: 'dark',
       },
-    }));
+    });
     this.append(
       baselayerMenu,
-      Container.from('div', {
+      new Container('div', {
         classes: ['btn-group'],
         role: 'group',
       })
@@ -32,7 +32,7 @@ class MenuContainer extends Container {
         suncalcToggle,
         coordsToggle,
       ),
-      new GotoMenu,
+      new GotoMenu(),
     );
   }
 }

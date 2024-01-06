@@ -13,7 +13,7 @@ Stylesheet.addClass({
 });
 export class NavionicsGoto extends Container {
   constructor ({ lat, lon }: {lat: number, lon: number}) {
-    super(Container.from('div', {
+    super('div', {
       classes: ['NavionicsGoto'],
       onclick: (event) => {
         position.xyz = {
@@ -22,7 +22,7 @@ export class NavionicsGoto extends Container {
         };
         event.stopPropagation();
       },
-    }));
+    });
 
     this.append(new BootstrapIcon({ icon: 'arrow-right-circle' }));
   }

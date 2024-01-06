@@ -2,7 +2,7 @@ import { Container } from '../../../../utils/htmlElements/container';
 import { addressForm } from './form';
 import { addressSearchContainer } from './searchContainer';
 
-export const addressContainer = Container.from('div', {
+export const addressContainer = new Container('div', {
   classes: ['dropdown'],
 });
 

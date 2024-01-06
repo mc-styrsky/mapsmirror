@@ -19,12 +19,12 @@ Stylesheet.addClass({
 
 export class NavionicsIcon extends Container {
   constructor (iconId: string) {
-    super(Container.from('div', {
+    super('div', {
       classes: ['NavionicsIconDiv'],
-    }));
+    });
 
     this.append(
-      Container.from('img', {
+      new Container('img', {
         classes: ['NavionicsIconImg'],
         src: `/navionics/icon/${encodeURIComponent(iconId)}`,
       }),

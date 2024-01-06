@@ -20,9 +20,9 @@ Stylesheet.addClass({
 );
 class InfoBox extends Container {
   constructor () {
-    super(Container.from('div', {
+    super('div', {
       classes: ['InfoBox', 'p-2', 'mt-2'],
-    }));
+    });
     navionicsDetailsToggle.listeners.add(() => this.refresh());
     this.infoBoxCoords = new InfoBoxCoords();
     this.refresh();

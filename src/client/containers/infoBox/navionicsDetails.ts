@@ -18,7 +18,7 @@ import { NavionicsItem } from './navionicsDetails/navionicsItem';
 
 export class NavionicsDetails extends Container {
   constructor () {
-    super();
+    super('div');
     this.mainAccordion = new Accordion({ accordionId: this.accordionIdPrefix });
     this.append(this.mainAccordion);
     position.listeners.add(() => {

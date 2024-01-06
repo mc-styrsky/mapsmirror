@@ -4,7 +4,7 @@ import { Container } from '../../utils/htmlElements/container';
 
 class ImagesToFetch extends Container {
   constructor () {
-    super();
+    super('div');
   }
   private xyz2string = ({ x, y, z }: XYZ) => `${z.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
 
@@ -32,7 +32,7 @@ class ImagesToFetch extends Container {
     Object.entries(this.data)
     .map(([key, val]) => [key, val.size])
     .forEach(([source, size], idx) => {
-      if (idx !== 0) this.append(Container.from('br'));
+      if (idx !== 0) this.append(new Container('br'));
       this.append(`${source}: ${size}/${this.total[source]}`);
     });
   };

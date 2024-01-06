@@ -16,10 +16,10 @@ Stylesheet.addClass({
 
 class OverlayContainer extends Container {
   constructor () {
-    super(Container.from('div', {
+    super('div', {
       classes: ['MapContainerStyle'],
       id: OverlayContainer.name,
-    }));
+    });
     position.listeners.add(() => this.refresh());
     markers.listeners.add(() => this.refresh());
     this.refresh();
@@ -27,7 +27,7 @@ class OverlayContainer extends Container {
 
   refresh () {
     const { height, width } = this.html.getBoundingClientRect();
-    const canvas = Container.from('canvas', {
+    const canvas = new Container('canvas', {
       classes: ['OverlayContainerCanvas'],
       height,
       width,

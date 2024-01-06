@@ -3,16 +3,16 @@ import type { RadiusOmega } from '../spheric/radiusOmega';
 import { latLon2RadiusOmega } from '../spheric/latLon2RadiusOmega';
 import { Container } from './container';
 
-class DistanceElement extends Container {
+class DistanceElement extends Container<'span'> {
   constructor (show: boolean) {
-    super(Container.from('span', {
+    super('span', {
       classes: ['NavionicsItemLabelDistance', show ? 'show' : void 0],
-    }));
+    });
     this.append(this.arrow, this.label);
   }
 
-  private readonly arrow = Container.from('i', { classes: ['bi-arrow-up'] });
-  private readonly label = Container.from('div', { classes: ['d-inline-block'] });
+  private readonly arrow = new Container('i', { classes: ['bi-arrow-up'] });
+  private readonly label = new Container('div', { classes: ['d-inline-block'] });
 
   set dist ({ omega, radius }: { radius: number; omega: number; }) {
     this.arrow.html.style.transform = `rotate(${omega}rad)`;

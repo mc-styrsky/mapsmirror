@@ -1886,29 +1886,28 @@ var kebabify = (str) => str.replace(/[a-z][A-Z]/g, ($) => {
 }).toLowerCase();
 
 // src/client/utils/htmlElements/container.ts
-var Container = class _Container {
-  static from(tag, props) {
+var Container = class {
+  constructor(tag, props = {}) {
     const {
       classes,
       dataset,
       style,
       ...data
     } = props ?? {};
-    const html = tag instanceof HTMLElement ? tag : document.createElement(tag);
-    entriesTyped(data).forEach(([k, v]) => html[k] = v);
+    if (typeof tag === "string")
+      this.html = document.createElement(tag);
+    else
+      this.html = tag;
+    entriesTyped(data).forEach(([k, v]) => this.html[k] = v);
     if (classes)
       classes.forEach((c) => {
         if (typeof c === "string")
-          html.classList.add(...c.split(" ").map(kebabify));
+          this.html.classList.add(...c.split(" ").map(kebabify));
       });
     if (dataset)
-      entriesTyped(dataset).forEach(([k, v]) => html.dataset[k] = v);
+      entriesTyped(dataset).forEach(([k, v]) => this.html.dataset[k] = v);
     if (style)
-      entriesTyped(style).forEach(([k, v]) => html.style[k] = v);
-    return new _Container(html);
-  }
-  constructor(html = _Container.from("div")) {
-    this.html = html instanceof _Container ? html.html : html;
+      entriesTyped(style).forEach(([k, v]) => this.html.style[k] = v);
   }
   html;
   clear() {
@@ -1920,11 +1919,9 @@ var Container = class _Container {
         return;
       else if (typeof item === "string" || item instanceof Node)
         this.html.append(item);
-      else if (item instanceof _Container)
+      else if (item)
         this.html.append(item.html);
-      else if (item.isMonoContainer === MonoContainer.isMonoContainer) {
-        this.html.append(item.html);
-      } else {
+      else {
         console.error("item", item, "is not appendable");
         throw Error("item is not appendable");
       }
@@ -1935,51 +1932,31 @@ var Container = class _Container {
     return this.html.getBoundingClientRect();
   }
 };
-var MonoContainer = class _MonoContainer extends Container {
-  constructor() {
-    super();
-  }
-  static copyInstance(cont, parentClass) {
-    console.log(parentClass);
-    parentClass.isMonoContainer = _MonoContainer.isMonoContainer;
-    parentClass._html = cont.html;
-    parentClass.clear = () => cont.clear();
-    parentClass.append = (...items) => cont.append(...items);
-    parentClass.getBoundingClientRect = () => cont.getBoundingClientRect();
-  }
-  static _html;
-  static get html() {
-    return this._html;
-  }
-  static clear;
-  static append;
-  static getBoundingClientRect;
-  static isMonoContainer = Symbol();
-};
 
 // src/client/globals/stylesheet.ts
-var Stylesheet = class _Stylesheet extends MonoContainer {
-  static {
-    this.copyInstance(Container.from("style"), this);
+var StylesheetClass = class extends Container {
+  constructor() {
+    super("style");
   }
-  static keys = /* @__PURE__ */ new Set();
-  static add(elements) {
+  keys = /* @__PURE__ */ new Set();
+  add(elements) {
     entriesTyped(elements).map(([keyRaw, style]) => {
       const key = kebabify(keyRaw);
-      if (_Stylesheet.keys.has(key))
+      if (this.keys.has(key))
         throw Error(`"${key}" already defined`);
-      _Stylesheet.keys.add(key);
+      this.keys.add(key);
       const rules = entriesTyped(style).map(([k, v]) => `${kebabify(k)}: ${v?.toString()}`);
       this.append(`${key} { ${rules.join("; ")} }
 `);
     });
   }
-  static addClass(classes) {
+  addClass(classes) {
     this.add(fromEntriesTyped(
       entriesTyped(classes).map(([className, style]) => [`.${className}`, style])
     ));
   }
 };
+var Stylesheet = new StylesheetClass();
 Stylesheet.addClass({
   AccordionLabel: {
     backgroundColor: "#ffffff40 !important"
@@ -2043,12 +2020,11 @@ Stylesheet.addClass({
     marginTop: "auto"
   }
 });
-console.log(Stylesheet.html?.innerHTML, MonoContainer.html?.innerHTML);
 
 // src/client/containers/infoBox/imagesToFetch.ts
 var ImagesToFetch = class extends Container {
   constructor() {
-    super();
+    super("div");
   }
   xyz2string = ({ x, y, z: z2 }) => `${z2.toString(16)}_${x.toString(16)}_${y.toString(16)}`;
   data = {};
@@ -2071,7 +2047,7 @@ var ImagesToFetch = class extends Container {
     this.clear();
     Object.entries(this.data).map(([key, val]) => [key, val.size]).forEach(([source, size], idx) => {
       if (idx !== 0)
-        this.append(Container.from("br"));
+        this.append(new Container("br"));
       this.append(`${source}: ${size}/${this.total[source]}`);
     });
   };
@@ -2310,12 +2286,12 @@ var tileSize = 256;
 // src/client/mainContainer.ts
 var MainContainer = class extends Container {
   constructor() {
-    const {
-      container: containerId = ""
-    } = Object.fromEntries(new URL(import.meta.url).searchParams.entries());
-    super(
-      Container.from(document.getElementById(containerId) ?? Container.from("div").html)
-    );
+    const containerId = new URL(import.meta.url).searchParams.get("container") ?? "";
+    const container = document.getElementById(containerId);
+    if (container instanceof HTMLDivElement)
+      super(container);
+    else
+      throw Error("mainContainer needs to be a div");
     window.addEventListener("resize", () => {
       this.refresh();
     });
@@ -2381,7 +2357,7 @@ var CoordsToggle = class _CoordsToggle extends Container {
     }[settings.units.coords];
   };
   constructor() {
-    super(Container.from("a", {
+    super("a", {
       classes: ["btn", "btn-secondary"],
       onclick: () => {
         settings.units.coords = {
@@ -2392,7 +2368,7 @@ var CoordsToggle = class _CoordsToggle extends Container {
         this.refresh();
       },
       role: "button"
-    }));
+    });
   }
   listeners = /* @__PURE__ */ new Set();
   refresh() {
@@ -2406,7 +2382,7 @@ var coordsToggle = new CoordsToggle();
 // src/client/containers/infoBox/infoBoxCoords.ts
 var InfoBoxCoords = class extends Container {
   constructor() {
-    super();
+    super("div");
     this.refresh();
     position.listeners.add(() => this.refresh());
     coordsToggle.listeners.add(() => this.refresh());
@@ -2440,14 +2416,14 @@ var InfoBoxCoords = class extends Container {
   }
   row(left2, right2) {
     this.append(
-      Container.from("div", {
+      new Container("div", {
         classes: [
           "d-flex",
           "w-100"
         ]
       }).append(
-        Container.from("div", { classes: ["mrA"] }).append(left2),
-        Container.from("div", { classes: ["mlA"] }).append(right2)
+        new Container("div", { classes: ["mrA"] }).append(left2),
+        new Container("div", { classes: ["mlA"] }).append(right2)
       )
     );
   }
@@ -7648,20 +7624,20 @@ enableDismissTrigger(Toast);
 defineJQueryPlugin(Toast);
 
 // src/client/utils/htmlElements/accordion.ts
-new Collapse(new Container().html);
+new Collapse(new Container("div").html);
 var Accordion = class extends Container {
   constructor({ accordionId }) {
-    super(Container.from("div", {
+    super("div", {
       classes: ["accordion"],
       id: accordionId
-    }));
+    });
   }
 };
 
 // src/client/utils/htmlElements/accordion/accordionBody.ts
 var AccordionBody = class extends Container {
   constructor({ body, itemId }) {
-    super(Container.from("div", {
+    super("div", {
       classes: [
         "accordion-collapse",
         "collapse",
@@ -7669,7 +7645,7 @@ var AccordionBody = class extends Container {
         "pe-0"
       ],
       id: itemId
-    }));
+    });
     this.append(body);
   }
   show() {
@@ -7683,15 +7659,15 @@ var AccordionBody = class extends Container {
 // src/client/utils/htmlElements/accordion/accordionHead.ts
 var AccordionHead = class extends Container {
   constructor({ body = false, itemId, label }) {
-    super(Container.from("div", {
+    super("div", {
       classes: [
         "accordion-header",
         "d-flex",
         "AccordionLabel"
       ]
-    }));
+    });
     this.hasBody = body;
-    this.labelContainer = Container.from("div", {
+    this.labelContainer = new Container("div", {
       classes: [
         "w-100",
         "d-flex",
@@ -7738,12 +7714,12 @@ var AccordionHead = class extends Container {
 // src/client/utils/htmlElements/accordion/accordionItem.ts
 var AccordionItem = class extends Container {
   constructor({ bodyLabel, headLabel, itemId: itemIdRaw, show }) {
-    super(Container.from("div", {
+    super("div", {
       classes: [
         "accordion-item",
         "AccordionLabel"
       ]
-    }));
+    });
     const itemId = `item_${itemIdRaw.replace(/=*$/, "")}`;
     const isBody = Boolean(bodyLabel);
     this.head = new AccordionHead({ body: isBody, itemId, label: headLabel });
@@ -7787,7 +7763,7 @@ function xyz2latLon({ x, y, z: z2 }) {
 // src/client/containers/infoBox/navionicsDetails/navionicsItem/details.ts
 var NavionicsItemDetails = class extends Container {
   constructor() {
-    super(Container.from("div", {}));
+    super("div");
     this.append("fetching...");
   }
 };
@@ -8030,14 +8006,14 @@ var MapTile = class _MapTile extends Container {
   }
   constructor({ x, y, z: z2 }) {
     const ttl2 = max(min(17, z2 + max(0, position.ttl)) - z2, 0);
-    super(Container.from("canvas", {
+    super("canvas", {
       classes: ["MapTile"],
       dataset: {
         x: x.toFixed(0),
         y: y.toFixed(0),
         z: z2.toFixed(0)
       }
-    }));
+    });
     this.x = x;
     this.y = y;
     this.z = z2;
@@ -8072,17 +8048,17 @@ var MapTile = class _MapTile extends Container {
 var BaselayerMenu = class _BaselayerMenu extends Container {
   static baselayerLabel = (source) => `${LayerSetup.get(source).label} (${baselayers.indexOf(source)})`;
   constructor() {
-    super(Container.from("div", {
+    super("div", {
       classes: ["dropdown"]
-    }));
+    });
     this.append(
       this.baselayerMenuButton,
-      Container.from("ul", {
+      new Container("ul", {
         classes: ["dropdown-menu"]
       }).append(
-        Container.from("li").append(
+        new Container("li").append(
           ...baselayers.map((source) => {
-            return Container.from("a", {
+            return new Container("a", {
               classes: ["dropdown-item"],
               onclick: () => TilesContainer.instance.baselayer = source
             }).append(_BaselayerMenu.baselayerLabel(source));
@@ -8094,7 +8070,7 @@ var BaselayerMenu = class _BaselayerMenu extends Container {
   set baselayerLabel(val) {
     this.baselayerMenuButton.html.innerText = val;
   }
-  baselayerMenuButton = Container.from("a", {
+  baselayerMenuButton = new Container("a", {
     classes: ["btn", "btn-secondary", "dropdown-toggle"],
     dataset: {
       bsToggle: "dropdown"
@@ -8113,10 +8089,10 @@ var TilesContainer = class _TilesContainer extends Container {
   }
   static _instance;
   constructor() {
-    super(Container.from("div", {
+    super("div", {
       classes: ["MapContainerStyle"],
       id: _TilesContainer.name
-    }));
+    });
     window.addEventListener("resize", () => this.refresh("resize"));
     position.listeners.add(() => this.refresh("position"));
     this.rebuild("initial");
@@ -8221,9 +8197,9 @@ Stylesheet.addClass({
 });
 var BootstrapIcon = class extends Container {
   constructor({ icon }) {
-    super(Container.from("i", {
+    super("i", {
       classes: ["BootstrapIcon", `bi-${icon}`]
-    }));
+    });
   }
 };
 var IconButton = class extends Container {
@@ -8233,12 +8209,12 @@ var IconButton = class extends Container {
     onclick = () => void 0,
     src
   }) {
-    super(Container.from("a", {
+    super("a", {
       classes: ["btn", active() ? "btn-success" : "btn-secondary", "IconButton"],
       role: "button"
-    }));
+    });
     this.append(
-      icon ? new BootstrapIcon({ icon }) : Container.from("img", {
+      icon ? new BootstrapIcon({ icon }) : new Container("img", {
         classes: ["SvgIcon"],
         src
       })
@@ -8266,7 +8242,7 @@ Stylesheet.addClass({
 });
 var NavionicsGoto = class extends Container {
   constructor({ lat: lat2, lon: lon2 }) {
-    super(Container.from("div", {
+    super("div", {
       classes: ["NavionicsGoto"],
       onclick: (event) => {
         position.xyz = {
@@ -8275,7 +8251,7 @@ var NavionicsGoto = class extends Container {
         };
         event.stopPropagation();
       }
-    }));
+    });
     this.append(new BootstrapIcon({ icon: "arrow-right-circle" }));
   }
 };
@@ -8298,11 +8274,11 @@ Stylesheet.addClass({
 });
 var NavionicsIcon = class extends Container {
   constructor(iconId) {
-    super(Container.from("div", {
+    super("div", {
       classes: ["NavionicsIconDiv"]
-    }));
+    });
     this.append(
-      Container.from("img", {
+      new Container("img", {
         classes: ["NavionicsIconImg"],
         src: `/navionics/icon/${encodeURIComponent(iconId)}`
       })
@@ -8330,13 +8306,13 @@ function latLon2RadiusOmega({ from, to }) {
 // src/client/utils/htmlElements/distance.ts
 var DistanceElement = class extends Container {
   constructor(show) {
-    super(Container.from("span", {
+    super("span", {
       classes: ["NavionicsItemLabelDistance", show ? "show" : void 0]
-    }));
+    });
     this.append(this.arrow, this.label);
   }
-  arrow = Container.from("i", { classes: ["bi-arrow-up"] });
-  label = Container.from("div", { classes: ["d-inline-block"] });
+  arrow = new Container("i", { classes: ["bi-arrow-up"] });
+  label = new Container("div", { classes: ["d-inline-block"] });
   set dist({ omega, radius }) {
     this.arrow.html.style.transform = `rotate(${omega}rad)`;
     if (radius < 1e-3) {
@@ -8401,12 +8377,12 @@ Stylesheet.addClass({
 });
 var NavionicsItemLabel = class extends Container {
   constructor({ itemName, itemPosition }) {
-    super(Container.from("div", {
+    super("div", {
       classes: ["NavionicsItemLabel"]
-    }));
+    });
     this.distanceContainer = new Distance(itemPosition);
     this.append(
-      Container.from("div", { classes: ["myA"] }).append(
+      new Container("div", { classes: ["myA"] }).append(
         itemName,
         this.distanceContainer.spacer
       ),
@@ -8426,7 +8402,7 @@ var NavionicsItem = class extends AccordionItem {
     itemPosition
   }) {
     const labelContainer = new NavionicsItemLabel({ itemName, itemPosition });
-    const headLabel = Container.from("div", {
+    const headLabel = new Container("div", {
       classes: ["d-flex", "w-100"]
     }).append(
       new NavionicsIcon(iconId),
@@ -8446,7 +8422,7 @@ var NavionicsItem = class extends AccordionItem {
         if (properties)
           properties.forEach((prop) => {
             if (prop)
-              bodyLabel.append(Container.from("p").append(prop));
+              bodyLabel.append(new Container("p").append(prop));
           });
         this.head.done();
         this.hide();
@@ -8480,7 +8456,7 @@ var NavionicsItem = class extends AccordionItem {
 // src/client/containers/infoBox/navionicsDetails.ts
 var NavionicsDetails = class extends Container {
   constructor() {
-    super();
+    super("div");
     this.mainAccordion = new Accordion({ accordionId: this.accordionIdPrefix });
     this.append(this.mainAccordion);
     position.listeners.add(() => {
@@ -10269,11 +10245,11 @@ var SolarTimesStatsCanvas = class extends Container {
     const maxValue = max(...values);
     const scaleY = (height - 1) / (maxValue - minValue);
     const scaleX = width / stats.length;
-    super(Container.from("canvas", {
+    super("canvas", {
       classes: ["SolarTimesStatsCanvas"],
       height,
       width
-    }));
+    });
     const context = this.html.getContext("2d");
     if (context) {
       context.beginPath();
@@ -10313,7 +10289,7 @@ Stylesheet.addClass({
 });
 var ValueRow = class extends Container {
   constructor() {
-    super();
+    super("div");
   }
   total = 0;
   totalKeys = [];
@@ -10342,17 +10318,17 @@ var ValueRow = class extends Container {
   }
   addRow({ col1 = [], col2 = [], col3 = [], row }) {
     row ??= [
-      Container.from("div", {
+      new Container("div", {
         classes: ["mrA"]
       }).append(...col1),
-      Container.from("div", {
+      new Container("div", {
         classes: ["ValueRowColRight"]
       }).append(...col2),
-      Container.from("div", {
+      new Container("div", {
         classes: ["ValueRowColRight"]
       }).append(...col3)
     ];
-    this.append(Container.from("div", {
+    this.append(new Container("div", {
       classes: ["d-flex"]
     }).append(...row));
     return this;
@@ -10365,12 +10341,12 @@ var ValueRow = class extends Container {
       stats: durations.stats,
       width: 15 * 16
     });
-    const axis = [stats.max, stats.min].map((v) => Container.from("div", {
+    const axis = [stats.max, stats.min].map((v) => new Container("div", {
       classes: ["text-end"]
     }).append(formatDateValue(v)));
     this.addRow({
       row: [
-        Container.from("div", {
+        new Container("div", {
           classes: ["SolarTimesStats"]
         }).append(...axis),
         stats
@@ -10384,7 +10360,7 @@ var ValueRow = class extends Container {
 // src/client/containers/infoBox/suncalc/solarTimes.ts
 var SolarTimes = class extends Container {
   constructor() {
-    super();
+    super("div");
     this.html.id = "SolarTimes";
   }
   lat = 0;
@@ -10403,7 +10379,7 @@ var SolarTimes = class extends Container {
     return ret;
   }, []).reduce((ret, { end: end2, start: start2 }, idx) => {
     if (idx !== 0)
-      ret.push(Container.from("br"));
+      ret.push(new Container("br"));
     ret.push(
       start2.valueOf() === end2.valueOf() ? format(start2, "dd.MM.yyyy") : `${format(start2, "dd.MM.yyyy")} - ${format(end2, "dd.MM.yyyy")}`
     );
@@ -10509,9 +10485,9 @@ Stylesheet.addClass(
 );
 var InfoBox = class extends Container {
   constructor() {
-    super(Container.from("div", {
+    super("div", {
       classes: ["InfoBox", "p-2", "mt-2"]
-    }));
+    });
     navionicsDetailsToggle.listeners.add(() => this.refresh());
     this.infoBoxCoords = new InfoBoxCoords();
     this.refresh();
@@ -10830,17 +10806,17 @@ Stylesheet.addClass({
 });
 var OverlayContainer = class _OverlayContainer extends Container {
   constructor() {
-    super(Container.from("div", {
+    super("div", {
       classes: ["MapContainerStyle"],
       id: _OverlayContainer.name
-    }));
+    });
     position.listeners.add(() => this.refresh());
     markers.listeners.add(() => this.refresh());
     this.refresh();
   }
   refresh() {
     const { height, width } = this.html.getBoundingClientRect();
-    const canvas = Container.from("canvas", {
+    const canvas = new Container("canvas", {
       classes: ["OverlayContainerCanvas"],
       height,
       width
@@ -10871,7 +10847,7 @@ var crosshairToggle = new IconButton({
 });
 
 // src/client/containers/menu/goto/address/searchContainer.ts
-var addressSearchContainer = Container.from("div", {
+var addressSearchContainer = new Container("div", {
   classes: ["dropdown-menu"]
 });
 
@@ -10891,7 +10867,7 @@ var parseNominatim = (input) => {
   }
   return [];
 };
-var addressInput = Container.from("input", {
+var addressInput = new Container("input", {
   autocomplete: "off",
   classes: ["form-control"],
   oninput: async () => {
@@ -10909,7 +10885,7 @@ var addressInput = Container.from("input", {
           return false;
         addressSearchContainer.clear();
         addressSearchContainer.append(
-          Container.from("div", {
+          new Container("div", {
             classes: ["list-group", "list-group-flush"]
           }).append(
             ...items.sort((a, b) => b.importance - a.importance).map(({ boundingbox, display_name: displayName, lat: lat2, lon: lon2 }, idx) => {
@@ -10935,7 +10911,7 @@ var addressInput = Container.from("input", {
               };
               if (idx === 0)
                 addressForm.html.onsubmit = onclick;
-              return Container.from("a", {
+              return new Container("a", {
                 classes: ["list-group-item"],
                 onclick,
                 role: "button"
@@ -10958,14 +10934,14 @@ var addressInput = Container.from("input", {
 });
 
 // src/client/containers/menu/goto/address/form.ts
-var addressForm = Container.from("form", {
+var addressForm = new Container("form", {
   action: "javascript:void(0)",
   classes: ["GotoForm"]
 });
 addressForm.append(addressInput);
 
 // src/client/containers/menu/goto/address/container.ts
-var addressContainer = Container.from("div", {
+var addressContainer = new Container("div", {
   classes: ["dropdown"]
 });
 addressContainer.append(
@@ -10982,7 +10958,7 @@ var coordUnits = ["d", "dm", "dms"];
 // src/client/containers/menu/goto/coord/form.ts
 var CoordForm = class extends Container {
   constructor() {
-    super(Container.from("form", {
+    super("form", {
       action: "javascript:void(0)",
       classes: ["GotoForm"],
       onsubmit: () => {
@@ -10993,9 +10969,9 @@ var CoordForm = class extends Container {
           };
         return this.valid;
       }
-    }));
+    });
     this.append(
-      Container.from("div", {
+      new Container("div", {
         classes: ["input-group"]
       }).append(
         this.input,
@@ -11014,13 +10990,13 @@ var CoordForm = class extends Container {
     icon: "arrow-right-circle",
     onclick: () => this.html.submit()
   });
-  error = Container.from("div", { classes: ["form-text"] });
+  error = new Container("div", { classes: ["form-text"] });
   info = {
-    d: Container.from("div", { classes: ["form-text", "w-100"] }),
-    dm: Container.from("div", { classes: ["form-text", "w-100"] }),
-    dms: Container.from("div", { classes: ["form-text", "w-100"] })
+    d: new Container("div", { classes: ["form-text", "w-100"] }),
+    dm: new Container("div", { classes: ["form-text", "w-100"] }),
+    dms: new Container("div", { classes: ["form-text", "w-100"] })
   };
-  input = Container.from("input", {
+  input = new Container("input", {
     autocomplete: "off",
     classes: ["form-control"],
     oninput: () => {
@@ -11069,7 +11045,7 @@ var SavedPositions = class _SavedPositions extends Container {
     z: Number
   });
   constructor() {
-    super();
+    super("div");
     const list = this.localStorageItem.get();
     if (Array.isArray(list)) {
       list.forEach(({ x, y, z: z2 }) => {
@@ -11100,11 +11076,11 @@ var SavedPositions = class _SavedPositions extends Container {
       const distanceContainer = new Distance(xyz2latLon({ x, y, z: z2 }));
       distanceContainer.reference = position;
       this.append(
-        Container.from("div", {
+        new Container("div", {
           classes: ["btn-group", "my-2", "d-flex"],
           role: "group"
         }).append(
-          Container.from("a", {
+          new Container("a", {
             classes: ["btn", "btn-secondary", "text-start"],
             onclick: () => {
               position.xyz = { x, y, z: z2 };
@@ -11155,12 +11131,12 @@ Stylesheet.addClass({
 });
 var GotoMenu = class extends Container {
   constructor() {
-    super(Container.from("div", {
+    super("div", {
       classes: ["btn-group"],
       role: "group"
-    }));
+    });
     this.append(
-      Container.from("a", {
+      new Container("a", {
         classes: ["btn", "btn-secondary"],
         onclick: () => {
           savedPositions.add(position.xyz);
@@ -11169,7 +11145,7 @@ var GotoMenu = class extends Container {
       }).append("Save")
     );
     this.append(
-      Container.from("div", {
+      new Container("div", {
         classes: ["dropdown-menu", "p-2"]
       }).append(
         coordForm,
@@ -11178,7 +11154,7 @@ var GotoMenu = class extends Container {
       )
     );
     this.append(
-      Container.from("a", {
+      new Container("a", {
         classes: ["btn", "btn-secondary", "IconButton"],
         dataset: {
           bsToggle: "dropdown"
@@ -11219,15 +11195,15 @@ var vfdensityToggle = new OverlayToggle("vfdensity");
 // src/client/containers/menuContainer.ts
 var MenuContainer = class extends Container {
   constructor() {
-    super(Container.from("div", {
+    super("div", {
       classes: ["d-flex", "gap-2", "m-2"],
       dataset: {
         bsTheme: "dark"
       }
-    }));
+    });
     this.append(
       baselayerMenu,
-      Container.from("div", {
+      new Container("div", {
         classes: ["btn-group"],
         role: "group"
       }).append(
@@ -11390,14 +11366,14 @@ function mouseInput(event) {
 // src/client/containers/mouseContainer.ts
 var MouseContainer = class extends Container {
   constructor() {
-    super(Container.from("div", {
+    super("div", {
       classes: ["MapContainerStyle"],
       id: "mouseContainer",
       onmousedown: mouseInput,
       onmousemove: mouseInput,
       onmouseup: mouseInput,
       onwheel: mouseInput
-    }));
+    });
   }
 };
 var mouseContainer = new MouseContainer();

@@ -15,13 +15,13 @@ Stylesheet.addClass({
 
 export class GotoMenu extends Container {
   constructor () {
-    super(Container.from('div', {
+    super('div', {
       classes: ['btn-group'],
       role: 'group',
-    }));
+    });
 
     this.append(
-      Container.from('a', {
+      new Container('a', {
         classes: ['btn', 'btn-secondary'],
         onclick: () => {
           savedPositions.add(position.xyz);
@@ -31,7 +31,7 @@ export class GotoMenu extends Container {
     );
 
     this.append(
-      Container.from('div', {
+      new Container('div', {
         classes: ['dropdown-menu', 'p-2'],
       })
       .append(
@@ -42,7 +42,7 @@ export class GotoMenu extends Container {
     );
 
     this.append(
-      Container.from('a', {
+      new Container('a', {
         classes: ['btn', 'btn-secondary', 'IconButton'],
         dataset: {
           bsToggle: 'dropdown',

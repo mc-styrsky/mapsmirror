@@ -12,7 +12,7 @@ import { coordsToggle } from '../menu/coordsToggle';
 
 export class InfoBoxCoords extends Container {
   constructor () {
-    super();
+    super('div');
     this.refresh();
     position.listeners.add(() => this.refresh());
     coordsToggle.listeners.add(() => this.refresh());
@@ -57,15 +57,15 @@ export class InfoBoxCoords extends Container {
 
   private row (left: string, right: string) {
     this.append(
-      Container.from('div', {
+      new Container('div', {
         classes: [
           'd-flex',
           'w-100',
         ],
       })
       .append(
-        Container.from('div', { classes: ['mrA'] }).append(left),
-        Container.from('div', { classes: ['mlA'] }).append(right),
+        new Container('div', { classes: ['mrA'] }).append(left),
+        new Container('div', { classes: ['mlA'] }).append(right),
       ),
     );
   }

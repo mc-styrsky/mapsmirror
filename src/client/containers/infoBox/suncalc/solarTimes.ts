@@ -1,5 +1,6 @@
 import type { DurationKeys } from './types/durationKeys';
 import type { SolarDuration } from './types/solarDuration';
+import type { Appendable } from '../../../globals/appendable';
 import { add, format } from 'date-fns';
 import { getPosition, getTimes } from 'suncalc';
 import { halfDay } from '../../../globals/halfDay';
@@ -13,7 +14,7 @@ import { ValueRow } from './valueRow';
 
 export class SolarTimes extends Container {
   constructor () {
-    super();
+    super('div');
     this.html.id = 'SolarTimes';
   }
   lat = 0;
@@ -36,8 +37,8 @@ export class SolarTimes extends Container {
     }
     return ret;
   }, [])
-  .reduce((ret: (Container<HTMLElement> | string)[], { end, start }, idx) => {
-    if (idx !== 0) ret.push(Container.from('br'));
+  .reduce((ret: (Appendable)[], { end, start }, idx) => {
+    if (idx !== 0) ret.push(new Container('br'));
     ret.push(start.valueOf() === end.valueOf() ?
       format(start, 'dd.MM.yyyy') :
       `${format(start, 'dd.MM.yyyy')} - ${format(end, 'dd.MM.yyyy')}`,

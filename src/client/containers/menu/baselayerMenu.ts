@@ -9,19 +9,19 @@ export class BaselayerMenu extends Container {
   static baselayerLabel = (source: Baselayer) => `${LayerSetup.get(source).label} (${baselayers.indexOf(source)})`;
 
   constructor () {
-    super(Container.from('div', {
+    super('div', {
       classes: ['dropdown'],
-    }));
+    });
     this.append(
       this.baselayerMenuButton,
-      Container.from('ul', {
+      new Container('ul', {
         classes: ['dropdown-menu'],
       })
       . append(
-        Container.from('li')
+        new Container('li')
         .append(
           ...baselayers.map(source => {
-            return Container.from('a', {
+            return new Container('a', {
               classes: ['dropdown-item'],
               onclick: () => TilesContainer.instance.baselayer = source,
             })
@@ -36,7 +36,7 @@ export class BaselayerMenu extends Container {
     this.baselayerMenuButton.html.innerText = val;
   }
 
-  private readonly baselayerMenuButton = Container.from('a', {
+  private readonly baselayerMenuButton = new Container('a', {
     classes: ['btn', 'btn-secondary', 'dropdown-toggle'],
     dataset: {
       bsToggle: 'dropdown',

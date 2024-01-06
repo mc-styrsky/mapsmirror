@@ -1,7 +1,7 @@
 import { settings } from '../../globals/settings';
 import { Container } from '../../utils/htmlElements/container';
 
-class CoordsToggle extends Container {
+class CoordsToggle extends Container<'a'> {
   static toString = () => {
     return {
       d: 'Dec',
@@ -11,7 +11,7 @@ class CoordsToggle extends Container {
   };
 
   constructor () {
-    super(Container.from('a', {
+    super('a', {
       classes: ['btn', 'btn-secondary'],
       onclick: () => {
         settings.units.coords = {
@@ -23,7 +23,7 @@ class CoordsToggle extends Container {
         this.refresh();
       },
       role: 'button',
-    }));
+    });
   }
 
   readonly listeners = new Set<() => void>();

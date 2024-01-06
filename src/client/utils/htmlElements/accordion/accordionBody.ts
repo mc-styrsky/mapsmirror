@@ -3,7 +3,7 @@ import { Container } from '../container';
 
 export class AccordionBody extends Container {
   constructor ({ body, itemId }: { body: Appendable; itemId: string; }) {
-    super(Container.from('div', {
+    super('div', {
       classes: [
         'accordion-collapse',
         'collapse',
@@ -11,7 +11,7 @@ export class AccordionBody extends Container {
         'pe-0',
       ],
       id: itemId,
-    }));
+    });
     this.append(body);
   }
   show () {

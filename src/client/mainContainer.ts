@@ -3,12 +3,10 @@ import { Container } from './utils/htmlElements/container';
 
 export class MainContainer extends Container {
   constructor () {
-    const {
-      container: containerId = '',
-    } = Object.fromEntries(new URL(import.meta.url).searchParams.entries());
-    super(
-      Container.from(document.getElementById(containerId) ?? Container.from('div').html),
-    );
+    const containerId = new URL(import.meta.url).searchParams.get('container') ?? '';
+    const container = document.getElementById(containerId);
+    if (container instanceof HTMLDivElement) super(container);
+    else throw Error('mainContainer needs to be a div');
 
     window.addEventListener('resize', () => {
       this.refresh();

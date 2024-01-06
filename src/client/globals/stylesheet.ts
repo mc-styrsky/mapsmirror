@@ -1,33 +1,35 @@
 import { entriesTyped } from '../../common/entriesTyped';
 import { fromEntriesTyped } from '../../common/fromEntriesTyped';
-import { Container, MonoContainer } from '../utils/htmlElements/container';
+import { Container } from '../utils/htmlElements/container';
 import { kebabify } from '../utils/kebabify';
 
 type CSSDeclaration = Partial<CSSStyleDeclaration> & Record<`--${string}`, string>
 
-export class Stylesheet extends MonoContainer<HTMLStyleElement> {
-  static {
-    this.copyInstance(Container.from('style'), this);
+class StylesheetClass extends Container<'style'> {
+  constructor () {
+    super('style');
   }
-  private static keys = new Set<string>();
-  static add (elements: Record<string, CSSDeclaration>) {
+  private readonly keys = new Set<string>();
+  add (elements: Record<string, CSSDeclaration>) {
     entriesTyped(elements).map(([keyRaw, style]) => {
       const key = kebabify(keyRaw);
 
-      if (Stylesheet.keys.has(key)) throw Error(`"${key}" already defined`);
-      Stylesheet.keys.add(key);
+      if (this.keys.has(key)) throw Error(`"${key}" already defined`);
+      this.keys.add(key);
 
       const rules = entriesTyped(style).map(([k, v]) => `${kebabify(k)}: ${v?.toString()}`);
       this.append(`${key} { ${rules.join('; ')} }\n`);
     });
   }
-  static addClass (classes: Record<string, CSSDeclaration>) {
+  addClass (classes: Record<string, CSSDeclaration>) {
     this.add(fromEntriesTyped(
       entriesTyped(classes)
       .map(([className, style]) => [`.${className}`, style]),
     ));
   }
 }
+
+export const Stylesheet = new StylesheetClass();
 
 Stylesheet.addClass({
   AccordionLabel: {
@@ -93,5 +95,3 @@ Stylesheet.addClass({
   },
 
 });
-
-console.log(Stylesheet.html?.innerHTML, MonoContainer.html?.innerHTML);

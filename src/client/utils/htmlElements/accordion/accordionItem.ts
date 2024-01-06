@@ -10,12 +10,12 @@ export class AccordionItem extends Container {
     show?: boolean;
     itemId: string
   }) {
-    super(Container.from('div', {
+    super('div', {
       classes: [
         'accordion-item',
         'AccordionLabel',
       ],
-    }));
+    });
     const itemId = `item_${itemIdRaw.replace(/=*$/, '')}`;
     const isBody = Boolean(bodyLabel);
     this.head = new AccordionHead({ body: isBody, itemId, label: headLabel });

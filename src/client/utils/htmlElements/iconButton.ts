@@ -24,15 +24,15 @@ Stylesheet.addClass({
   },
 });
 
-export class BootstrapIcon extends Container<HTMLElement> {
+export class BootstrapIcon extends Container<'i'> {
   constructor ({ icon }: BsIcon) {
-    super(Container.from('i', {
+    super('i', {
       classes: ['BootstrapIcon', `bi-${icon}`],
-    }));
+    });
   }
 }
 
-export class IconButton extends Container<HTMLAnchorElement> {
+export class IconButton extends Container<'a'> {
   constructor ({
     active = () => false, icon, onclick = () => void 0, src,
   }: {
@@ -40,14 +40,14 @@ export class IconButton extends Container<HTMLAnchorElement> {
     onclick?: () => void;
     // style?: Partial<HTMLAnchorElement['style']>;
   } & (BsIcon | SvgIcon)) {
-    super(Container.from('a', {
+    super('a', {
       classes: ['btn', active() ? 'btn-success' : 'btn-secondary', 'IconButton'],
       role: 'button',
-    }));
+    });
     this.append(
       icon ?
         new BootstrapIcon({ icon }) :
-        Container.from('img', {
+        new Container('img', {
           classes: ['SvgIcon'],
           src,
         }),

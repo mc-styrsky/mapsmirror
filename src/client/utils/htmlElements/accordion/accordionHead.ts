@@ -7,15 +7,15 @@ export class AccordionHead extends Container {
     itemId: string
     label: Appendable;
   }) {
-    super(Container.from('div', {
+    super('div', {
       classes: [
         'accordion-header',
         'd-flex',
         'AccordionLabel',
       ],
-    }));
+    });
     this.hasBody = body;
-    this.labelContainer = Container.from('div', {
+    this.labelContainer = new Container('div', {
       classes: [
         'w-100',
         'd-flex',

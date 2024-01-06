@@ -3,14 +3,14 @@ import { Container } from '../utils/htmlElements/container';
 
 class MouseContainer extends Container {
   constructor () {
-    super(Container.from('div', {
+    super('div', {
       classes: ['MapContainerStyle'],
       id: 'mouseContainer',
       onmousedown: mouseInput,
       onmousemove: mouseInput,
       onmouseup: mouseInput,
       onwheel: mouseInput,
-    }));
+    });
   }
 }
 

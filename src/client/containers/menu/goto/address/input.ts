@@ -26,7 +26,7 @@ const parseNominatim = (input: any) => {
   return [];
 };
 
-export const addressInput = Container.from('input', {
+export const addressInput = new Container('input', {
   autocomplete: 'off',
   classes: ['form-control'],
   oninput: async () => {
@@ -42,7 +42,7 @@ export const addressInput = Container.from('input', {
 
         addressSearchContainer.clear();
         addressSearchContainer.append(
-          Container.from('div', {
+          new Container('div', {
             classes: ['list-group', 'list-group-flush'],
           })
           .append(
@@ -71,7 +71,7 @@ export const addressInput = Container.from('input', {
               };
 
               if (idx === 0) addressForm.html.onsubmit = onclick;
-              return Container.from('a', {
+              return new Container('a', {
                 classes: ['list-group-item'],
                 onclick,
                 role: 'button',

@@ -21,10 +21,10 @@ export class TilesContainer extends Container {
   private static _instance: TilesContainer;
 
   private constructor () {
-    super(Container.from('div', {
+    super('div', {
       classes: ['MapContainerStyle'],
       id: TilesContainer.name,
-    }));
+    });
     window.addEventListener('resize', () => this.refresh('resize'));
     position.listeners.add(() => this.refresh('position'));
     this.rebuild('initial');

@@ -20,7 +20,7 @@ class SavedPositions extends Container {
     z: Number,
   });
   constructor () {
-    super();
+    super('div');
 
     const list = this.localStorageItem.get();
     if (Array.isArray(list)) {
@@ -54,12 +54,12 @@ class SavedPositions extends Container {
 
       distanceContainer.reference = position;
       this.append(
-        Container.from('div', {
+        new Container('div', {
           classes: ['btn-group', 'my-2', 'd-flex'],
           role: 'group',
         })
         .append(
-          Container.from('a', {
+          new Container('a', {
             classes: ['btn', 'btn-secondary', 'text-start'],
             onclick: () => {
               position.xyz = { x, y, z };

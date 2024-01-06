@@ -2,11 +2,11 @@ import { Container } from '../../../../utils/htmlElements/container';
 
 export class NavionicsItemSpinner extends Container {
   constructor () {
-    super(Container.from('div', {
+    super('div', {
       classes: ['d-flex'],
-    }));
+    });
     this.append(
-      Container.from('div', {
+      new Container('div', {
         classes: [
           'spinner-border',
           'spinner-border-sm',

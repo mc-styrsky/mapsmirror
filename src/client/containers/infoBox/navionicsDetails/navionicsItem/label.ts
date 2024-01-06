@@ -29,12 +29,12 @@ Stylesheet.addClass({
 export class NavionicsItemLabel extends Container {
   constructor ({ itemName, itemPosition }: Pick<NavionicsItemConstructor, 'itemName' | 'itemPosition'>,
   ) {
-    super(Container.from('div', {
+    super('div', {
       classes: ['NavionicsItemLabel'],
-    }));
+    });
     this.distanceContainer = new Distance(itemPosition);
     this.append(
-      Container.from('div', { classes: ['myA'] }).append(
+      new Container('div', { classes: ['myA'] }).append(
         itemName,
         this.distanceContainer.spacer,
       ),

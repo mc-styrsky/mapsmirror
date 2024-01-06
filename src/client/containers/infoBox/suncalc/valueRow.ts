@@ -25,7 +25,7 @@ Stylesheet.addClass({
 });
 export class ValueRow extends Container {
   constructor () {
-    super();
+    super('div');
   }
   total = 0;
   totalKeys: DurationKeys[] = [];
@@ -62,17 +62,17 @@ export class ValueRow extends Container {
   addRow ({ row }: {row: Appendable[]}): ValueRow
   addRow ({ col1 = [], col2 = [], col3 = [], row }: Partial<Record<'col1'|'col2'|'col3'|'row', Appendable[]>>) {
     row ??= [
-      Container.from('div', {
+      new Container('div', {
         classes: ['mrA'],
       }).append(...col1),
-      Container.from('div', {
+      new Container('div', {
         classes: ['ValueRowColRight'],
       }).append(...col2),
-      Container.from('div', {
+      new Container('div', {
         classes: ['ValueRowColRight'],
       }).append(...col3),
     ];
-    this.append(Container.from('div', {
+    this.append(new Container('div', {
       classes: ['d-flex'],
     }).append(...row));
     return this;
@@ -85,12 +85,12 @@ export class ValueRow extends Container {
       stats: durations.stats,
       width: 15 * 16,
     });
-    const axis = [stats.max, stats.min].map(v => Container.from('div', {
+    const axis = [stats.max, stats.min].map(v => new Container('div', {
       classes: ['text-end'],
     }).append(formatDateValue(v)));
     this.addRow({
       row: [
-        Container.from('div', {
+        new Container('div', {
           classes: ['SolarTimesStats'],
         })
         .append(...axis),
