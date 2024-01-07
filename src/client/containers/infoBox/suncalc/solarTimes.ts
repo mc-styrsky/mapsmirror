@@ -15,6 +15,7 @@ export class SolarTimes extends MonoContainer {
   static {
     this.copyInstance(new Container('div'), this);
     this.html.id = 'SolarTimes';
+    position.listeners.add(() => this.refresh());
   }
   static lat = 0;
   static lon = 0;

@@ -33,7 +33,7 @@ export class BaselayerMenu extends MonoContainer {
           ...baselayers.map(source => {
             return new Container('a', {
               classes: ['dropdown-item'],
-              onclick: () => TilesContainer.instance.baselayer = source,
+              onclick: () => TilesContainer.baselayer = source,
             })
             .append(BaselayerMenu.labelForSource(source));
           }),

@@ -7,6 +7,7 @@ import { InfoBoxCoords } from './infoBox/infoBoxCoords';
 import { NavionicsDetails } from './infoBox/navionicsDetails';
 import { SolarTimes } from './infoBox/suncalc/solarTimes';
 import { NavionicsDetailsToggle } from './menu/navionicsDetailsToggle';
+import { SuncalcToggle } from './menu/suncalcToggle';
 
 Stylesheet.addClass({
   InfoBox: {
@@ -25,6 +26,7 @@ export class InfoBox extends MonoContainer {
       classes: ['InfoBox', 'p-2', 'mt-2'],
     }), this);
     NavionicsDetailsToggle.listeners.add(() => this.refresh());
+    SuncalcToggle.listeners.add(() => this.refresh());
     this.refresh();
   }
   static refresh () {

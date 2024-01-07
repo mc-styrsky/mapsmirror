@@ -1906,11 +1906,14 @@ var Container = class {
     if (dataset)
       entriesTyped(dataset).forEach(([k, v]) => this.html.dataset[k] = v);
     if (style)
-      entriesTyped(style).forEach(([k, v]) => this.html.style[k] = v);
+      this.style = style;
   }
   html;
   clear() {
     this.html.innerHTML = "";
+  }
+  set style(style) {
+    entriesTyped(style).forEach(([k, v]) => this.html.style[k] = v);
   }
   append(...items) {
     items.forEach((item) => {
@@ -2016,26 +2019,6 @@ Stylesheet.addClass({
     position: "absolute",
     top: "0px",
     width: "100%"
-  },
-  mbA: {
-    marginBottom: "auto"
-  },
-  mlA: {
-    marginLeft: "auto"
-  },
-  mrA: {
-    marginRight: "auto"
-  },
-  mtA: {
-    marginTop: "auto"
-  },
-  mxA: {
-    marginLeft: "auto",
-    marginRight: "auto"
-  },
-  myA: {
-    marginBottom: "auto",
-    marginTop: "auto"
   }
 });
 
@@ -2278,8 +2261,8 @@ var Markers = class {
       this.refresh();
     }
   };
-  static get = (type) => this._markers.get(type);
-  static set = () => this._markers;
+  static getMarker = (type) => this._markers.get(type);
+  static getMap = () => this._markers;
   static refresh() {
     this.listeners.forEach((callback) => callback());
   }
@@ -2330,10 +2313,10 @@ var MainContainer = class extends MonoContainer {
   }
 };
 
-// src/client/utils/px2nm.ts
-function px2nm(lat2) {
+// src/client/utils/nm2px.ts
+function nm2px(lat2) {
   const stretch = 1 / cos(lat2);
-  return 360 * 60 / position.tiles / tileSize / stretch;
+  return position.tiles * tileSize / 360 / 60 * stretch;
 }
 
 // src/client/utils/rad2string.ts
@@ -2365,6 +2348,18 @@ function rad2string({ axis = " -", pad: pad2 = 0, phi }) {
 // src/client/containers/menu/coordsToggle.ts
 var CoordsToggle = class _CoordsToggle extends MonoContainer {
   static listeners = /* @__PURE__ */ new Set();
+  static toString = () => {
+    return {
+      d: "Dec",
+      dm: "D\xB0M'",
+      dms: "DMS"
+    }[Settings.units.coords];
+  };
+  static refresh() {
+    this.listeners.forEach((callback) => callback());
+    this.clear();
+    this.append(_CoordsToggle.toString());
+  }
   static {
     this.copyInstance(new Container("a", {
       classes: ["btn", "btn-secondary"],
@@ -2378,18 +2373,7 @@ var CoordsToggle = class _CoordsToggle extends MonoContainer {
       },
       role: "button"
     }), this);
-  }
-  static toString = () => {
-    return {
-      d: "Dec",
-      dm: "D\xB0M'",
-      dms: "DMS"
-    }[Settings.units.coords];
-  };
-  static refresh() {
-    this.listeners.forEach((callback) => callback());
-    this.clear();
-    this.append(_CoordsToggle.toString());
+    this.refresh();
   }
 };
 
@@ -2406,27 +2390,29 @@ var InfoBoxCoords = class extends MonoContainer {
     const { lat: lat2, lon: lon2, x, y } = position;
     const latMouse = y2lat(y + (mouse.y - height / 2) / tileSize);
     const lonMouse = x2lon(x + (mouse.x - width / 2) / tileSize);
-    const scale = (() => {
-      let nm = px2nm(lat2);
-      let px = 1;
-      if (nm >= 1)
-        return `${px2nm(lat2).toPrecision(3)}nm/px`;
-      while (nm < 1) {
+    const scaleNm = (() => {
+      let nm = 1;
+      let px = nm2px(lat2);
+      while (px >= 1e3) {
+        nm /= 10;
+        px /= 10;
+      }
+      while (px < 100) {
         nm *= 10;
         px *= 10;
       }
-      return `${nm.toPrecision(3)}nm/${px.toFixed(0)}px`;
+      return `${px.toPrecision(3)}px : ${nm}nm`;
     })();
     this.clear();
-    this.row("Scale", `${scale} (Zoom ${position.z})`);
+    this.row(`Scale  (${position.z})`, `${scaleNm}`);
     this.row("Lat/Lon", `${rad2string({ axis: "NS", pad: 2, phi: lat2 })} ${rad2string({ axis: "EW", pad: 3, phi: lon2 })}`);
     this.row("Mouse", `${rad2string({ axis: "NS", pad: 2, phi: latMouse })} ${rad2string({ axis: "EW", pad: 3, phi: lonMouse })}`);
-    Markers.set().forEach((marker, key) => {
+    const userMarker = Markers.getMarker("user");
+    if (userMarker)
       this.row(
-        key,
-        `${rad2string({ axis: "NS", pad: 2, phi: marker.lat })} ${rad2string({ axis: "EW", pad: 3, phi: marker.lon })}`
+        "User",
+        `${rad2string({ axis: "NS", pad: 2, phi: userMarker.lat })} ${rad2string({ axis: "EW", pad: 3, phi: userMarker.lon })}`
       );
-    });
   }
   static row(left2, right2) {
     this.append(
@@ -2436,8 +2422,8 @@ var InfoBoxCoords = class extends MonoContainer {
           "w-100"
         ]
       }).append(
-        new Container("div", { classes: ["mrA"] }).append(left2),
-        new Container("div", { classes: ["mlA"] }).append(right2)
+        new Container("div", { classes: ["mr-2"] }).append(left2),
+        new Container("div", { classes: ["ms-auto"] }).append(right2)
       )
     );
   }
@@ -8051,9 +8037,11 @@ var MapTile = class _MapTile extends Container {
   moveTo({ x, y, z: z2 }) {
     const scaleZ = z2 >= this.z ? 1 << z2 - this.z : 1 / (1 << this.z - z2);
     const size = tileSize * scaleZ;
-    this.html.style.height = `${size}px`;
-    this.html.style.width = `${size}px`;
-    this.html.style.transform = `translate(${floor((this.x * scaleZ - x) * tileSize)}px, ${floor((this.y * scaleZ - y) * tileSize)}px)`;
+    this.style = {
+      height: `${size}px`,
+      transform: `translate(${floor((this.x * scaleZ - x) * tileSize)}px, ${floor((this.y * scaleZ - y) * tileSize)}px)`,
+      width: `${size}px`
+    };
   }
   id;
 };
@@ -8081,7 +8069,7 @@ var BaselayerMenu = class _BaselayerMenu extends MonoContainer {
           ...baselayers.map((source) => {
             return new Container("a", {
               classes: ["dropdown-item"],
-              onclick: () => TilesContainer.instance.baselayer = source
+              onclick: () => TilesContainer.baselayer = source
             }).append(_BaselayerMenu.labelForSource(source));
           })
         )
@@ -8094,36 +8082,18 @@ var BaselayerMenu = class _BaselayerMenu extends MonoContainer {
 };
 
 // src/client/containers/tilesContainer.ts
-var TilesContainer = class _TilesContainer extends Container {
-  static get instance() {
-    if (!_TilesContainer._instance)
-      _TilesContainer._instance = new _TilesContainer();
-    return _TilesContainer._instance;
-  }
-  static _instance;
-  constructor() {
-    super("div", {
-      classes: ["MapContainerStyle"],
-      id: _TilesContainer.name
-    });
-    window.addEventListener("resize", () => this.refresh("resize"));
-    position.listeners.add(() => this.refresh("position"));
-    this.rebuild("initial");
-  }
-  get instance() {
-    throw new Error("Method not implemented.");
-  }
-  mapTiles = /* @__PURE__ */ new Map();
-  rebuild(type) {
+var TilesContainer = class _TilesContainer extends MonoContainer {
+  static mapTiles = /* @__PURE__ */ new Map();
+  static rebuild(type) {
     this.mapTiles.clear();
     this.refresh(type);
   }
-  set baselayer(baselayer) {
+  static set baselayer(baselayer) {
     Settings.baselayer = baselayer;
     BaselayerMenu.baselayerLabel = baselayer;
     this.rebuild("changed baselayer");
   }
-  refresh(type) {
+  static refresh(type) {
     console.log(`${type} redraw@${(/* @__PURE__ */ new Date()).toISOString()}`);
     const { height, width } = MainContainer;
     const { tiles, ttl: ttl2, x, y, z: z2 } = position;
@@ -8194,6 +8164,15 @@ var TilesContainer = class _TilesContainer extends Container {
       new LocalStorageItem("settings").set(Settings);
     })();
   }
+  static {
+    this.copyInstance(new Container("div", {
+      classes: ["MapContainerStyle"],
+      id: _TilesContainer.name
+    }), this);
+    window.addEventListener("resize", () => this.refresh("resize"));
+    position.listeners.add(() => this.refresh("position"));
+    this.rebuild("initial");
+  }
 };
 
 // src/client/utils/htmlElements/iconButton.ts
@@ -8241,7 +8220,7 @@ var IconButton = class extends Container {
         this.html.classList.add("btn-secondary");
         this.html.classList.remove("btn-success");
       }
-      TilesContainer.instance.refresh("icon clicked");
+      TilesContainer.refresh("icon clicked");
     };
   }
 };
@@ -8327,7 +8306,7 @@ var DistanceElement = class extends Container {
   arrow = new Container("i", { classes: ["bi-arrow-up"] });
   label = new Container("div", { classes: ["d-inline-block"] });
   set dist({ omega, radius }) {
-    this.arrow.html.style.transform = `rotate(${omega}rad)`;
+    this.arrow.style = { transform: `rotate(${omega}rad)` };
     if (radius < 1e-3) {
       this.arrow.html.classList.add("d-none");
       this.arrow.html.classList.remove("d-inline-block");
@@ -8395,7 +8374,7 @@ var NavionicsItemLabel = class extends Container {
     });
     this.distanceContainer = new Distance(itemPosition);
     this.append(
-      new Container("div", { classes: ["myA"] }).append(
+      new Container("div", { classes: ["my-auto"] }).append(
         itemName,
         this.distanceContainer.spacer
       ),
@@ -8835,7 +8814,7 @@ var ValueRow = class extends Container {
   addRow({ col1 = [], col2 = [], col3 = [], row }) {
     row ??= [
       new Container("div", {
-        classes: ["mrA"]
+        classes: ["me-auto"]
       }).append(...col1),
       new Container("div", {
         classes: ["ValueRowColRight"]
@@ -8878,6 +8857,7 @@ var SolarTimes = class extends MonoContainer {
   static {
     this.copyInstance(new Container("div"), this);
     this.html.id = "SolarTimes";
+    position.listeners.add(() => this.refresh());
   }
   static lat = 0;
   static lon = 0;
@@ -8960,9 +8940,28 @@ var NavionicsDetailsToggle = class extends MonoContainer {
         const newActive = !Settings.show.navionicsDetails;
         Settings.show.navionicsDetails = newActive;
         void NavionicsDetails.fetch(position);
+        this.refresh();
       }
     }), this);
     this.refresh();
+  }
+};
+
+// src/client/containers/menu/suncalcToggle.ts
+var SuncalcToggle = class extends MonoContainer {
+  static listeners = /* @__PURE__ */ new Set();
+  static {
+    this.copyInstance(new IconButton({
+      active: () => Settings.show.suncalc,
+      icon: "sunrise",
+      onclick: () => {
+        Settings.show.suncalc = !Settings.show.suncalc;
+        this.refresh();
+      }
+    }), this);
+  }
+  static refresh() {
+    this.listeners.forEach((callback) => callback());
   }
 };
 
@@ -8985,6 +8984,7 @@ var InfoBox = class extends MonoContainer {
       classes: ["InfoBox", "p-2", "mt-2"]
     }), this);
     NavionicsDetailsToggle.listeners.add(() => this.refresh());
+    SuncalcToggle.listeners.add(() => this.refresh());
     this.refresh();
   }
   static refresh() {
@@ -9001,12 +9001,6 @@ var InfoBox = class extends MonoContainer {
 // src/client/utils/min2rad.ts
 function nm2rad(min3) {
   return min3 / 21600 * PI2;
-}
-
-// src/client/utils/nm2px.ts
-function nm2px(lat2) {
-  const stretch = 1 / cos(lat2);
-  return position.tiles * tileSize / 360 / 60 * stretch;
 }
 
 // src/client/utils/spheric/radiusOmega2LatLon.ts
@@ -9149,7 +9143,7 @@ var drawMarkers = ({
   x,
   y
 }) => {
-  Markers.set().forEach((marker) => {
+  Markers.getMap().forEach((marker) => {
     const markerX = (marker.x - x) * tileSize;
     const markerY = (marker.y - y) * tileSize;
     const from = 40;
@@ -9180,6 +9174,12 @@ var drawMarkers = ({
     });
   });
 };
+
+// src/client/utils/px2nm.ts
+function px2nm(lat2) {
+  const stretch = 1 / cos(lat2);
+  return 360 * 60 / position.tiles / tileSize / stretch;
+}
 
 // src/client/containers/overlay/net.ts
 var scales = [
@@ -9493,7 +9493,7 @@ var CoordForm = class extends MonoContainer {
   });
   static refresh() {
     coordUnits.forEach((u) => {
-      this.info[u].html.style.display = "none";
+      this.info[u].style = { display: "none" };
     });
     const { value } = this.input.html;
     if (!value)
@@ -9506,15 +9506,15 @@ var CoordForm = class extends MonoContainer {
         console.log("update lat/lon");
         const func = rad2stringFuncs[u];
         this.info[u].html.innerText = `${func({ axis: "NS", pad: 2, phi: this.lat })} ${func({ axis: "EW", pad: 3, phi: this.lon })}`;
-        this.info[u].html.style.display = "block";
+        this.info[u].style = { display: "block" };
         this.submit.html.classList.remove("disabled");
       });
-      this.error.html.style.display = "none";
+      this.error.style = { display: "none" };
       this.valid = true;
     } catch (e) {
       this.valid = false;
       this.error.html.innerText = e instanceof Error ? e.toString() : "unknown error";
-      this.error.html.style.display = "block";
+      this.error.style = { display: "block" };
       this.submit.html.classList.add("disabled");
     }
   }
@@ -9681,7 +9681,7 @@ var OverlayToggle = class extends IconButton {
       active: () => Boolean(Settings.show[source]),
       onclick: () => {
         Settings.show[source] = !Settings.show[source];
-        TilesContainer.instance.rebuild(`overlay ${source} toggle`);
+        TilesContainer.rebuild(`overlay ${source} toggle`);
       },
       src: `icons/${source}.svg`
     });
@@ -9692,17 +9692,6 @@ var OverlayToggle = class extends IconButton {
 var NavionicsToggle = class extends MonoContainer {
   static {
     this.copyInstance(new OverlayToggle("navionics"), this);
-  }
-};
-
-// src/client/containers/menu/suncalcToggle.ts
-var SuncalcToggle = class extends MonoContainer {
-  static {
-    this.copyInstance(new IconButton({
-      active: () => Settings.show.suncalc,
-      icon: "sunrise",
-      onclick: () => Settings.show.suncalc = !Settings.show.suncalc
-    }), this);
   }
 };
 
@@ -9755,11 +9744,14 @@ function updateUserLocation() {
         timestamp,
         type: "user"
       });
+      InfoBoxCoords.refresh();
     },
     (err) => {
       if (err.code === 1)
         geolocationBlocked = true;
       console.warn(`ERROR(${err.code}): ${err.message}`);
+      Markers.delete("user");
+      InfoBoxCoords.refresh();
     },
     {
       enableHighAccuracy: true,
@@ -9797,7 +9789,7 @@ function inputListener(event, { x, y } = { x: 0, y: 0 }) {
     if (key >= "0" && key <= "9") {
       const baselayer = baselayers[parseInt(key)];
       if (typeof baselayer !== "undefined")
-        TilesContainer.instance.baselayer = baselayer;
+        TilesContainer.baselayer = baselayer;
     } else if (key === "c")
       CrosshairToggle.html.click();
     else if (key === "d")
@@ -9820,7 +9812,7 @@ function inputListener(event, { x, y } = { x: 0, y: 0 }) {
         y: round(position.y)
       };
     } else if (key === "u") {
-      const userMarker = Markers.get("user");
+      const userMarker = Markers.getMarker("user");
       if (userMarker)
         position.xyz = userMarker;
     } else if (key === "ArrowLeft")
@@ -9897,12 +9889,126 @@ var MouseContainer = class extends MonoContainer {
   }
 };
 
+// src/client/containers/scaleContainer.ts
+var ScaleUnitContainer = class extends Container {
+  constructor({
+    align = "bottom",
+    nautMiles = 1,
+    siPrefixes = false,
+    unit = "nm"
+  } = {}) {
+    super("div", {
+      classes: ["position-relative"]
+    });
+    this.unit = unit;
+    this.nautMiles = nautMiles;
+    this.siPrefixes = siPrefixes;
+    if (align === "top")
+      this.scale.style = {
+        borderBottomWidth: "0px",
+        borderTopWidth: "1px",
+        marginTop: "-1px",
+        top: "0"
+      };
+    else
+      this.scale.style = {
+        borderBottomWidth: "1px",
+        borderTopWidth: "0px",
+        bottom: "0"
+      };
+    this.append(
+      this.label,
+      this.scale
+    );
+  }
+  unit;
+  nautMiles;
+  siPrefixes;
+  label = new Container("div", { classes: ["ms-2"] });
+  scale = new Container("div", {
+    classes: ["position-absolute"],
+    style: {
+      borderBottomWidth: "1px",
+      borderLeftWidth: "1px",
+      borderRightWidth: "1px",
+      borderStyle: "solid",
+      borderTopWidth: "0",
+      height: "10px"
+    }
+  });
+  refresh() {
+    this.label.clear();
+    const scale = (() => {
+      const targetWidth = 80;
+      const { lat: lat2 } = position;
+      let width = nm2px(lat2) / this.nautMiles;
+      let zeros = 0;
+      while (width <= targetWidth / 10) {
+        width *= 10;
+        zeros++;
+      }
+      let count = 1;
+      if (targetWidth / width < 2) {
+        width *= 2;
+        count = 2;
+      } else if (targetWidth / width < 5) {
+        width *= 5;
+        count = 5;
+      } else if (targetWidth / width < 10) {
+        width *= 10;
+        zeros++;
+      }
+      let prefix = "";
+      if (this.siPrefixes) {
+        if (zeros >= 3) {
+          prefix = "k";
+          zeros -= 3;
+        }
+      }
+      return {
+        text: `${count}${"0".repeat(zeros)}${prefix}${this.unit}`,
+        width
+      };
+    })();
+    this.label.append(scale.text);
+    this.scale.style = { width: `${scale.width}px` };
+  }
+};
+var ScaleContainer = class extends MonoContainer {
+  static nautMiles = new ScaleUnitContainer();
+  static meters = new ScaleUnitContainer({
+    align: "top",
+    nautMiles: 1852,
+    siPrefixes: true,
+    unit: "m"
+  });
+  static refresh() {
+    this.nautMiles.refresh();
+    this.meters.refresh();
+  }
+  static {
+    this.copyInstance(new Container("div", {
+      classes: ["position-absolute"],
+      style: {
+        bottom: "2rem",
+        left: "2rem"
+      }
+    }), this);
+    this.append(
+      this.nautMiles,
+      this.meters
+    );
+    position.listeners.add(() => this.refresh());
+  }
+};
+
 // src/client/index.ts
 MainContainer.clear();
 MainContainer.append(
   Stylesheet,
-  TilesContainer.instance,
+  TilesContainer,
   OverlayContainer,
+  ScaleContainer,
   MouseContainer,
   InfoBox,
   MenuContainer

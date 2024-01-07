@@ -6,6 +6,7 @@ import { Settings } from '../globals/settings';
 import { tileSize } from '../globals/tileSize';
 import { MainContainer } from '../mainContainer';
 import { Container } from '../utils/htmlElements/container';
+import { MonoContainer } from '../utils/htmlElements/monoContainer';
 import { LocalStorageItem } from '../utils/localStorageItem';
 import { rad2deg } from '../utils/rad2deg';
 import { x2lon } from '../utils/x2lon';
@@ -13,39 +14,21 @@ import { y2lat } from '../utils/y2lat';
 import { MapTile } from './map/mapTile';
 import { BaselayerMenu } from './menu/baselayerMenu';
 
-export class TilesContainer extends Container {
-  static get instance () {
-    if (!TilesContainer._instance) TilesContainer._instance = new TilesContainer();
-    return TilesContainer._instance;
-  }
-  private static _instance: TilesContainer;
+export class TilesContainer extends MonoContainer {
+  private static mapTiles = new Map<string, MapTile>();
 
-  private constructor () {
-    super('div', {
-      classes: ['MapContainerStyle'],
-      id: TilesContainer.name,
-    });
-    window.addEventListener('resize', () => this.refresh('resize'));
-    position.listeners.add(() => this.refresh('position'));
-    this.rebuild('initial');
-  }
-  get instance (): any {
-    throw new Error('Method not implemented.');
-  }
-  private mapTiles = new Map<string, MapTile>();
-
-  rebuild (type: string) {
+  static rebuild (type: string) {
     this.mapTiles.clear();
     this.refresh(type);
   }
 
-  set baselayer (baselayer: Baselayer) {
+  static set baselayer (baselayer: Baselayer) {
     Settings.baselayer = baselayer;
     BaselayerMenu.baselayerLabel = baselayer;
     this.rebuild('changed baselayer');
   }
 
-  refresh (type: string) {
+  static refresh (type: string) {
     console.log(`${type} redraw@${new Date().toISOString()}`);
 
     const { height, width } = MainContainer;
@@ -119,5 +102,15 @@ export class TilesContainer extends Container {
       }
       new LocalStorageItem<typeof Settings>('settings').set(Settings);
     })();
+  }
+
+  static {
+    this.copyInstance(new Container('div', {
+      classes: ['MapContainerStyle'],
+      id: TilesContainer.name,
+    }), this);
+    window.addEventListener('resize', () => this.refresh('resize'));
+    position.listeners.add(() => this.refresh('position'));
+    this.rebuild('initial');
   }
 }

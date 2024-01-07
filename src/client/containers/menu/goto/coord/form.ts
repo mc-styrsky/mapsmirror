@@ -38,7 +38,7 @@ export class CoordForm extends MonoContainer<'form'> {
 
   static refresh () {
     coordUnits.forEach(u => {
-      this.info[u].html.style.display = 'none';
+      this.info[u].style = { display: 'none' };
     });
 
     const { value } = this.input.html;
@@ -52,16 +52,16 @@ export class CoordForm extends MonoContainer<'form'> {
         console.log('update lat/lon');
         const func = rad2stringFuncs[u];
         this.info[u].html.innerText = `${func({ axis: 'NS', pad: 2, phi: this.lat })} ${func({ axis: 'EW', pad: 3, phi: this.lon })}`;
-        this.info[u].html.style.display = 'block';
+        this.info[u].style = { display: 'block' };
         this.submit.html.classList.remove('disabled');
       });
-      this.error.html.style.display = 'none';
+      this.error.style = { display: 'none' };
       this.valid = true;
     }
     catch (e) {
       this.valid = false;
       this.error.html.innerText = e instanceof Error ? e.toString() : 'unknown error';
-      this.error.html.style.display = 'block';
+      this.error.style = { display: 'block' };
       this.submit.html.classList.add('disabled');
     }
   }

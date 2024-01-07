@@ -73,25 +73,4 @@ Stylesheet.addClass({
     top: '0px',
     width: '100%',
   },
-  mbA: {
-    marginBottom: 'auto',
-  },
-  mlA: {
-    marginLeft: 'auto',
-  },
-  mrA: {
-    marginRight: 'auto',
-  },
-  mtA: {
-    marginTop: 'auto',
-  },
-  mxA: {
-    marginLeft: 'auto',
-    marginRight: 'auto',
-  },
-  myA: {
-    marginBottom: 'auto',
-    marginTop: 'auto',
-  },
-
 });

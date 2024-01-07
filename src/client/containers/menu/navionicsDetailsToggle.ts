@@ -17,6 +17,7 @@ export class NavionicsDetailsToggle extends MonoContainer {
         const newActive = !Settings.show.navionicsDetails;
         Settings.show.navionicsDetails = newActive;
         void NavionicsDetails.fetch(position);
+        this.refresh();
       },
     }), this);
     this.refresh();

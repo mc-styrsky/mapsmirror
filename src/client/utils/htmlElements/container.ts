@@ -33,13 +33,17 @@ export class Container<Tag extends keyof HTMLElementTagNameMap = 'div'> {
       if (typeof c === 'string') this.html.classList.add(...c.split(' ').map(kebabify));
     });
     if (dataset) entriesTyped(dataset).forEach(([k, v]) => this.html.dataset[k] = v);
-    if (style) entriesTyped(style).forEach(([k, v]) => this.html.style[k] = v);
+    if (style) this.style = style;
   }
 
   readonly html: HTMLElementTagNameMap[Tag];
 
   clear (): NoOverride {
     this.html.innerHTML = '';
+  }
+
+  set style (style: Partial<HTMLElementTagNameMap[Tag]['style']>) {
+    entriesTyped(style).forEach(([k, v]) => this.html.style[k] = v);
   }
 
   append (...items: Appendable[]): NoOverride<this> {

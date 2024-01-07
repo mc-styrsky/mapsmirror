@@ -9,7 +9,7 @@ export class OverlayToggle extends IconButton {
       active: () => Boolean(Settings.show[source]),
       onclick: () => {
         Settings.show[source] = !Settings.show[source];
-        TilesContainer.instance.rebuild(`overlay ${source} toggle`);
+        TilesContainer.rebuild(`overlay ${source} toggle`);
       },
       src: `icons/${source}.svg`,
     });

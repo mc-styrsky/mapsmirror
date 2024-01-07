@@ -44,7 +44,7 @@ export function inputListener (
     const { key } = event;
     if (key >= '0' && key <= '9') {
       const baselayer = baselayers[parseInt(key)];
-      if (typeof baselayer !== 'undefined') TilesContainer.instance.baselayer = baselayer;
+      if (typeof baselayer !== 'undefined') TilesContainer.baselayer = baselayer;
     }
     else if (key === 'c') CrosshairToggle.html.click();
     else if (key === 'd') CoordsToggle.html.click();
@@ -65,7 +65,7 @@ export function inputListener (
       };
     }
     else if (key === 'u') {
-      const userMarker = Markers.get('user');
+      const userMarker = Markers.getMarker('user');
       if (userMarker) position.xyz = userMarker;
     }
     else if (key === 'ArrowLeft') position.xyz = { x: position.x - 1 };

@@ -63,7 +63,7 @@ export class IconButton extends Container<'a'> {
         this.html.classList.add('btn-secondary');
         this.html.classList.remove('btn-success');
       }
-      TilesContainer.instance.refresh('icon clicked');
+      TilesContainer.refresh('icon clicked');
     };
   }
 }

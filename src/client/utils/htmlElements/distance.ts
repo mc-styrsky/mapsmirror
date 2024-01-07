@@ -15,7 +15,7 @@ class DistanceElement extends Container<'span'> {
   private readonly label = new Container('div', { classes: ['d-inline-block'] });
 
   set dist ({ omega, radius }: { radius: number; omega: number; }) {
-    this.arrow.html.style.transform = `rotate(${omega}rad)`;
+    this.arrow.style = { transform: `rotate(${omega}rad)` };
     if (radius < 0.001) {
       this.arrow.html.classList.add('d-none');
       this.arrow.html.classList.remove('d-inline-block');

@@ -78,13 +78,15 @@ export class MapTile extends Container<'canvas'> {
       1 / (1 << this.z - z);
     const size = tileSize * scaleZ;
 
-    this.html.style.height = `${size}px`;
-    this.html.style.width = `${size}px`;
-    this.html.style.transform = `translate(${
-      floor((this.x * scaleZ - x) * tileSize)
-    }px, ${
-      floor((this.y * scaleZ - y) * tileSize)
-    }px)`;
+    this.style = {
+      height: `${size}px`,
+      transform: `translate(${
+        floor((this.x * scaleZ - x) * tileSize)
+      }px, ${
+        floor((this.y * scaleZ - y) * tileSize)
+      }px)`,
+      width: `${size}px`,
+    };
   }
 
   readonly id: string;

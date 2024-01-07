@@ -34,7 +34,7 @@ export class NavionicsItemLabel extends Container {
     });
     this.distanceContainer = new Distance(itemPosition);
     this.append(
-      new Container('div', { classes: ['myA'] }).append(
+      new Container('div', { classes: ['my-auto'] }).append(
         itemName,
         this.distanceContainer.spacer,
       ),

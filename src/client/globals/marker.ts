@@ -52,8 +52,8 @@ export class Markers {
       this.refresh();
     }
   };
-  static get = (type: Marker['type']) => this._markers.get(type);
-  static set = () => this._markers;
+  static getMarker = (type: Marker['type']) => this._markers.get(type);
+  static getMap = () => this._markers;
 
   static refresh () {
     this.listeners.forEach(callback => callback());

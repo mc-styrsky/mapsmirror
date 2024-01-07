@@ -63,7 +63,7 @@ export class ValueRow extends Container {
   addRow ({ col1 = [], col2 = [], col3 = [], row }: Partial<Record<'col1'|'col2'|'col3'|'row', Appendable[]>>) {
     row ??= [
       new Container('div', {
-        classes: ['mrA'],
+        classes: ['me-auto'],
       }).append(...col1),
       new Container('div', {
         classes: ['ValueRowColRight'],

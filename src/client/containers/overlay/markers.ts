@@ -7,7 +7,7 @@ import { tileSize } from '../../globals/tileSize';
 export const drawMarkers = ({
   context, x, y,
 }: Overlay) => {
-  Markers.set().forEach(marker => {
+  Markers.getMap().forEach(marker => {
     const markerX = (marker.x - x) * tileSize;
     const markerY = (marker.y - y) * tileSize;
     const from = 40;

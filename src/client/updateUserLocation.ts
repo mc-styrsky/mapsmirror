@@ -1,3 +1,4 @@
+import { InfoBoxCoords } from './containers/infoBox/infoBoxCoords';
 import { Markers } from './globals/marker';
 import { deg2rad } from './utils/deg2rad';
 
@@ -13,10 +14,13 @@ export function updateUserLocation () {
         timestamp,
         type: 'user',
       });
+      InfoBoxCoords.refresh();
     },
     (err) => {
       if (err.code === 1) geolocationBlocked = true;
       console.warn(`ERROR(${err.code}): ${err.message}`);
+      Markers.delete('user');
+      InfoBoxCoords.refresh();
     },
     {
       enableHighAccuracy: true,
