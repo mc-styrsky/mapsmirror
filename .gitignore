@@ -1,6 +1,5 @@
 # Node.js files/folders
 node_modules
-package-lock.json
 tiles
 tiles2
 gebco/sources

@@ -1,3 +1,4 @@
+import { floor, log10, pow } from '../../common/math';
 import { position } from '../globals/position';
 import { Container } from '../utils/htmlElements/container';
 import { MonoContainer } from '../utils/htmlElements/monoContainer';
@@ -18,7 +19,10 @@ class ScaleUnitContainer extends Container {
   } = {},
   ) {
     super('div', {
-      classes: ['position-relative'],
+      classes: [
+        'position-relative',
+        'd-flex',
+      ],
     });
 
     this.unit = unit;
@@ -44,7 +48,7 @@ class ScaleUnitContainer extends Container {
   private readonly unit: string;
   private readonly nautMiles: number;
   private readonly siPrefixes: boolean;
-  readonly label = new Container('div', { classes: ['ms-2'] });
+  readonly label = new Container('div', { classes: ['px-1'] });
   readonly scale = new Container('div', {
     classes: ['position-absolute'],
     style: {
@@ -56,44 +60,47 @@ class ScaleUnitContainer extends Container {
       height: '10px',
     },
   });
-  refresh () {
+  refresh (targetWidth = 20) {
+    const { lat } = position;
+    const baseWidth = nm2px(lat) / this.nautMiles;
+    let zeros = floor(log10(targetWidth) - log10(baseWidth));
+    let width = baseWidth * pow(10, zeros);
+    let count = 1;
+
+    const getText = () => {
+      const { prefix, retZeros } =
+      this.siPrefixes && zeros >= 3 ?
+        { prefix: 'k', retZeros: zeros - 3 } :
+        { prefix: '', retZeros: zeros };
+      return retZeros < 0 ?
+        `0.${'0'.repeat(-1 - retZeros)}${count}${prefix ?? ''}${this.unit}` :
+        `${count}${'0'.repeat(retZeros)}${prefix ?? ''}${this.unit}`;
+    };
+
+
+    if (targetWidth / width > 5) {
+      width *= 10;
+      zeros++;
+    }
+    else if (targetWidth / width > 2) {
+      width *= 5;
+      count = 5;
+    }
+    else {
+      width *= 2;
+      count = 2;
+    }
+
+    const text = getText();
     this.label.clear();
-    const scale = (() => {
-      const targetWidth = 80;
-      const { lat } = position;
-      let width = nm2px(lat) / this.nautMiles;
-      let zeros = 0;
-      while (width <= targetWidth / 10) {
-        width *= 10;
-        zeros++;
-      }
-      let count = 1;
-      if (targetWidth / width < 2) {
-        width *= 2;
-        count = 2;
-      }
-      else if (targetWidth / width < 5) {
-        width *= 5;
-        count = 5;
-      }
-      else if (targetWidth / width < 10) {
-        width *= 10;
-        zeros++;
-      }
-      let prefix = '';
-      if (this.siPrefixes) {
-        if (zeros >= 3) {
-          prefix = 'k';
-          zeros -= 3;
-        }
-      }
-      return {
-        text: `${count}${'0'.repeat(zeros)}${prefix}${this.unit}`,
-        width,
-      };
-    })();
-    this.label.append(scale.text);
-    this.scale.style = { width: `${scale.width}px` };
+    console.log(this.label.html.clientWidth);
+    this.label.append(text);
+    this.scale.style = { width: `${width}px` };
+    const { clientWidth } = this.label.html;
+    console.log({ clientWidth, targetWidth, text, width });
+    if (width < clientWidth) {
+      this.refresh(targetWidth * 2);
+    }
   }
 }
 
